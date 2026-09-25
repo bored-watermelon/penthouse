@@ -574,73 +574,115 @@ img { -webkit-user-drag: none; }
 .foot__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
 .foot__center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-top: calc(var(--fold) * 0.4); pointer-events: none; }
+/* Laid out on the 1728-wide Figma frame: 1em = the 106px of "was", and the block is 1014px wide. */
 .foot__text {
-  position: relative; pointer-events: none;
-  font-size: clamp(40px, 5.9vw, 102px); line-height: 1.12; letter-spacing: -0.035em;
-  font-family: var(--body);
+  position: relative; pointer-events: none; display: flex; flex-direction: column; align-items: center;
+  width: 9.566em; font-size: clamp(30px, 6.13vw, 106px); font-family: var(--body); font-weight: 400; color: #fff;
 }
-.foot__text p { margin: 0; white-space: nowrap; }
-.foot__l1 { font-weight: 500; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); }
-.foot__l1 { color: #fff; }
-.sel { position: relative; color: #191919; background: #cfe4f7; padding: 0 0.03em; }
-.sel__h { position: absolute; width: 3px; background: #1f4fff; font-style: normal; }
-.sel__h::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #1f4fff; left: 50%; transform: translateX(-50%); }
-.sel__h--l { left: -2px; top: 0; bottom: 0; }
-.sel__h--l::after { top: -10px; }
-.sel__h--r { right: -2px; top: 0; bottom: 0; }
-.sel__h--r::after { bottom: -10px; }
-
-.foot__l2 { margin-top: 0.12em; display: flex; align-items: center; gap: 0.3em; }
-.foot__to { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); }
+.foot__text p { margin: 0; display: flex; align-items: center; white-space: nowrap; }
+.foot__l2 { align-self: stretch; }
+.foot__word { line-height: 1.0189; letter-spacing: -0.07em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); }
+.sel { display: inline-flex; align-items: center; gap: 0.1132em; background: #c2e9fa; color: #32333f; text-shadow: none; }
+.sel__h { position: relative; flex: none; width: 0; height: 1.0377em; }
+.sel__h img { position: absolute; left: -0.1258em; top: -0.0236em; width: 0.2516em; height: 1.1871em; max-width: none; pointer-events: none; }
+.sel__h--l { transform: scaleY(-1); }
+.foot__to { font-family: 'Intel One Mono', var(--mono); font-size: 1.0377em; line-height: normal; letter-spacing: -0.03em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); }
 .foot__create {
-  font-family: 'Bungee', var(--body); font-weight: 400; letter-spacing: 0; padding-right: 0.06em;
-  background: linear-gradient(95deg, #8b3dff 0%, #ff4fa3 22%, #ffd23a 45%, #6cf06a 66%, #35d6ff 82%, #6a5cff 100%);
+  font-family: 'Caesar Dressing', var(--body); font-size: 1.5943em; line-height: 1.0651; letter-spacing: -0.03em;
+  background: url("data:image/svg+xml;utf8,<svg viewBox='0 0 417 180' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%' width='100%' fill='url(%23grad)'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(18.679 7.75 -6.4988 23.337 208.91 63)'><stop stop-color='rgb(255,6,6)' offset='0'/><stop stop-color='rgb(255,30,6)' offset='0.031854'/><stop stop-color='rgb(255,53,7)' offset='0.063708'/><stop stop-color='rgb(255,100,7)' offset='0.12742'/><stop stop-color='rgb(255,146,7)' offset='0.19113'/><stop stop-color='rgb(255,193,7)' offset='0.25483'/><stop stop-color='rgb(195,201,23)' offset='0.31613'/><stop stop-color='rgb(135,208,39)' offset='0.37742'/><stop stop-color='rgb(105,212,47)' offset='0.40806'/><stop stop-color='rgb(75,216,55)' offset='0.43871'/><stop stop-color='rgb(45,220,63)' offset='0.46935'/><stop stop-color='rgb(15,223,71)' offset='0.5'/><stop stop-color='rgb(13,214,117)' offset='0.54688'/><stop stop-color='rgb(12,204,163)' offset='0.59376'/><stop stop-color='rgb(10,195,209)' offset='0.64065'/><stop stop-color='rgb(8,185,255)' offset='0.68753'/><stop stop-color='rgb(32,139,255)' offset='0.73561'/><stop stop-color='rgb(55,93,255)' offset='0.78368'/><stop stop-color='rgb(67,69,255)' offset='0.80772'/><stop stop-color='rgb(79,46,255)' offset='0.83176'/><stop stop-color='rgb(90,23,255)' offset='0.8558'/><stop stop-color='rgb(96,12,255)' offset='0.86782'/><stop stop-color='rgb(102,0,255)' offset='0.87984'/><stop stop-color='rgb(135,2,255)' offset='0.90985'/><stop stop-color='rgb(168,3,255)' offset='0.93987'/><stop stop-color='rgb(234,7,255)' offset='0.9999'/></radialGradient></defs></svg>") 0 0 / 100% 100% no-repeat;
   -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
 }
 
+/* the stickers and doodles between the words; each one can be dragged off */
+.cluster { position: relative; flex: none; display: block; }
+.bit { position: absolute; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1), filter 0.18s; }
+.bit.is-dragging { cursor: grabbing; transition: none; filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.35)); }
+.bit img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; pointer-events: none; }
+.bit--crop { overflow: hidden; }
+.bit--crop img { inset: auto; }
+
 .resume-pill {
-  position: absolute; left: -13%; top: -22%; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
-  display: inline-flex; align-items: center; gap: 0.4em; padding: 0.35em 0.5em 0.35em 1.2em;
-  border-radius: 999px; background: #f4a8cf; color: #3a1d5e; text-decoration: none;
-  font-family: var(--body); font-weight: 600; font-size: 20px; letter-spacing: 0; text-transform: uppercase; white-space: nowrap;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25); transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1), scale 0.18s;
+  position: absolute; left: 9.07%; top: -2.56%; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  display: inline-flex; align-items: center; gap: 0.4167em; padding: 0.4167em 0.4167em 0.4167em 1.25em;
+  border-radius: 99px; background: #ffa1cc; color: #5f002c; text-decoration: none;
+  font-family: var(--body); font-weight: 600; font-size: max(12px, 0.2264em); line-height: normal; letter-spacing: 0; text-transform: uppercase; white-space: nowrap;
+  box-shadow: inset -4px -4px 8px #f85ca3, inset 4px 4px 8px #ffd0e5;
+  transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1), scale 0.18s;
 }
 .resume-pill:hover { scale: 1.05; }
-.resume-pill.is-dragging { cursor: grabbing; transition: none; scale: 1.05; box-shadow: 0 14px 30px rgb(0 0 0 / 0.35); }
-.eyes { display: inline-flex; flex: none; gap: 4px; }
-.eye { --px: 0px; --py: 0px; position: relative; width: 28px; height: 28px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.18); }
-/* the pupil's travel (7px, set in Footer.tsx) has to stay inside the sclera: (28 - 11) / 2 = 8.5px of room */
-.eye::after { content: ''; position: absolute; width: 11px; height: 11px; border-radius: 50%; background: #1f3cff; left: 8.5px; top: 8.5px; transform: translate(var(--px), var(--py)); transition: transform 0.08s; }
+.resume-pill.is-dragging { cursor: grabbing; transition: none; scale: 1.05; box-shadow: inset -4px -4px 8px #f85ca3, inset 4px 4px 8px #ffd0e5, 0 14px 30px rgb(0 0 0 / 0.35); }
+.eyes { display: inline-flex; flex: none; gap: 0.25em; }
+/* the pupils start off looking left, as in Figma; Footer.tsx then points them at the cursor */
+.eye { --px: -0.6em; --py: 0px; position: relative; width: 2em; height: 2em; border-radius: 50%; background: #fff; }
+.eye::after { content: ''; position: absolute; width: 0.75em; height: 0.75em; border-radius: 50%; background: #0049ff; left: 0.625em; top: 0.625em; transform: translate(var(--px), var(--py)); transition: transform 0.08s; }
 
-.sticker { position: absolute; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1), filter 0.18s; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.25)); }
-.sticker.is-dragging { cursor: grabbing; transition: none; filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.35)); }
-.sticker img { display: block; width: 100%; height: auto; pointer-events: none; }
-.sticker__crop { width: 100%; background-repeat: no-repeat; pointer-events: none; }
-
-.foot__cat { position: absolute; left: 2.5%; bottom: -3%; width: clamp(180px, 19vw, 340px); height: auto; pointer-events: none; }
-.foot__copy {
-  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 1;
-  border: 1px solid rgb(255 255 255 / 0.45); background: rgb(255 255 255 / 0.18); color: #fff; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border-radius: 999px; padding: 12px 28px; font-family: var(--mono); font-size: 16px; cursor: pointer; white-space: nowrap;
+.foot__rights {
+  position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 4; /* the cat walks behind it */ margin: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 99px;
+  border: 1px solid #fff; background: rgb(255 255 255 / 0.3); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  font-family: var(--body); font-size: 16px; letter-spacing: -0.03em; color: #fff; white-space: nowrap;
 }
-.foot__copy:hover { background: rgb(255 255 255 / 0.3); }
-.foot__credit { position: absolute; right: 16px; bottom: 12px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; pointer-events: none; }
+.foot__rights img { flex: none; }
+.foot__rights s { color: rgb(215 215 215 / 0.6); }
+.foot__credit { position: absolute; z-index: 4; right: 36px; bottom: 17px; font-family: var(--mono); font-size: 10px; letter-spacing: -0.03em; text-transform: uppercase; color: rgb(255 255 255 / 0.5); pointer-events: none; }
 
-.social { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+/* ----- the catch game (CatGame.tsx) ----- */
+.game { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.game__cat { position: absolute; left: 0; bottom: 0; width: clamp(150px, 22.3vw, 400px); pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transform-origin: 50% 100%; will-change: transform; }
+.game__cat:active { cursor: grabbing; }
+.game__cat img {
+  display: block; width: 100%; height: auto; pointer-events: none; transform-origin: 50% 100%;
+  /* the photo is cut off at the bottom; a soft edge keeps that from showing mid-jump */
+  -webkit-mask-image: linear-gradient(to top, transparent, #000 14%); mask-image: linear-gradient(to top, transparent, #000 14%);
+}
+.game__cat.is-happy img { animation: cat-happy 0.42s var(--ease-spring); }
+.game__cat.is-landing img { animation: cat-land 0.26s ease-out; }
+@keyframes cat-happy { 35% { scale: 1.05 0.93; } 70% { scale: 0.98 1.03; } }
+@keyframes cat-land { 35% { scale: 1.07 0.9; } }
+
 .social__icon {
-  position: absolute; left: 0; top: 0; width: 76px; height: 76px; pointer-events: auto; touch-action: none; user-select: none; cursor: grab;
+  position: absolute; left: 0; top: 0; width: 64px; height: 64px; pointer-events: auto; touch-action: none; user-select: none; cursor: grab;
   border-radius: 22%; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35)); will-change: transform;
 }
 .social__icon.is-round { border-radius: 50%; }
 .social__icon:active { cursor: grabbing; }
 .social__icon img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.social__icon.is-caught img { animation: icon-caught 0.36s var(--ease-spring); }
+@keyframes icon-caught { 0% { scale: 1.3 0.7; } 100% { scale: 1; } }
+
+.game__bubble {
+  --tail: 0px;
+  position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none;
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 14px;
+  background: #fff; color: var(--ink); box-shadow: 0 10px 28px rgb(0 0 0 / 0.28);
+  font-family: var(--body); font-size: 14px; font-weight: 500; white-space: nowrap;
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.game__bubble.is-on { opacity: 1; }
+.game__bubble::after {
+  content: ''; position: absolute; left: clamp(14px, calc(50% + var(--tail)), calc(100% - 14px)); bottom: -5px;
+  width: 12px; height: 12px; border-radius: 2px; background: #fff; transform: translateX(-50%) rotate(45deg);
+}
+.game__bubble b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.game__bubble kbd {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px;
+  border: 1px solid var(--line-strong); border-bottom-width: 2px; background: var(--paper-2); font-family: var(--mono); font-size: 12px; line-height: 1;
+}
+.game__again {
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; margin-left: 2px; padding: 3px 4px 3px 10px;
+  border: 0; border-radius: 99px; background: var(--ink); color: #fff; font: inherit; font-size: 13px; cursor: pointer;
+}
+.game__again:hover { background: #000; }
+.game__again kbd { min-width: 18px; height: 18px; font-size: 11px; background: rgb(255 255 255 / 0.14); border-color: rgb(255 255 255 / 0.3); color: #fff; }
 
 @media (max-width: 860px) {
-  .foot__text { font-size: clamp(30px, 9vw, 60px); }
-  .resume-pill { font-size: 13px; left: -4%; top: -62%; }
+  .foot__text { font-size: min(9.2vw, 60px); }
+  .resume-pill { left: 38%; top: -26%; }
+  /* up top with the credit, so the (smaller) cat has the ground to itself */
+  .foot__rights { font-size: 13px; padding: 8px 14px; bottom: auto; top: calc(var(--fold) + 38px); }
+  .foot__rights img { width: 16px; height: 16px; }
   .foot__credit { top: calc(var(--fold) + 14px); bottom: auto; left: 16px; right: 16px; text-align: right; font-size: 9px; }
-  .eye { width: 24px; height: 24px; } .eye::after { width: 9px; height: 9px; left: 7.5px; top: 7.5px; }
-  .foot__copy { font-size: 13px; padding: 10px 20px; bottom: 20px; }
+  .game__bubble { font-size: 13px; }
 }
 
 .dword { display: inline-block; position: relative; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1); }
@@ -1043,8 +1085,8 @@ img { -webkit-user-drag: none; }
 .dock__item.is-on { color: #fff; }
 .dock__sep { width: 1px; height: 18px; margin: 0 5px; background: var(--line-strong); }
 /* "resume" looks the same everywhere it appears: the footer's pink pill */
-.dock__item--cta { background: #f4a8cf; color: #3a1d5e; font-weight: 500; }
-.dock__item--cta:hover { background: #f19ac6; color: #3a1d5e; }
+.dock__item--cta { background: #ffa1cc; color: #5f002c; font-weight: 500; }
+.dock__item--cta:hover { background: #ff93c4; color: #5f002c; }
 .dock__item--cta svg { transition: translate 0.3s var(--ease-spring); }
 .dock__item--cta:hover svg { translate: 0 2px; }
 .dock__item--mail.is-copied { color: var(--chat-green-ink); }

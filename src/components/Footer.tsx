@@ -1,11 +1,97 @@
 import { useEffect, useRef, useState } from 'react'
-import SocialPhysics from './SocialPhysics'
-import StickerItem from './StickerItem'
+import CatGame from './CatGame'
 import DragWord from './DragWord'
 import { useDrag } from '../lib/useDrag'
-import { footerCat, footerVideo, stickers } from '../lib/footerAssets'
+import { doodle, footerVideo, sticker } from '../lib/footerAssets'
 
-const EMAIL = 'heyiamsnehajain@gmail.com'
+/**
+ * The headline is laid out on the Figma frame (1728 wide, "was" set at 106px), so every size below is in
+ * design pixels and converted to em of the headline. The whole thing then scales with one font-size.
+ */
+const u = (px: number) => `${+(px / 106).toFixed(4)}em`
+
+/** A sticker or doodle inside a cluster. x/y/w/h are design px; crop is the image's box as % of the slot, as in Figma. */
+type BitSpec = { src?: string; x: number; y: number; w: number; h: number; rot?: number; crop?: [number, number, number, number] }
+type Cluster = { w: number; h: number; bits: BitSpec[] }
+
+const CLUSTERS: Record<string, Cluster> = {
+  // heart, DVD and goldfish, after the "i"
+  afterI: {
+    w: 103, h: 101,
+    bits: [
+      { src: doodle.heart, x: -2, y: -2, w: 47, h: 51 },
+      { src: sticker('_ (25)'), x: 5, y: 61, w: 70, h: 40, crop: [-17.9, -76.82, 135.79, 243.71] },
+      { src: sticker('_ (20)'), x: 47, y: 4, w: 56, h: 76, crop: [-23.94, 0, 287.1, 172.25] },
+    ],
+  },
+  // smiley sticky note over pencil shavings, after "was"
+  afterWas: {
+    w: 94, h: 168,
+    bits: [
+      { src: sticker('@geminis'), x: 0, y: 0, w: 94, h: 96, crop: [-37.5, -35, 175, 170] },
+      { src: sticker('_ (24)'), x: 0, y: 96, w: 72, h: 72, crop: [-15.28, -15.28, 130.56, 130.56] },
+    ],
+  },
+  // lightning bolt and camera, after "created"
+  afterCreated: {
+    w: 126.4, h: 171.6,
+    bits: [
+      { src: doodle.bolt, x: -2, y: -1.97, w: 47.72, h: 87.04 },
+      { src: sticker('_ (26)'), x: 11, y: 74.78, w: 106, h: 84, rot: -15.71, crop: [-18.15, -35.98, 136.3, 171.96] },
+    ],
+  },
+  cd: { w: 112, h: 112, bits: [{ src: sticker('archive'), x: 0, y: 0, w: 112, h: 112 }] },
+  // arrows and a blue heart, pointing at "create"
+  afterTo: {
+    w: 111, h: 126,
+    bits: [
+      { src: sticker('_ (23)'), x: 21, y: 0, w: 90, h: 126 },
+      { src: sticker('_ (21)'), x: 0, y: 67, w: 53, h: 53, crop: [-129.24, -80.51, 265.34, 320.94] },
+    ],
+  },
+  // pencil, star and the End key, signing off after "create"
+  afterCreate: {
+    w: 153, h: 130.5,
+    bits: [
+      { src: doodle.pencil, x: -2, y: 67, w: 95.98, h: 68.52 },
+      { src: sticker('journaling'), x: 9, y: 0, w: 84, h: 71 },
+      { src: sticker('_ (22)'), x: 99, y: 39, w: 54, h: 54 },
+    ],
+  },
+}
+
+/** Each sticker can be picked up and moved, like the words. */
+function Bit({ b }: { b: BitSpec }) {
+  const { pos, z, dragging, handlers } = useDrag()
+  if (!b.src) return null
+  return (
+    <span
+      className={`bit${b.crop ? ' bit--crop' : ''}${dragging ? ' is-dragging' : ''}`}
+      style={{
+        left: u(b.x), top: u(b.y), width: u(b.w), height: u(b.h), zIndex: z,
+        transform: `translate(${pos.x}px, ${pos.y}px) rotate(${(b.rot ?? 0) + (dragging ? 4 : 0)}deg) scale(${dragging ? 1.08 : 1})`,
+      }}
+      {...handlers}
+    >
+      <img
+        src={b.src}
+        alt=""
+        draggable={false}
+        style={b.crop ? { left: `${b.crop[0]}%`, top: `${b.crop[1]}%`, width: `${b.crop[2]}%`, height: `${b.crop[3]}%` } : undefined}
+      />
+    </span>
+  )
+}
+
+function Stickers({ c, gap }: { c: Cluster; gap: number }) {
+  return (
+    <span className="cluster" style={{ width: u(c.w), height: u(c.h), marginRight: u(gap) }} aria-hidden>
+      {c.bits.map((b, i) => (
+        <Bit key={i} b={b} />
+      ))}
+    </span>
+  )
+}
 
 /**
  * The footer sits fixed behind the page ("sheet"). The invisible spacer after the sheet gives the page
@@ -16,11 +102,18 @@ export default function Footer() {
   const video = useRef<HTMLVideoElement>(null)
   const eyes = useRef<HTMLSpanElement>(null)
   const [active, setActive] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [revealed, setRevealed] = useState(false)
   const pill = useDrag()
 
   useEffect(() => {
-    const io = new IntersectionObserver(([e]) => setActive(e.isIntersecting), { threshold: 0 })
+    // active: any of the footer is showing. revealed: most of it is, so the socials don't drop before anyone's looking.
+    const io = new IntersectionObserver(
+      ([e]) => {
+        setActive(e.isIntersecting)
+        setRevealed(e.intersectionRatio >= 0.7)
+      },
+      { threshold: [0, 0.7] },
+    )
     io.observe(spacer.current!)
     return () => io.disconnect()
   }, [])
@@ -38,24 +131,15 @@ export default function Footer() {
     const look = (e: PointerEvent) => {
       eyes.current?.querySelectorAll<HTMLElement>('.eye').forEach((eye) => {
         const r = eye.getBoundingClientRect()
+        const travel = r.width * 0.3 // the pupil is 37.5% of the eye, so this keeps it just inside
         const a = Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2))
-        eye.style.setProperty('--px', `${Math.cos(a) * 7}px`)
-        eye.style.setProperty('--py', `${Math.sin(a) * 7}px`)
+        eye.style.setProperty('--px', `${Math.cos(a) * travel}px`)
+        eye.style.setProperty('--py', `${Math.sin(a) * travel}px`)
       })
     }
     window.addEventListener('pointermove', look)
     return () => window.removeEventListener('pointermove', look)
   }, [active])
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(EMAIL)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1600)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
 
   return (
     <>
@@ -69,7 +153,7 @@ export default function Footer() {
               href="/Sneha%20Jain%20Resume.pdf"
               download="Sneha Jain Resume.pdf"
               draggable={false}
-              style={{ zIndex: pill.z, transform: `translate(${pill.pos.x}px, ${pill.pos.y}px) rotate(${pill.dragging ? -4 : -8}deg)` }}
+              style={{ zIndex: pill.z, transform: `translate(-50%, -50%) translate(${pill.pos.x}px, ${pill.pos.y}px) rotate(${pill.dragging ? -2 : -6.11}deg)` }}
               {...pill.handlers}
               // a drag that ends on the pill shouldn't also download the file
               onClick={(e) => pill.moved.current && e.preventDefault()}
@@ -82,32 +166,38 @@ export default function Footer() {
             </a>
 
             <p className="foot__l1">
-              <DragWord>i</DragWord> <DragWord>was</DragWord>{' '}
-              <DragWord className="sel">
-                created<i className="sel__h sel__h--l" aria-hidden />
-                <i className="sel__h sel__h--r" aria-hidden />
+              <DragWord className="foot__word" style={{ marginRight: u(-4) }}>i</DragWord>
+              <Stickers c={CLUSTERS.afterI} gap={-4} />
+              <DragWord className="foot__word" style={{ marginRight: u(-4) }}>was</DragWord>
+              <Stickers c={CLUSTERS.afterWas} gap={-4} />
+              <DragWord className="foot__word sel" style={{ marginRight: u(-4) }}>
+                <i className="sel__h sel__h--l" aria-hidden><img src={doodle['sel-handle']} alt="" draggable={false} /></i>
+                created
+                <i className="sel__h" aria-hidden><img src={doodle['sel-handle']} alt="" draggable={false} /></i>
               </DragWord>
+              <Stickers c={CLUSTERS.afterCreated} gap={0} />
             </p>
             <p className="foot__l2">
-              <DragWord className="foot__to">[to]</DragWord> <DragWord className="foot__create">create</DragWord>
+              <Stickers c={CLUSTERS.cd} gap={-10} />
+              <DragWord className="foot__to" style={{ marginRight: u(-10) }}>[to]</DragWord>
+              <Stickers c={CLUSTERS.afterTo} gap={-10} />
+              <DragWord className="foot__create" style={{ marginRight: u(-10) }}>create</DragWord>
+              <Stickers c={CLUSTERS.afterCreate} gap={0} />
             </p>
-
-            {stickers.map((s) => (
-              <StickerItem key={s.id} s={s} />
-            ))}
           </div>
         </div>
 
-        {footerCat && <img className="foot__cat" src={footerCat} alt="" draggable={false} />}
+        <CatGame active={active} revealed={revealed} />
 
-        <button type="button" className="foot__copy" onClick={copy} data-solid>
-          {copied ? 'copied ✓' : `copy → ${EMAIL}`}
-        </button>
-
-        <SocialPhysics active={active} />
+        <p className="foot__rights" data-solid>
+          <img src={doodle.copyright} alt="" width={20} height={20} />
+          <span>
+            copy<s>right</s> wrong → sneha, {new Date().getFullYear()}
+          </span>
+        </p>
 
         <small className="foot__credit" data-solid>
-          © {new Date().getFullYear()} sneha jain · video by sire khattar (@artandwizardry)
+          video and image courtesies : lubhawani, RAHUL, harsh
         </small>
       </footer>
       <div className="foot-spacer" ref={spacer} aria-hidden />

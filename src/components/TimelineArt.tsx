@@ -36,7 +36,7 @@ function School() {
       </g>
       {/* pencil */}
       <g transform="translate(270 128) rotate(-28)">
-        <rect x="-62" y="-8" width="10" height="16" rx="3" fill="#f4a8cf" {...line} />
+        <rect x="-62" y="-8" width="10" height="16" rx="3" fill="#ffa1cc" {...line} />
         <rect x="-52" y="-8" width="8" height="16" fill="#e7e4df" {...line} />
         <rect x="-44" y="-8" width="62" height="16" fill="#ffd66b" {...line} />
         <path d="M18 -8L38 0L18 8Z" fill="#f5e1c5" {...line} />
@@ -67,7 +67,7 @@ function College() {
       />
       <circle cx="230" cy="122" r="7" fill="#d4ecc9" {...line} />
       <circle cx="238" cy="92" r="7" fill="#b9a6f7" {...line} />
-      <circle cx="264" cy="86" r="7" fill="#f4a8cf" {...line} />
+      <circle cx="264" cy="86" r="7" fill="#ffa1cc" {...line} />
       <circle cx="287" cy="99" r="7" fill="#fce68d" {...line} />
       <circle cx="283" cy="121" r="7" fill="#9fd0f0" {...line} />
       <g transform="translate(300 56) rotate(38)">
@@ -87,7 +87,7 @@ function Vi() {
       {/* a signal tower */}
       <path d="M92 150L118 46l26 104" fill="none" {...line} />
       <path d="M100 118h36M105 98h26M110 78h16M96 134l44-16M100 118l31-20M105 98l21-20M140 134l-44-16" fill="none" {...line} />
-      <circle cx="118" cy="40" r="5" fill="#f4a8cf" {...line} />
+      <circle cx="118" cy="40" r="5" fill="#ffa1cc" {...line} />
       <g className="tl-art__bob">
         <path d="M100 28c-6 7-6 17 0 24M88 20c-11 12-11 28 0 40M136 28c6 7 6 17 0 24M148 20c11 12 11 28 0 40" fill="none" {...line} />
       </g>
@@ -97,7 +97,7 @@ function Vi() {
       <rect x="198" y="104" width="14" height="22" rx="2" fill="#fbd3dc" {...line} />
       <rect x="222" y="94" width="14" height="32" rx="2" fill="#fbd3dc" {...line} />
       <rect x="246" y="100" width="14" height="26" rx="2" fill="#fbd3dc" {...line} />
-      <rect x="270" y="84" width="14" height="42" rx="2" fill="#f4a8cf" {...line} />
+      <rect x="270" y="84" width="14" height="42" rx="2" fill="#ffa1cc" {...line} />
       <path d="M203 94l24-12 24 6 28-18" fill="none" {...line} />
       <circle cx="279" cy="70" r="3.5" fill={INK} />
       <Sparkle x={316} y={34} s={0.8} />
@@ -115,7 +115,7 @@ function Juspay() {
         <rect x="74" y="78" width="22" height="17" rx="3" fill="#fce68d" {...line} />
         <path d="M106 80c3 3 3 9 0 12M112 76c5 5 5 15 0 20" fill="none" {...line} />
         <path d="M74 118h8M88 118h8M102 118h8M116 118h8" {...line} />
-        <circle cx="160" cy="118" r="8" fill="#f4a8cf" {...line} />
+        <circle cx="160" cy="118" r="8" fill="#ffa1cc" {...line} />
         <circle cx="172" cy="118" r="8" fill="#fce68d" fillOpacity="0.85" {...line} />
       </g>
       {/* ...and the payment going through */}
