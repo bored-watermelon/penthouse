@@ -4,7 +4,7 @@ import { artifacts, BOX_CM, camera, cardboard, reality } from '../lib/about'
 import { collage } from '../lib/collage'
 import type { PlayItem } from '../content'
 import Lightbox from './Lightbox'
-import CameraViewer from './CameraViewer'
+import CameraViewer, { preloadCamera } from './CameraViewer'
 import Collage from './Collage'
 
 const { Engine, Events, Bodies, Body, Bounds, Composite, Constraint } = Matter
@@ -68,6 +68,17 @@ export default function AboutMe() {
   const [open, setOpen] = useState<number | null>(null)
   const [special, setSpecial] = useState<string | null>(null) // a thing that opens into its own viewer, like the camera
   const viewer: PlayItem[] = useMemo(() => artifacts.map((a) => ({ id: a.id, src: a.src, video: false, tags: [], caption: '' })), [])
+
+  // fetch the opened-camera art as the box comes near, so the camera viewer opens complete
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      preloadCamera()
+      io.disconnect()
+    }, { rootMargin: '800px 0px' })
+    io.observe(stage.current!)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
     const host = stage.current!

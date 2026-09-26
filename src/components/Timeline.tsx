@@ -1,5 +1,33 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { chunks, type Chunk } from '../lib/timeline'
+import type { PlayItem } from '../content'
+
+// Pictures already fetched and decoded, so a blob can appear whole the moment it's placed.
+const ready = new Set<string>()
+const warm = (src: string) => {
+  if (ready.has(src)) return
+  const img = new Image()
+  img.src = src
+  img.decode().then(() => ready.add(src), () => {})
+}
+
+/**
+ * One blob of media. It waits, hidden, until its picture has loaded, then grows in once: no grey shape first
+ * and the photo popping in over it after.
+ */
+function MediaBlob({ m, leaving, style }: { m: PlayItem; leaving: boolean; style: React.CSSProperties }) {
+  const src = m.thumb ?? m.src
+  const [loaded, setLoaded] = useState(() => !m.video && ready.has(src))
+  const done = () => {
+    ready.add(src)
+    setLoaded(true)
+  }
+  return (
+    <span className={`tl__blob${loaded ? ' is-loaded' : ''}${leaving ? ' is-leaving' : ''}`} style={style}>
+      {m.video ? <video src={m.src} autoPlay muted loop playsInline onLoadedData={done} /> : <img src={src} alt="" draggable={false} onLoad={done} />}
+    </span>
+  )
+}
 
 /*
  * Laid out on the 1512-wide Figma frame: sizes below are design px, scaled to the board's width. The line runs edge
@@ -70,20 +98,49 @@ function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: nu
   const r = rng(seed)
   const hl = raisedLeft(g, i, width, block.w) - 20
   const keep = { l: hl, r: hl + block.w + 40, t: g.line - g.amp - 14 - block.h - 60 }
-  const slots = SLOTS.map((sl) => {
+  const peak = centerOf(g, i)
+  // the line under a stretch of the board, with this chunk's bump raised: a blob's lowest point must stay above
+  // its highest point there, with room to spare (and above the headings resting on the flat line)
+  const lineAt = (x: number) => {
+    const d = Math.abs(x - peak)
+    return d >= g.reach ? g.line : g.line - (g.amp * (1 + Math.cos((Math.PI * d) / g.reach))) / 2
+  }
+  const floor = (l: number, rr: number) => Math.min(g.line - 70, lineAt(clamp(peak, l, rr)) - 28)
+  const half = (size: number) => size * 0.64 // half the rotated shape, roughly
+  const placed: { x: number; y: number; size: number }[] = []
+  const fits = (x: number, y: number, size: number) => {
+    const h = half(size)
+    const k = size * 0.72 // a tilted square's corner reaches this far
+    if (x - h < 8 || x + h > width - 8 || y - h < 4) return false
+    if (y + k > floor(x - k, x + k)) return false
+    if (x + k > keep.l && x - k < keep.r && y + k > keep.t) return false
+    return placed.every((p) => Math.hypot(p.x - x, p.y - y) > (half(p.size) + h) * 0.9)
+  }
+
+  const out: Blob[] = []
+  const items = shuffle(c.media.map((_, k) => k), r)
+  const add = (item: number, x: number, y: number, size: number, rot: number) => {
+    placed.push({ x, y, size })
+    out.push({ item, x, y, size, rot: rot + (r() - 0.5) * 12, round: ROUND[Math.floor(r() * ROUND.length)], delay: 180 + out.length * 70 + r() * 60 }) // after the last heading has settled back down
+  }
+  // first the spots from Figma, in random order
+  for (const sl of shuffle(SLOTS, r)) {
+    if (out.length === items.length) break
     const size = sl.size * g.bs * (0.9 + r() * 0.2)
-    const half = size * 0.62 + 8 // never cut off by the screen edge
-    return { ...sl, x: clamp(sl.x * g.s, half, width - half), y: Math.max(half, (sl.y - 60) * g.vs), size }
-  })
-  const free = slots.filter((sl) => {
-    const h = sl.size * 0.62 // half the rotated box, roughly
-    const clash = sl.x + h > keep.l && sl.x - h < keep.r && sl.y + h > keep.t
-    return !clash && sl.y + h < g.line - 70 // clear of the headings resting on the line
-  })
-  const pool = shuffle(free, r).concat(shuffle(slots.filter((sl) => !free.includes(sl)), r)) // crowded chunks spill over
-  return shuffle(c.media.map((_, k) => k), r)
-    .slice(0, pool.length)
-    .map((item, k) => ({ item, ...pool[k], rot: pool[k].rot + (r() - 0.5) * 12, round: ROUND[Math.floor(r() * ROUND.length)], delay: k * 70 + r() * 60 }))
+    const x = sl.x * g.s
+    const y = (sl.y - 60) * g.vs
+    if (fits(x, y, size)) add(items[out.length], x, y, size, sl.rot)
+  }
+  // then, for a chunk with more to show, anywhere else that's free; blobs get a little smaller the harder a
+  // place is to find, and whatever still doesn't fit is left out rather than put over the line
+  const base = 142 * g.bs
+  for (let tries = 0; out.length < items.length && tries < 1500; tries++) {
+    const size = base * (1 - Math.min(0.45, tries / 1500)) * (0.85 + r() * 0.3)
+    const x = r() * width
+    const y = r() * g.line
+    if (fits(x, y, size)) add(items[out.length], x, y, size, (r() - 0.5) * 40)
+  }
+  return out
 }
 
 const LAST = chunks.length - 1
@@ -103,11 +160,21 @@ export default function Timeline() {
   const cx = useRef<number | null>(null)
   const target = useRef(0)
   const raf = useRef(0)
-  const leave = useRef(0)
 
   const active = hover ?? LAST // with nothing hovered, the line rests on the present
   const g = geometry(width, Math.max(110, ...sizes.map((z) => z.h)))
   const sizeOf = (i: number): Size => sizes[i] ?? { w: CAPTION_W, h: 110 }
+
+  // fetch every chunk's pictures as the timeline comes near, so hovering shows them straight away
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      chunks.forEach((c) => c.media.forEach((m) => !m.video && warm(m.thumb ?? m.src)))
+      io.disconnect()
+    }, { rootMargin: '1000px 0px' })
+    io.observe(board.current!)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
@@ -188,19 +255,12 @@ export default function Timeline() {
       if (prev.some((p) => p.chunk === active && !p.leaving)) return prev
       return [...prev.filter((p) => !p.leaving).map((p) => ({ ...p, leaving: true })), { chunk: active, seed: Math.floor(Math.random() * 1e9), leaving: false }]
     })
-    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 320)
+    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 180)
     return () => window.clearTimeout(t)
   }, [active])
 
-  const enter = (i: number) => {
-    window.clearTimeout(leave.current)
-    setHover(i)
-  }
-  // a mouse drifting off the board settles back on the present; touch stays where it was left
-  const onLeave = (e: React.PointerEvent) => {
-    if (e.pointerType !== 'mouse') return
-    leave.current = window.setTimeout(() => setHover(null), 600)
-  }
+  // the last chunk hovered stays open, caption and all, until another one is hovered
+  const enter = (i: number) => setHover(i)
 
   return (
     <section className="tl" id="timeline">
@@ -214,25 +274,25 @@ export default function Timeline() {
         className="tl__board"
         ref={board}
         style={{ height: g.height }}
-        onPointerEnter={() => window.clearTimeout(leave.current)}
-        onPointerLeave={onLeave}
       >
         <div className="tl__media" aria-hidden>
+          {/* each scatter is keyed, so when the one before it is cleared away it stays put instead of being
+              rebuilt (and popping in a second time) */}
           {sets.map((set) => {
             const c = chunks[set.chunk]
             if (!c) return null
-            return place(c, set.chunk, g, width, sizeOf(set.chunk), set.seed).map((b) => {
-              const m = c.media[b.item]
-              return (
-                <span
-                  key={`${set.seed}-${b.item}`}
-                  className={`tl__blob${set.leaving ? ' is-leaving' : ''}`}
-                  style={{ left: b.x, top: b.y, width: b.size, height: b.size, borderRadius: b.round, rotate: `${b.rot}deg`, animationDelay: `${b.delay}ms` }}
-                >
-                  {m.video ? <video src={m.src} autoPlay muted loop playsInline /> : <img src={m.thumb ?? m.src} alt="" draggable={false} />}
-                </span>
-              )
-            })
+            return (
+              <Fragment key={set.seed}>
+                {place(c, set.chunk, g, width, sizeOf(set.chunk), set.seed).map((b) => (
+                  <MediaBlob
+                    key={b.item}
+                    m={c.media[b.item]}
+                    leaving={set.leaving}
+                    style={{ left: b.x, top: b.y, width: b.size, height: b.size, borderRadius: b.round, rotate: `${b.rot}deg`, animationDelay: `${b.delay}ms` }}
+                  />
+                ))}
+              </Fragment>
+            )
           })}
         </div>
 
@@ -267,7 +327,6 @@ export default function Timeline() {
             onPointerEnter={() => enter(i)}
             onPointerDown={() => enter(i)}
             onFocus={() => enter(i)}
-            onBlur={() => setHover(null)}
           />
         ))}
 

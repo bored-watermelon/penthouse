@@ -19,6 +19,26 @@ function CamButton({ dir, disabled, onClick }: { dir: 'prev' | 'next'; disabled:
   )
 }
 
+// The camera art is fetched and decoded ahead of time, so the viewer opens whole instead of the photo arriving first.
+let bodyReady = false
+let warming: Promise<void> | null = null
+export function preloadCamera() {
+  if (warming) return warming
+  const b = camera.buttons
+  const load = (src?: string) => {
+    if (!src) return Promise.resolve()
+    const img = new Image()
+    img.src = src
+    return img.decode().catch(() => {})
+  }
+  ;[b.normal, b.hover, b.pressed, b.disabled].forEach(load)
+  load(camera.photos[0])
+  warming = load(camera.body).then(() => {
+    bodyReady = true
+  })
+  return warming
+}
+
 /**
  * The camera from the box, opened up: its screen shows the photos in "camera photos", one at a time, like flicking
  * through a camera's playback. The arrow buttons (or ← →, or a swipe) step through them; Esc or a click outside closes.
@@ -27,6 +47,7 @@ export default function CameraViewer({ onClose }: { onClose: () => void }) {
   const photos = camera.photos
   const [i, setI] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  const [ready, setReady] = useState(bodyReady) // the camera stays hidden until its body can be drawn
   const swipe = useRef<number | null>(null)
   const s = camera.screen
 
@@ -50,6 +71,15 @@ export default function CameraViewer({ onClose }: { onClose: () => void }) {
     }
   })
 
+  useEffect(() => {
+    if (ready) return
+    let live = true
+    preloadCamera().then(() => live && setReady(true))
+    return () => {
+      live = false
+    }
+  }, [ready])
+
   // have the photos either side ready, so flicking through doesn't wait on a download
   useEffect(() => {
     ;[i - 1, i + 1].forEach((k) => {
@@ -60,7 +90,7 @@ export default function CameraViewer({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className={`lightbox camview${leaving ? ' is-leaving' : ''}`} role="dialog" aria-modal="true" aria-label="my camera roll" onClick={close}>
       <div
-        className="camview__inner"
+        className={`camview__inner${ready ? '' : ' is-waiting'}`}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => (swipe.current = e.clientX)}
         onPointerUp={(e) => {

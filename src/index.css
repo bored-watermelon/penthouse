@@ -33,6 +33,8 @@
   --blue: #d5ebf7;
   --blue-ink: #1f6f9f;
   --yellow: #fce68d;
+  /* Tailwind's stone scale, as the Figma files name it */
+  --stone-50: #fafaf9; --stone-100: #f5f5f4; --stone-200: #e7e5e4; --stone-400: #a6a09b; --stone-500: #79716b; --stone-600: #57534d; --stone-800: #292524;
   --purple: var(--violet); /* older name, kept so nothing breaks */
 
   /* the chat borrows messaging-app colours */
@@ -327,30 +329,29 @@ img { -webkit-user-drag: none; }
 }
 
 /* ---------- Work / Play section ---------- */
-.work { min-height: 100vh; min-height: 100svh; background: #fff; padding: 16px 20px 120px; }
+.work { min-height: 100vh; min-height: 100svh; background: #fff; padding: 160px 20px 244px; } /* 200px from the hero to the heading, with the header's own padding. Bottom: with the timeline's top padding: 320px from the last card to the timeline heading */
 .work__inner { max-width: 1296px; margin: 0 auto; }
-/* Pinned while the section scrolls (in stacked mode the whole pane is pinned anyway). White down to the pills,
-   then a 40px band that fades to transparent with a light blur, so content passing behind it dissolves rather
-   than meeting a hard edge. At rest nothing sits under that band — the content starts below it — so it's
-   invisible until something scrolls into it. */
-.work__head {
-  position: sticky; top: 0; z-index: 5; padding: 24px 0 56px; /* 16px of solid white under the pills, then the 40px fade */
-  background: linear-gradient(#fff calc(100% - 40px), rgb(255 255 255 / 0));
-}
-.work__head::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40px; z-index: -1; pointer-events: none;
+/* Pinned while the section scrolls, on solid white. Once content scrolls up behind it (.is-scrolled, see
+   useScrolledUnder in Work.tsx), a band fades in under it: white melting to clear, with a light blur, so the
+   tiles dissolve into the header instead of meeting a hard edge (Figma 919:16378). */
+/* the pinned part ends just under the pills, as in Figma; the gap to the first card belongs to the content, so it
+   scrolls away instead of staying as a white strip under the filters */
+.work__head { position: sticky; top: 0; z-index: 5; padding: 24px 0 10px; background: #fff; }
+.stack .work__content { padding-top: clamp(22px, 3vw, 46px); }
+.work__head::after {
+  content: ''; position: absolute; left: -20px; right: -20px; top: 100%; height: clamp(28px, 3vw, 44px); pointer-events: none;
+  background: linear-gradient(#fff, rgb(255 255 255 / 0));
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent);
+  -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent);
+  opacity: 0; transition: opacity 0.25s ease;
 }
-/* stacked: nothing scrolls under the header, and the band would sit over the peeking card behind the top one */
-.is-stacked .work__head { position: relative; padding-bottom: 24px; background: none; } /* the pane pins it, and releases it with the last card */
-/* Scrolling mode: the content's end is pulled up by the pinned header's height (flow-root stops that margin
-   collapsing out of the pane), which ends the header's sticky range early; the spacer after the pane puts the
-   space back so nothing below moves up. */
-.stack:not(.is-stacked) .stack__pane { display: flow-root; }
-.stack:not(.is-stacked) .work__content { margin-bottom: calc(-1 * var(--head-pinned, 0px)); }
-.stack:not(.is-stacked)::after { content: ''; display: block; height: var(--head-pinned, 0px); }
-.is-stacked .work__head::before { display: none; }
+.work__head.is-scrolled::after { opacity: 1; }
+/* The content's end is pulled up by the pinned header's height (flow-root stops that margin collapsing out of
+   the pane), which ends the header's sticky range early; the spacer after the pane puts the space back so
+   nothing below moves up. */
+.stack__pane { display: flow-root; }
+.stack .work__content { margin-bottom: calc(-1 * var(--head-pinned, 0px)); }
+.stack::after { content: ''; display: block; height: var(--head-pinned, 0px); }
 
 /* Two alternatives stacked in one grid cell: the cell is always as tall as the taller one, so swapping between
    them never moves anything below. The outgoing one fades out quickly, the incoming one fades in just after,
@@ -365,7 +366,7 @@ img { -webkit-user-drag: none; }
 .hl--pink { color: var(--pink); }
 .hl--red { color: #e63b21; background-image: linear-gradient(transparent 60%, #fcc6be 60%, #fcc6be 88%, transparent 88%); } /* the about heading, as in Figma */
 
-.modes { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: clamp(26px, 2.8vw, 40px); font-weight: 500; letter-spacing: -0.02em; margin-bottom: 28px; }
+.modes { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; /* the same size as the intro above it */ letter-spacing: -0.02em; margin-bottom: 28px; }
 .modes__lead { margin-right: 4px; }
 .modes__label { border: 0; background: none; padding: 0; font: inherit; color: var(--ink-4); cursor: pointer; transition: color 0.2s; }
 .modes__label.is-on { color: var(--ink); }
@@ -384,101 +385,95 @@ img { -webkit-user-drag: none; }
 @media (prefers-reduced-motion: reduce) { .pin-art__lever, .pin-art__ball { transition: none; } }
 .pin-switch:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 12px; }
 
-.pills { display: flex; gap: 12px; flex-wrap: wrap; }
-.pill {
-  border: 1px solid var(--line-strong); background: var(--paper); border-radius: 999px; padding: 8px 22px; cursor: pointer;
-  font-family: var(--mono); font-size: 18px; color: var(--ink-2); transition: background 0.15s, color 0.15s, border-color 0.15s;
+/* filter row (Figma 919:16952): Geist Pixel pills with a dark outline, lit dark when on */
+.pills { display: flex; align-items: center; gap: clamp(10px, 1.1vw, 20px); flex-wrap: wrap; }
+.pill, .dd__btn, .pills__clear {
+  display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--stone-800); background: #fff; border-radius: 99px; padding: 8px 20px; cursor: pointer;
+  font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--stone-800); white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
 }
-.pill:hover { border-color: var(--ink-3); color: var(--ink); }
-.pill.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pill:hover, .dd__btn:hover { background: var(--stone-100); }
+.pill.is-on, .dd__btn.is-on { background: var(--stone-800); color: #fff; }
+.pills__divider { align-self: stretch; width: 1px; margin: 4px 0; background: var(--stone-500); }
+.pills__clear { border-color: transparent; padding: 8px 10px; }
+.pills__clear:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 .work__content { animation: fade 0.3s ease both; }
 @keyframes fade { from { opacity: 0; } }
 .empty { color: #999; font-family: var(--mono); padding: 48px 0; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
-/* dropdown filters */
+/* dropdown filters: several options can be ticked; the menu stays open while picking */
 .dd { position: relative; }
-.dd__btn {
-  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--paper); border-radius: 999px; padding: 8px 18px 8px 22px; cursor: pointer;
-  font-family: var(--mono); font-size: 18px; color: var(--ink); transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.dd__btn:hover { border-color: var(--ink-3); }
-.dd__label { color: var(--ink-3); }
-.dd__chev { margin-left: 6px; transition: transform 0.2s; }
+.dd__label { color: var(--stone-500); }
+.dd__btn.is-on .dd__label { color: #fff; }
+.dd__chev { flex: none; transition: transform 0.2s; }
 .dd__btn.is-open .dd__chev { transform: rotate(180deg); }
-.dd__btn.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
-.dd__btn.is-on .dd__label { color: #b5b5b5; }
 .dd__menu {
-  position: absolute; z-index: 20; top: calc(100% + 8px); left: 0; min-width: 100%; max-height: 320px; overflow-y: auto; margin: 0; padding: 6px; list-style: none;
-  background: #fff; border: 1px solid #e3e3e3; border-radius: 16px; box-shadow: 0 12px 32px rgb(0 0 0 / 0.12); animation: rise 0.15s ease both;
+  position: absolute; z-index: 20; top: calc(100% + 5px); left: 0; width: max-content; min-width: 228px; max-height: 360px; overflow-y: auto; /* its own width, not the pill's, which grows as options are ticked */
+  display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px; list-style: none;
+  background: #fff; border: 1px solid var(--stone-800); border-radius: 12px; filter: drop-shadow(2px 2px 3.5px rgb(0 0 0 / 0.13)); animation: rise 0.15s ease both;
 }
 .dd__menu button {
-  display: block; width: 100%; border: 0; background: none; text-align: left; white-space: nowrap; cursor: pointer;
-  padding: 9px 14px; border-radius: 10px; font-family: var(--mono); font-size: 16px; color: #222;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; background: none; text-align: left; white-space: nowrap; cursor: pointer;
+  padding: 10px; border-radius: 8px; font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: #000;
 }
-.dd__menu button:hover { background: #f3f3f3; }
-.dd__menu button.is-picked { background: var(--ink); color: #fff; }
+.dd__menu button:hover { background: var(--stone-100); }
+.dd__menu button.is-picked { background: var(--stone-200); color: var(--stone-800); }
+.dd__menu svg { flex: none; }
 
-/* project cards */
-.cards { display: flex; flex-direction: column; gap: 58px; }
-/* stacked mode: the pane sticks to the viewport, cards pile up inside it (see useCardStack in Work.tsx) */
-.is-stacked .stack__pane { position: sticky; top: 0; height: 100svh; background: #fff; clip-path: inset(0 -40px 0 -40px); }
-.is-stacked .cards { position: relative; display: block; aspect-ratio: 2.8 / 1; isolation: isolate; }
-.is-stacked .stack__item { position: absolute; inset: 0; transform-origin: 50% 0; will-change: transform; }
-.is-stacked .stack__item .card { height: 100%; aspect-ratio: auto; box-shadow: 0 -10px 30px rgb(0 0 0 / 0.2); }
-.is-stacked .stack__item .card::after { content: ''; position: absolute; inset: 0; background: #000; opacity: var(--dim, 0); pointer-events: none; }
-.is-stacked .work__content { animation: none; }
+/* project cards (Figma 919:16808): the screenshot on the left, clients at the top right, the story at the bottom
+   right over a shade that darkens toward the bottom */
+.cards { display: flex; flex-direction: column; gap: clamp(32px, 4.2vw, 64px); }
 .card {
-  position: relative; display: grid; grid-template-columns: 57% 1fr; gap: 24px; padding: 28px; overflow: hidden;
-  aspect-ratio: 2.8 / 1; border-radius: 20px; background: #2b3a55; color: #fff; text-decoration: none;
+  position: relative; display: grid; grid-template-columns: 62.5% 1fr; gap: clamp(20px, 2.1vw, 32px); padding: clamp(20px, 2.1vw, 32px); overflow: hidden;
+  aspect-ratio: 1575 / 604; border-radius: 24px; background: #2b3a55; color: #fff; text-decoration: none;
 }
 .card__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.card__shade { position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.35) 45%, transparent 75%); pointer-events: none; }
+.card__shade { position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / 0.7) 2%, rgb(0 0 0 / 0) 54%); pointer-events: none; }
 .card__thumb {
-  position: relative; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  position: relative; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .card__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
 .card:hover .card__thumb { transform: translateY(-4px) scale(1.005); box-shadow: 0 14px 36px rgb(0 0 0 / 0.28); }
 .card__side { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; min-width: 0; }
-.card__clients { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.card__client-group { display: inline-flex; align-items: center; gap: 8px; }
-.card__x { font-size: 20px; opacity: 0.85; }
-.client-pill { display: inline-flex; align-items: center; height: 42px; padding: 0 16px; background: #fff; color: #111; border-radius: 999px; border: 2px solid #111; font-weight: 600; }
-.client-pill img { height: 22px; width: auto; display: block; }
-.card__text h3 { margin: 0 0 12px; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; line-height: 1.08; letter-spacing: -0.02em; }
-.card__text p { margin: 0 0 18px; font-size: clamp(15px, 1.5vw, 20px); line-height: 1.25; opacity: 0.92; }
+.card__clients { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.card__client-group { display: inline-flex; align-items: center; gap: 6px; }
+.card__x { flex: none; color: #000; }
+/* each client's logo on a white pill with a thin dark outline (Figma 919:16816) */
+.client-pill { display: inline-flex; align-items: center; padding: 4px 12px; background: #fff; border: 1px solid var(--stone-800); border-radius: 99px; color: var(--stone-800); font-weight: 600; }
+.client-pill img { height: clamp(18px, 1.5vw, 23px); width: auto; display: block; }
+.card__text h3 { margin: 0 0 6px; font-size: clamp(22px, 1.9vw, 28px); font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; }
+.card__text p { margin: 0 0 18px; font-family: var(--pixel); font-size: clamp(14px, 1.1vw, 16px); line-height: 1.35; letter-spacing: -0.01em; color: var(--stone-50); }
 .card__tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.card__tags span { background: #fff; color: #111; border-radius: 999px; padding: 6px 16px; font-size: 16px; }
+.card__tags span { background: #fff; color: var(--stone-800); border: 1px solid var(--stone-800); border-radius: 99px; padding: 4px 12px; font-family: var(--pixel); font-size: 14px; line-height: 1.4; }
 
 /* Phones: the pinned toggle row fits on one line ("all work ⟷ some play"), and the filters sit two to a row,
    so the header that stays pinned is as short as it can be. */
 @media (max-width: 640px) {
-  .modes { gap: 10px; font-size: 25px; margin-bottom: 18px; }
+  .modes { gap: 10px; margin-bottom: 18px; }
   .modes__lead { display: none; }
   .pin-switch { width: 74px; margin: -10px 0; }
   .flip-hint { font-size: 18px; }
   .flip-hint svg { width: 40px; }
   .pills { gap: 8px; }
-  .dd__btn { font-size: 13px; padding: 6px 12px 6px 14px; gap: 4px; }
-  .dd__chev { margin-left: 2px; }
-  .pill { font-size: 13px; padding: 6px 14px; }
+  .pill, .dd__btn, .pills__clear { font-size: 13px; padding: 6px 12px; gap: 6px; }
+  .pills__clear { padding: 6px 6px; }
 }
 
 /* What clicking a card does, stated on the card itself (touch users never see the custom cursor): read time at
    rest, "read case study" sliding out on hover. */
 .card__cta {
-  position: absolute; right: 12px; bottom: 12px; z-index: 1; display: inline-flex; align-items: center; height: 34px; padding: 0 13px;
-  border-radius: 999px; background: rgb(255 255 255 / 0.92); color: var(--ink); box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  font-family: var(--mono); font-size: 13px; letter-spacing: 0.01em; white-space: nowrap;
-  transition: background 0.25s ease, color 0.25s ease;
+  position: absolute; right: 16px; bottom: 16px; z-index: 1; display: inline-flex; align-items: center; gap: 0; padding: 4px 12px;
+  border-radius: 99px; background: var(--stone-50); color: var(--stone-500); border: 1px solid var(--stone-200); filter: drop-shadow(2px 2px 2.5px rgb(0 0 0 / 0.11));
+  font-family: var(--mono); font-size: 14px; line-height: 1.4; white-space: nowrap;
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
-.card__cta-time { color: var(--ink-3); margin-right: 8px; transition: color 0.25s ease; }
+.card__cta-time { margin-right: 10px; transition: color 0.25s ease; }
 .card__cta-label { display: inline-block; max-width: 0; margin-right: 0; overflow: hidden; opacity: 0; transition: max-width 0.4s var(--ease-out), margin 0.4s var(--ease-out), opacity 0.2s ease; }
 .card__cta svg { flex: none; transition: transform 0.35s var(--ease-spring); }
-.card:hover .card__cta, .card:focus-visible .card__cta { background: var(--ink); color: #fff; }
+.card:hover .card__cta, .card:focus-visible .card__cta { background: var(--stone-800); border-color: var(--stone-800); color: #fff; }
 .card:hover .card__cta-time, .card:focus-visible .card__cta-time { color: rgb(255 255 255 / 0.55); }
 .card:hover .card__cta-label, .card:focus-visible .card__cta-label { max-width: 150px; margin-right: 8px; opacity: 1; }
 .card:hover .card__cta svg { transform: translate(2px, -2px); }
@@ -502,7 +497,7 @@ img { -webkit-user-drag: none; }
 .tile__open:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px; }
 .tile img, .tile video { display: block; width: 100%; height: auto; }
 .tile figcaption {
-  position: absolute; inset: auto 0 0 0; padding: 36px 14px 12px; color: #fff; font-size: 14px; line-height: 1.3;
+  position: absolute; inset: auto 0 0 0; padding: 36px 14px 12px; color: var(--stone-50); font-family: var(--pixel); font-size: 14px; line-height: 1.35; letter-spacing: -0.01em;
   background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent); opacity: 0; transform: translateY(6px); transition: opacity 0.2s, transform 0.2s;
 }
 .tile:hover figcaption, .tile__open:focus-visible figcaption { opacity: 1; transform: none; }
@@ -510,12 +505,12 @@ img { -webkit-user-drag: none; }
 
 @media (max-width: 1000px) { .masonry { columns: 3; } }
 @media (max-width: 860px) {
-  .work { padding: 8px 20px 80px; }
+  .work { padding: 8px 20px 104px; }
   .work__head { top: var(--head-lift, 0px); } /* see useHeadLift: only the toggle and filters stay pinned */
   .card { grid-template-columns: 1fr; aspect-ratio: auto; padding: 16px; gap: 16px; }
   .card__thumb { aspect-ratio: 16 / 10; }
   .card__shade { background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.3) 60%, transparent); }
-  .pill { font-size: 15px; padding: 6px 16px; }
+
   .masonry { columns: 2; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .work__content { animation: none; } }
@@ -552,6 +547,7 @@ img { -webkit-user-drag: none; }
 
 /* the camera from the about box, opened (CameraViewer.tsx) */
 .camview__inner { display: flex; flex-direction: column; align-items: center; gap: 22px; cursor: default; animation: cam-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.camview__inner.is-waiting { visibility: hidden; animation: none; } /* until the camera art is decoded; then it pops in whole */
 .lightbox.is-leaving .camview__inner { animation: lb-out 0.22s ease both; }
 .camview__camera { position: relative; width: min(1100px, 92vw, calc((100svh - 140px) * 1706 / 1182)); aspect-ratio: 1706 / 1182; user-select: none; -webkit-user-select: none; }
 .camview__body { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 24px 40px rgb(0 0 0 / 0.22)); }
@@ -586,11 +582,12 @@ img { -webkit-user-drag: none; }
 
 /* ---------- Footer (revealed from behind the page) ---------- */
 :root { --fold: clamp(120px, 18svh, 210px); }
-.sheet {
-  position: relative; z-index: 2; background: #fff;
-  border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px;
-  box-shadow: 0 14px 50px rgb(0 0 0 / 0.28);
-}
+.sheet { position: relative; z-index: 2; background: #fff; padding-bottom: clamp(40px, 7vw, 110px); } /* room for the peeled corner. Its outline (clip-path) comes from PageCurl.tsx */
+/* The peeled corner at the bottom of the page (see PageCurl.tsx). Hangs from the sheet's bottom edge: the
+   shadow sits under the page, the folded flap over it. */
+.curl { position: relative; height: 0; pointer-events: none; }
+.curl__shadow { position: absolute; left: 0; bottom: 0; z-index: 1; width: 100%; overflow: visible; filter: drop-shadow(0 14px 30px rgb(0 0 0 / 0.28)); }
+.curl__flap { position: absolute; left: 0; bottom: 0; z-index: 3; width: 100%; overflow: visible; filter: drop-shadow(-5px -3px 8px rgb(0 0 0 / 0.16)); }
 .foot-spacer { height: calc(100vh - var(--fold)); height: calc(100svh - var(--fold)); }
 .foot { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #3c4a5c; visibility: hidden; color: #fff; }
 .foot.is-active { visibility: visible; }
@@ -721,7 +718,7 @@ img { -webkit-user-drag: none; }
 .dword.is-dragging { filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.3)); }
 
 /* ---------- About me: a box of keepsakes on a blanket (AboutMe.tsx) ---------- */
-.me { background: #fff; padding: 40px 20px 140px; border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px; }
+.me { background: #fff; padding: 241px 20px 140px; /* 320px from the timeline's years to this heading */ border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px; }
 .me__intro { max-width: 1100px; }
 .me > .work__inner { position: relative; z-index: 2; } /* so the enlarged picture in the heading comes up over the blanket */
 
@@ -807,7 +804,7 @@ img { -webkit-user-drag: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 860px) {
-  .me { padding: 32px 20px 100px; border-radius: 0 0 32px 32px; }
+  .me { padding: 96px 20px 100px; border-radius: 0 0 32px 32px; }
   .toybox { flex-direction: column; align-items: center; gap: 8px; }
   .collage { width: min(300px, 72vw); padding-top: 64px; }
   .toybox__stage { width: 100%; padding-top: 58px; }
@@ -833,9 +830,15 @@ img { -webkit-user-drag: none; }
    "top" is the block's bottom edge, so an opening caption pushes the heading up and always ends just above the peak. */
 .tl__head {
   position: absolute; z-index: 3; translate: -50% -100%; pointer-events: none;
-  transition: top 0.5s cubic-bezier(0.3, 1.25, 0.5, 1), left 0.5s cubic-bezier(0.3, 1.1, 0.5, 1), translate 0.5s cubic-bezier(0.3, 1.1, 0.5, 1);
+  /* settling back onto the line: quick and without overshoot, so it's out of the way of the new photos */
+  transition: top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1), translate 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
-.tl__head.is-up { translate: 0 -100%; }
+/* Rising: waits a beat for the previous chunk's photos to clear (they fade in 0.14s, see .tl__blob.is-leaving),
+   so the heading and caption never pass over them. */
+.tl__head.is-up {
+  translate: 0 -100%;
+  transition: top 0.5s cubic-bezier(0.3, 1.25, 0.5, 1) 0.14s, left 0.5s cubic-bezier(0.3, 1.1, 0.5, 1) 0.14s, translate 0.5s cubic-bezier(0.3, 1.1, 0.5, 1) 0.14s;
+}
 .tl__head h3 {
   width: max-content; margin: 0; font-size: 16px; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; white-space: nowrap; color: #000;
   transform-origin: 0 100%; transition: scale 0.4s cubic-bezier(0.3, 1.3, 0.5, 1);
@@ -845,27 +848,29 @@ img { -webkit-user-drag: none; }
 .tl__logo { display: block; height: 38px; width: auto; max-width: none; }
 /* the caption opens by growing its row from nothing; while resting on the line it takes no width either, so the
    heading alone is centred */
-.tl__more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(0.3, 1.1, 0.5, 1); }
+.tl__more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
 .tl__more > div { min-height: 0; overflow: hidden; }
 .tl__head:not(.is-up) .tl__more { width: 0; }
-.tl__head.is-shown .tl__more { grid-template-rows: 1fr; }
+.tl__head.is-shown .tl__more { grid-template-rows: 1fr; transition: grid-template-rows 0.4s cubic-bezier(0.3, 1.1, 0.5, 1) 0.14s; }
 .tl__caption {
   width: max-content; margin: 0; padding-top: 10px;
   font-family: var(--pixel); font-size: 16px; line-height: 1.4; letter-spacing: 0.02em; color: #57534d;
-  opacity: 0; visibility: hidden; translate: 0 6px; transition: opacity 0.25s ease, translate 0.3s ease, visibility 0s 0.25s;
+  opacity: 0; visibility: hidden; translate: 0 6px; transition: opacity 0.12s ease, translate 0.2s ease, visibility 0s 0.12s;
 }
-.tl__head.is-shown .tl__caption { opacity: 1; visibility: visible; translate: 0 0; transition: opacity 0.3s ease 0.15s, translate 0.35s ease 0.15s, visibility 0s; }
+.tl__head.is-shown .tl__caption { opacity: 1; visibility: visible; translate: 0 0; transition: opacity 0.3s ease 0.28s, translate 0.35s ease 0.28s, visibility 0s; }
 
 /* the media, popped into blobs */
 .tl__media { position: absolute; inset: 0; }
 .tl__blob {
-  position: absolute; z-index: 1; translate: -50% -50%; overflow: hidden; background: #e2e8f0; pointer-events: none; /* the hover belongs to the chunk underneath */
-  animation: blob-in 0.55s cubic-bezier(0.3, 1.5, 0.55, 1) both; 
+  position: absolute; z-index: 1; translate: -50% -50%; overflow: hidden; pointer-events: none; /* the hover belongs to the chunk underneath */
+  opacity: 0; scale: 0.7; /* hidden until its picture has loaded (see MediaBlob), then it grows in once */
 }
+.tl__blob.is-loaded { animation: blob-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .tl__blob img, .tl__blob video { display: block; width: 100%; height: 100%; object-fit: cover; }
-.tl__blob.is-leaving { animation: blob-out 0.3s ease-in both; }
-@keyframes blob-in { from { scale: 0; } }
-@keyframes blob-out { from { scale: 1; opacity: 1; } to { scale: 0.4; opacity: 0; } }
+.tl__blob.is-leaving { animation: blob-out 0.14s ease-out both; } /* gone before the next heading rises */
+.tl__blob.is-leaving:not(.is-loaded) { animation: none; } /* never shown, so nothing to fade */
+@keyframes blob-in { from { opacity: 0; scale: 0.7; } to { opacity: 1; scale: 1; } }
+@keyframes blob-out { from { scale: 1; opacity: 1; } to { scale: 0.92; opacity: 0; } }
 
 @media (max-width: 860px) {
   .tl { padding: 40px 20px 20px; }
@@ -880,7 +885,9 @@ img { -webkit-user-drag: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tl__head, .tl__head h3, .tl__more, .tl__caption, .tl__blob { transition: none; }
-  .tl__blob, .tl__blob.is-leaving { animation: none; }
+  .tl__blob, .tl__blob.is-loaded, .tl__blob.is-leaving { animation: none; }
+  .tl__blob.is-loaded { opacity: 1; scale: 1; }
+  .tl__blob.is-leaving { opacity: 0; }
 }
 
 /* A tile with no case study written yet: the pointer is replaced by this pill (Figma node 880:15350).

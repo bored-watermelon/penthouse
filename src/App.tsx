@@ -7,6 +7,7 @@ import Work from './components/Work'
 import Timeline from './components/Timeline'
 import AboutMe from './components/AboutMe'
 import Footer from './components/Footer'
+import PageCurl from './components/PageCurl'
 import Dock from './components/Dock'
 import { useRoute } from './lib/router'
 import { useReveal } from './lib/reveal'
@@ -21,6 +22,7 @@ const bg = Object.values(landing)[0]
 
 export default function App() {
   const stage = useRef<HTMLDivElement>(null)
+  const sheet = useRef<HTMLDivElement>(null)
   const [chatWidth, setChatWidth] = useState<number | null>(null) // null = default proportions
   const path = useRoute()
   const caseStudySlug = path.match(/^\/case-studies\/([^/]+)\/?$/)?.[1]
@@ -35,7 +37,7 @@ export default function App() {
 
   return (
     <>
-      <div className="sheet">
+      <div className="sheet" ref={sheet}>
         <div className="stage" ref={stage} style={style}>
           <Chat />
           <Divider stage={stage} onChange={setChatWidth} />
@@ -45,6 +47,7 @@ export default function App() {
         <Timeline />
         <AboutMe />
       </div>
+      <PageCurl sheet={sheet} />
       <Footer />
       <Dock />
     </>

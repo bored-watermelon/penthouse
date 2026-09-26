@@ -49,76 +49,8 @@ const FACETS: { key: Facet; label: string }[] = [
 const facetOptions = (key: Facet) =>
   [...new Map(projects.flatMap((p) => p[key]).map((v) => [v.toLowerCase(), v])).values()].sort((a, b) => a.localeCompare(b))
 const FACET_OPTIONS = Object.fromEntries(FACETS.map((f) => [f.key, facetOptions(f.key)])) as Record<Facet, string[]>
-const PLAY_FILTERS = buildFilters('All', PLAY_ORDER, playItems.flatMap((i) => i.tags))
-
-// Cards stack on a sticky pane: each new card rises over the previous one, which recedes (smaller, dimmer).
-// After the last card the pane is released, so the header scrolls away with it.
-const STACK_QUERY = '(min-width: 861px) and (prefers-reduced-motion: no-preference)'
-const STACK_HOLD = 0.5 // extra scroll (in steps) the finished stack rests before releasing
-
-function useMatch(query: string) {
-  const [match, setMatch] = useState(() => matchMedia(query).matches)
-  useEffect(() => {
-    const m = matchMedia(query)
-    const on = () => setMatch(m.matches)
-    m.addEventListener('change', on)
-    return () => m.removeEventListener('change', on)
-  }, [query])
-  return match
-}
-
-function useCardStack(active: boolean, count: number) {
-  const track = useRef<HTMLDivElement>(null)
-  // a layout effect, so the first frame after switching into stacked mode is already stacked
-  useLayoutEffect(() => {
-    const el = track.current
-    if (!el || !active) return
-    const pane = el.firstElementChild as HTMLElement
-    const cards = pane.querySelector<HTMLElement>('.cards')!
-    const items = [...cards.children] as HTMLElement[]
-    let raf = 0
-
-    const update = () => {
-      raf = 0
-      const step = innerHeight * 0.8
-      el.style.height = `${pane.offsetHeight + (count - 1 + STACK_HOLD) * step}px`
-      const s = Math.max(0, -el.getBoundingClientRect().top) / step
-      const rise = pane.offsetHeight - cards.offsetTop + 40 // far enough to sit below the pane's bottom edge
-      const e = items.map((_, i) => (i === 0 ? 1 : Math.min(1, Math.max(0, s - (i - 1)))))
-      items.forEach((item, i) => {
-        const depth = e.slice(i + 1).reduce((a, b) => a + b, 0)
-        const d = Math.min(depth, 1) // only the card right behind the current one stays visible
-        const y = (1 - e[i]) * rise - d * 8
-        item.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0) scale(${(1 - 0.05 * d).toFixed(4)})`
-        item.style.setProperty('--dim', (0.14 * d).toFixed(3))
-        item.style.zIndex = String(i)
-        item.style.opacity = String(Math.min(1, Math.max(0, 2 - depth)))
-      })
-    }
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update)
-    }
-    addEventListener('scroll', onScroll, { passive: true })
-    addEventListener('resize', onScroll)
-    const ro = new ResizeObserver(onScroll)
-    ro.observe(pane)
-    update()
-    return () => {
-      removeEventListener('scroll', onScroll)
-      removeEventListener('resize', onScroll)
-      ro.disconnect()
-      cancelAnimationFrame(raf)
-      el.style.height = ''
-      items.forEach((item) => {
-        item.style.transform = ''
-        item.style.zIndex = ''
-        item.style.opacity = ''
-        item.style.removeProperty('--dim')
-      })
-    }
-  })
-  return track
-}
+const PLAY_ALL = 'Everything' // the play row's first pill, like "Selected Works" for work
+const PLAY_TAGS = buildFilters(PLAY_ALL, PLAY_ORDER, playItems.flatMap((i) => i.tags)).slice(1)
 
 /**
  * On phones the whole header would eat half the screen, so it's allowed to ride up until only the toggle and
@@ -144,13 +76,44 @@ function useHeadLift(head: RefObject<HTMLDivElement | null>, controls: RefObject
   }, [head, controls])
 }
 
+/**
+ * Once content scrolls up behind the pinned header, a band fades in under it: white melting to clear, with a
+ * light blur, so the tiles dissolve into the header rather than slide under a hard edge (Figma 919:16378).
+ * At rest the band is hidden, so it never veils the first card.
+ */
+function useScrolledUnder(head: RefObject<HTMLDivElement | null>, deps: unknown[]) {
+  useEffect(() => {
+    const h = head.current!
+    let raf = 0
+    const check = () => {
+      raf = 0
+      // the first card or tile, not the content box, whose top padding is only the gap under the pills
+      const content = h.parentElement?.querySelector<HTMLElement>('.work__content:not([hidden])')?.firstElementChild
+      if (!content) return
+      const under = content.getBoundingClientRect().top < h.getBoundingClientRect().bottom - 1
+      h.classList.toggle('is-scrolled', under && content.getBoundingClientRect().bottom > h.getBoundingClientRect().bottom)
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(check)
+    }
+    addEventListener('scroll', on, { passive: true })
+    addEventListener('resize', on)
+    check()
+    return () => {
+      removeEventListener('scroll', on)
+      removeEventListener('resize', on)
+      cancelAnimationFrame(raf)
+    }
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 export default function Work() {
   const [mode, setMode] = useState<Mode>('work')
   const [playSeen, setPlaySeen] = useState(false) // play stays mounted once visited, so its images don't reload
   const [flipped, setFlipped] = useState(false) // hides the "flip me" nudge once the lever has been used
   const [open, setOpen] = useState<number | null>(null) // index into the visible play items
-  const [playFilter, setPlayFilter] = useState(PLAY_FILTERS[0])
-  const [facet, setFacet] = useState<Record<Facet, string>>({ interfaces: '', distribution: '', domain: '' })
+  const [playTags, setPlayTags] = useState<string[]>([]) // none ticked = everything
+  const [facet, setFacet] = useState<Record<Facet, string[]>>({ interfaces: [], distribution: [], domain: [] })
   const section = useRef<HTMLElement>(null)
   const head = useRef<HTMLDivElement>(null)
   const controls = useRef<HTMLDivElement>(null)
@@ -166,7 +129,7 @@ export default function Work() {
   const switchMode = (next: Mode) => {
     if (next === mode) return
     playFlip()
-    // Work and play are very different heights (the stacked track alone is several screens), so toggling while
+    // Work and play are very different heights, so toggling while
     // scrolled into the section would strand the reader somewhere random. Remember to put them back at the
     // start of the new content, with the header exactly where it already was.
     anchor.current = scrollY > pinPoint() + 1 ? 'instant' : null
@@ -191,8 +154,6 @@ export default function Work() {
     return () => window.removeEventListener('work:show', on)
   })
 
-  // Declared before useCardStack on purpose: layout effects run in order, so the stack computes its first frame
-  // from the corrected scroll position instead of flashing the card it would have shown at the old one.
   useLayoutEffect(() => {
     const behavior = anchor.current
     if (!behavior) return
@@ -201,23 +162,34 @@ export default function Work() {
   }, [mode])
 
   useHeadLift(head, controls)
+
+  // Changing a filter while scrolled into the list starts the list over: the first matching card sits right
+  // under the pinned header, which doesn't move. (A shorter list would otherwise leave the reader wherever the
+  // page happened to end.) Nothing happens when the list hasn't been scrolled into yet.
+  const filterKey = `${Object.values(facet).flat().join('|')}/${playTags.join('|')}`
+  const lastFilter = useRef(filterKey)
+  useLayoutEffect(() => {
+    if (lastFilter.current === filterKey) return
+    lastFilter.current = filterKey
+    if (scrollY > pinPoint() + 1) window.scrollTo({ top: pinPoint(), behavior: 'instant' })
+  }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('work:mode', { detail: mode }))
   }, [mode])
 
-  const isAll = playFilter === PLAY_FILTERS[0]
+  // A project shows if, for every filter with something ticked, it has at least one of the ticked values.
+  const shownProjects = projects.filter((p) => FACETS.every(({ key }) => !facet[key].length || facet[key].some((v) => has(p[key], v))))
+  const shownPlay = playItems.filter((p) => !playTags.length || playTags.some((t) => has(p.tags, t)))
+  const workFiltered = FACETS.some(({ key }) => facet[key].length > 0)
+  const clearWork = () => setFacet({ interfaces: [], distribution: [], domain: [] })
+  const togglePlay = (t: string) => setPlayTags((on) => (has(on, t) ? on.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...on, t]))
 
-  const shownProjects = projects.filter((p) => FACETS.every(({ key }) => !facet[key] || has(p[key], facet[key])))
-  const shownPlay = playItems.filter((p) => isAll || has(p.tags, playFilter))
-
-  const wide = useMatch(STACK_QUERY)
-  const stacked = wide && mode === 'work' && shownProjects.length > 1
-  const track = useCardStack(stacked, shownProjects.length)
+  useScrolledUnder(head, [mode, shownProjects.length, shownPlay.length])
 
   return (
     <section className="work" id="work" ref={section}>
       <div className="work__inner">
-        <div className={`stack${stacked ? ' is-stacked' : ''}`} ref={track}>
+        <div className="stack">
           <div className="stack__pane">
             {/* Pinned while the section scrolls. Both intros and both filter rows are always rendered, stacked in
                 one grid cell each (.swap), so the header is always the height of its taller version and a toggle
@@ -259,24 +231,44 @@ export default function Work() {
                   </span>
                 </div>
 
+                {/* Figma 919:16952: the first pill is "everything", lit while nothing is filtered, and clicking it
+                    clears the filters; the filters after the divider can each take several values. */}
                 <div className="work__filters swap">
                   <div className={`pills${mode === 'work' ? ' is-on' : ''}`} aria-label="Filter projects" inert={mode !== 'work'}>
+                    <button type="button" className={`pill${workFiltered ? '' : ' is-on'}`} aria-pressed={!workFiltered} onClick={clearWork}>
+                      Selected Works
+                    </button>
+                    <span className="pills__divider" aria-hidden />
                     {FACETS.map(({ key, label }) => (
                       <Dropdown key={key} label={label} value={facet[key]} options={FACET_OPTIONS[key]} onChange={(v) => setFacet((f) => ({ ...f, [key]: v }))} />
                     ))}
+                    {workFiltered && (
+                      <button type="button" className="pills__clear" onClick={clearWork}>
+                        Clear Filters
+                      </button>
+                    )}
                   </div>
-                  <div className={`pills${mode === 'play' ? ' is-on' : ''}`} role="tablist" aria-label="Filter" inert={mode !== 'play'}>
-                    {PLAY_FILTERS.map((f) => (
-                      <button key={f} type="button" role="tab" aria-selected={f === playFilter} className={`pill${f === playFilter ? ' is-on' : ''}`} onClick={() => setPlayFilter(f)}>
-                        {f}
+                  <div className={`pills${mode === 'play' ? ' is-on' : ''}`} aria-label="Filter play" inert={mode !== 'play'}>
+                    <button type="button" className={`pill${playTags.length ? '' : ' is-on'}`} aria-pressed={!playTags.length} onClick={() => setPlayTags([])}>
+                      {PLAY_ALL}
+                    </button>
+                    <span className="pills__divider" aria-hidden />
+                    {PLAY_TAGS.map((t) => (
+                      <button key={t} type="button" aria-pressed={has(playTags, t)} className={`pill${has(playTags, t) ? ' is-on' : ''}`} onClick={() => togglePlay(t)}>
+                        {t}
                       </button>
                     ))}
+                    {playTags.length > 0 && (
+                      <button type="button" className="pills__clear" onClick={() => setPlayTags([])}>
+                        Clear Filters
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="work__content" hidden={mode !== 'work'} key={`work-${Object.values(facet).join('|')}`}>
+            <div className="work__content" hidden={mode !== 'work'} key={`work-${Object.values(facet).flat().join('|')}`}>
               {shownProjects.length ? (
                 <div className="cards">
                   {shownProjects.map((p) => (
@@ -290,7 +282,7 @@ export default function Work() {
               )}
             </div>
             {(mode === 'play' || playSeen) && (
-              <div className="work__content" hidden={mode !== 'play'} key={`play-${playFilter}`}>
+              <div className="work__content" hidden={mode !== 'play'} key={`play-${playTags.join('|')}`}>
                 {shownPlay.length ? (
                   <div className="masonry">
                     {shownPlay.map((item, i) => (
@@ -314,8 +306,7 @@ export default function Work() {
 
 /**
  * A project with no write-up yet swaps the pointer for a "Coming Soon" pill that follows the cursor
- * (Figma node 880:15350). Portalled to <body>, because a stacked card sits inside a transformed element,
- * which would otherwise clip a position:fixed child.
+ * (Figma node 880:15350). Portalled to <body>, so nothing around the card can clip a position:fixed child.
  */
 function ComingSoonCursor({ at }: { at: { x: number; y: number } }) {
   return createPortal(
@@ -365,7 +356,11 @@ function ProjectCard({ p }: { p: Project }) {
         <div className="card__clients">
           {clients.map((c, i) => (
             <span key={c.name} className="card__client-group">
-              {i > 0 && <span className="card__x">×</span>}
+              {i > 0 && (
+                <svg className="card__x" width="20" height="20" viewBox="0 0 20 20" aria-label="×">
+                  <path d="M15.625 4.375 4.375 15.625M15.625 15.625 4.375 4.375" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
               <span className="client-pill">{c.logo ? <img src={c.logo.src} alt={c.name} /> : c.name}</span>
             </span>
           ))}
