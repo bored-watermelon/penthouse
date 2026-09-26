@@ -5,6 +5,7 @@ import { collage } from '../lib/collage'
 import type { PlayItem } from '../content'
 import Lightbox from './Lightbox'
 import CameraViewer, { preloadCamera } from './CameraViewer'
+import Ipod from './Ipod'
 import Collage from './Collage'
 import { isTouchDevice, toScreen, useMotionAccess } from '../lib/motion'
 
@@ -295,19 +296,26 @@ export default function AboutMe() {
       if (reduced) return
       // things that are still moving and lie almost squarely on top of each other ease apart, so a pile stays a loose
       // spread of half-covered things rather than a tight stack
+      // Things lying almost squarely on top of each other ease apart, even at rest (just enough to beat their grip
+      // on the cardboard), so a pile spreads into a loose layer over the floor instead of staying a clump; things
+      // that only overlap a little are left as they lie.
+      const slip = (k: number) => (GRIP * grips[k] * L * dt) / 60
       for (let i = 0; i < bodies.length; i++) {
         for (let j = i + 1; j < bodies.length; j++) {
           const a = bodies[i]
           const c = bodies[j]
-          if (a.speed + c.speed < 0.3) continue
           const dx = c.position.x - a.position.x
           const dy = c.position.y - a.position.y
           const d = Math.hypot(dx, dy) || 1
           const near = (Math.min(dims[i].w, dims[i].h, dims[j].w, dims[j].h) * size) * 0.7
           if (d >= near) continue
+          const moving = a.speed + c.speed >= 0.3
+          if (!moving && d >= near * 0.75) continue
           const push = ((near - d) / near) * 0.35
-          if (grab?.i !== i) Body.setVelocity(a, { x: a.velocity.x - (dx / d) * push, y: a.velocity.y - (dy / d) * push })
-          if (grab?.i !== j) Body.setVelocity(c, { x: c.velocity.x + (dx / d) * push, y: c.velocity.y + (dy / d) * push })
+          const pa = moving ? push : slip(i) + push
+          const pc = moving ? push : slip(j) + push
+          if (grab?.i !== i) Body.setVelocity(a, { x: a.velocity.x - (dx / d) * pa, y: a.velocity.y - (dy / d) * pa })
+          if (grab?.i !== j) Body.setVelocity(c, { x: c.velocity.x + (dx / d) * pc, y: c.velocity.y + (dy / d) * pc })
         }
       }
       bodies.forEach((b, i) => {
@@ -370,8 +378,8 @@ export default function AboutMe() {
           const grip = (GRIP * grips[i] * L * dt) / 60
           // and each one tumbles a little its own way
           const jolt = reduced ? 0 : Math.hypot(dvx, dvy) / 60
-          let ux = b.velocity.x - (reduced ? 0 : (dvx * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35 + (tilt.x * dt) / 60
-          let uy = b.velocity.y - (reduced ? 0 : (dvy * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35 + (tilt.y * dt) / 60
+          let ux = b.velocity.x - (reduced ? 0 : (dvx * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35 + (tilt.x * heft[i] * dt) / 60
+          let uy = b.velocity.y - (reduced ? 0 : (dvy * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35 + (tilt.y * heft[i] * dt) / 60
           const u = Math.hypot(ux, uy)
           const slow = u > grip ? (u - grip) / u : 0
           ux *= slow
@@ -569,6 +577,7 @@ export default function AboutMe() {
                   }
                   // some things open into something of their own; everything else opens full size
                   if (a.id === 'camera' && camera.body && camera.photos.length) setSpecial('camera')
+                  else if (a.id.toLowerCase() === 'ipod') setSpecial('ipod')
                   else setOpen(i)
                 }}
               >
@@ -582,6 +591,7 @@ export default function AboutMe() {
 
       {open !== null && <Lightbox items={viewer} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />}
       {special === 'camera' && <CameraViewer onClose={() => setSpecial(null)} />}
+      {special === 'ipod' && <Ipod onClose={() => setSpecial(null)} />}
     </section>
   )
 }

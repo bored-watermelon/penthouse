@@ -626,6 +626,108 @@ img { -webkit-user-drag: none; }
 @keyframes cam-shot { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .camview__inner, .camview__screen img { animation: none !important; } }
 
+/* ---------- the iPod from the about box (Ipod.tsx): everything in em of one twentieth of its width ---------- */
+.ipodview { cursor: auto; }
+.ipod {
+  --w: min(360px, 86vw, calc((100svh - 48px) * 20 / 34));
+  position: relative; width: var(--w); height: calc(var(--w) * 34 / 20); font-size: calc(var(--w) / 20);
+  border-radius: 1.5em; cursor: default; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(150deg, #ffffff 0%, #f4f4f4 45%, #e4e4e4 100%);
+  box-shadow: 0 1.6em 3.2em rgb(0 0 0 / 0.26), 0 0.2em 0.5em rgb(0 0 0 / 0.12), inset 0 0.08em 0 #fff, inset 0 -0.15em 0.4em rgb(0 0 0 / 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', var(--body);
+  animation: cam-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.lightbox.is-leaving .ipod { animation: lb-out 0.22s ease both; }
+
+/* the screen: a pale blue backlit LCD, fine scan lines and all */
+.ipod__screen {
+  position: absolute; left: 1.55em; right: 1.55em; top: 1.55em; height: 12.4em; overflow: hidden; border-radius: 0.45em;
+  color: #1b2f57; font-size: 1em; line-height: 1;
+  background:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.16) 0 1px, transparent 1px 3px),
+    linear-gradient(#d9e7f8, #c4d9f1);
+  box-shadow: inset 0 0 0 1px #8e9db0, inset 0 0.12em 0.4em rgb(0 0 0 / 0.28), 0 0.06em 0 #fff;
+  transition: filter 0.6s ease;
+}
+.ipod__screen.is-dim { filter: saturate(0.35) brightness(0.84); } /* the backlight's gone out */
+.ipod__bar {
+  position: relative; z-index: 2; display: grid; grid-template-columns: 2.4em 1fr 2.4em; align-items: center; height: 1.95em; padding: 0 0.7em;
+  background: linear-gradient(#e6f0fb, #cbdcf0); border-bottom: 1px solid #2c4a7c;
+}
+.ipod__state svg { display: block; width: 0.72em; height: 0.72em; color: #2c4a7c; }
+.ipod__title { overflow: hidden; text-align: center; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; font-size: 0.98em; color: #24406f; }
+.ipod__battery { justify-self: end; display: flex; gap: 0.08em; width: 1.7em; height: 0.8em; padding: 0.1em; border: 0.1em solid #2c4a7c; border-radius: 0.2em; position: relative; }
+.ipod__battery::after { content: ''; position: absolute; right: -0.3em; top: 0.22em; width: 0.16em; height: 0.3em; border-radius: 0 0.08em 0.08em 0; background: #2c4a7c; }
+.ipod__battery i { flex: 1; background: transparent; }
+.ipod__battery i.is-on { background: #2c4a7c; }
+
+/* menus */
+.ipod__view { position: absolute; left: 0; right: 0; top: 1.95em; bottom: 0; overflow: hidden; }
+.ipod__list { margin: 0; padding: 0; list-style: none; }
+.ipod__row { display: flex; align-items: center; gap: 0.4em; height: 1.82em; padding: 0 0.75em; font-size: 1em; white-space: nowrap; }
+.ipod__row.is-on { color: #fff; background: linear-gradient(#35598f, #1c3964); }
+.ipod__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ipod__label > span.is-long { display: inline-block; } /* the others stay inline, so they end in an ellipsis */
+.ipod__label > span.is-long { animation: ipod-marquee 7s ease-in-out 1s infinite; } /* a title too long to fit reads itself out */
+@keyframes ipod-marquee { 0%, 15% { translate: 0 0; } 50%, 65% { translate: var(--shift) 0; } 100% { translate: 0 0; } }
+.ipod__value { flex: none; opacity: 0.8; }
+.ipod__more { flex: none; width: 0.42em; height: 0.64em; }
+.ipod__empty { margin: 0; padding: 3.6em 1em 0; text-align: center; opacity: 0.6; font-size: 0.9em; }
+.ipod__scroll { position: absolute; top: 0; right: 0; bottom: 0; width: 0.55em; background: #c9d9ec; border-left: 1px solid #2c4a7c; }
+.ipod__scroll span { position: absolute; left: 0; right: 0; background: #1f3a68; }
+.ipod__list:has(~ .ipod__scroll) .ipod__row { padding-right: 1.25em; }
+
+/* Now Playing */
+.ipod__now { position: absolute; left: 0; right: 0; top: 1.95em; bottom: 0; padding: 0.7em 0.9em 0; display: flex; flex-direction: column; }
+.ipod__now p { margin: 0; }
+.ipod__count { font-size: 0.88em; }
+.ipod__song { margin-top: 1.1em !important; text-align: center; font-size: 0.92em; line-height: 1.15; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ipod__artist { margin-top: 0.6em !important; text-align: center; font-size: 0.88em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ipod__track { position: relative; display: block; height: 0.7em; border: 0.1em solid #1f3a68; border-radius: 99px; overflow: hidden; margin-top: auto; background: rgb(255 255 255 / 0.25); }
+.ipod__track > span { position: absolute; left: 0; top: 0; bottom: 0; background: #1f3a68; }
+.ipod__track.is-scrub { overflow: visible; }
+.ipod__track.is-scrub i { position: absolute; top: 50%; width: 0.7em; height: 0.7em; background: #fff; border: 0.1em solid #1f3a68; translate: -50% -50%; rotate: 45deg; }
+.ipod__vol { display: flex; align-items: center; gap: 0.45em; margin-top: auto; }
+.ipod__vol svg { flex: none; width: 0.85em; height: 0.85em; }
+.ipod__vol .ipod__track { flex: 1; margin: 0; }
+.ipod__times { display: flex; justify-content: space-between; padding: 0.35em 0 0.75em; font-size: 0.88em; font-variant-numeric: tabular-nums; }
+
+/* Extras › Clock, and Settings › About */
+.ipod__clock { position: absolute; inset: 1.95em 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5em; }
+.ipod__clock p { margin: 0; font-size: 0.88em; }
+.ipod__clock .ipod__clock-time { font-size: 2.3em; font-weight: 600; letter-spacing: -0.02em; }
+.ipod__about { position: absolute; inset: 1.95em 0 0; padding: 1em 1.1em; }
+.ipod__about p { display: flex; justify-content: space-between; margin: 0 0 0.55em; font-size: 0.9em; }
+.ipod__about .ipod__about-name { justify-content: center; margin-bottom: 1em; font-weight: 700; font-size: 1em; }
+
+/* the click wheel */
+.ipod__wheel {
+  position: absolute; left: 50%; top: 15.6em; width: 16.8em; height: 16.8em; translate: -50% 0; border-radius: 50%; touch-action: none; cursor: grab;
+  background: radial-gradient(circle at 50% 28%, #fafafa, #e2e2e2 62%, #d2d2d2);
+  box-shadow: inset 0 0.12em 0.2em rgb(255 255 255 / 0.9), inset 0 -0.2em 0.5em rgb(0 0 0 / 0.08), 0 0.05em 0.1em rgb(0 0 0 / 0.12);
+}
+.ipod__wheel:active { cursor: grabbing; }
+.ipod__key {
+  position: absolute; display: grid; place-items: center; width: 4.4em; height: 2.6em; padding: 0; border: 0; border-radius: 0.6em; background: none; color: #7c7c7c; cursor: inherit;
+  font: inherit; font-size: 0.86em; letter-spacing: 0.03em; transition: color 0.1s;
+}
+.ipod__key svg { width: 1.15em; height: 0.64em; }
+.ipod__key.is-held { color: #3a3a3a; }
+.ipod__key--menu { left: 50%; top: 0.6em; translate: -50% 0; }
+.ipod__key--play { left: 50%; bottom: 0.6em; translate: -50% 0; }
+.ipod__key--prev { left: 0.4em; top: 50%; translate: 0 -50%; }
+.ipod__key--next { right: 0.4em; top: 50%; translate: 0 -50%; }
+.ipod__key:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px; }
+.ipod__center {
+  position: absolute; left: 50%; top: 50%; width: 6.2em; height: 6.2em; translate: -50% -50%; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 50% 30%, #ffffff, #efefef 70%, #e6e6e6);
+  box-shadow: 0 0.12em 0.35em rgb(0 0 0 / 0.22), inset 0 -0.1em 0.25em rgb(0 0 0 / 0.06);
+  transition: box-shadow 0.1s, background 0.1s;
+}
+.ipod__center:active { background: radial-gradient(circle at 50% 30%, #f2f2f2, #e2e2e2 70%, #d9d9d9); box-shadow: 0 0.05em 0.15em rgb(0 0 0 / 0.2), inset 0 0.08em 0.2em rgb(0 0 0 / 0.1); }
+.ipod__center:focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .ipod, .ipod__label > span.is-long { animation: none !important; } }
+
 @keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lb-from-right { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: none; } }
 @keyframes lb-from-left { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: none; } }
@@ -668,6 +770,7 @@ img { -webkit-user-drag: none; }
 }
 .foot__text p { margin: 0; display: flex; align-items: center; white-space: nowrap; }
 .foot__l2 { align-self: stretch; }
+.foot__br { display: none; }
 .foot__word { font-size: 0.8868em; line-height: 1.1489; letter-spacing: -0.07em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); } /* 94px on 108 */
 /* "created" as a text selection: a light-blue box with a caret handle at each end. The stems run exactly the
    height of the box; the start handle's dot sits on its top end and the end handle's on its bottom end. */
@@ -744,9 +847,11 @@ img { -webkit-user-drag: none; }
   position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none;
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 14px;
   background: #fff; color: var(--ink); box-shadow: 0 10px 28px rgb(0 0 0 / 0.28);
-  font-family: var(--body); font-size: 14px; font-weight: 500; white-space: nowrap;
+  font-family: var(--body); font-size: 14px; font-weight: 500; line-height: 1.3;
   opacity: 0; transition: opacity 0.25s ease;
 }
+/* the words wrap inside the room the cat's side has (see CatGame.tsx); the key and button chips stay whole */
+.game__bubble kbd, .game__again { white-space: nowrap; }
 .game__bubble.is-on { opacity: 1; }
 /* it sits beside the cat, so the tail points sideways at it */
 .game__bubble::after {
@@ -771,22 +876,27 @@ img { -webkit-user-drag: none; }
   .foot__text { --F: min(9.2vw, 60px); font-size: var(--F); }
   /* centred over what you see of the headline (the block itself is nudged right by 0.52em, see .foot__text) */
   .resume-pill { left: calc(50% - 0.52 * var(--F)); top: -34%; font-size: 15px; }
-  /* The copyright pill and the credit line sit in a strip at the very bottom, and the game's ground is just above
-     it: on a narrow screen the cat, its speech bubble and the fallen icons would otherwise pile on top of them. */
-  .game { bottom: 78px; }
-  .foot__rights { font-size: 13px; padding: 8px 14px; bottom: 30px; }
+  /* The cat has the bottom edge to itself; the copyright pill and the credit follow the headline instead (they're
+     in its column, see Footer.tsx), where the cat, its speech bubble and the falling icons can't pile onto them. */
+  .foot__rights { position: static; transform: none; margin-top: 4px; font-size: 13px; padding: 8px 14px; }
   .foot__rights img { width: 16px; height: 16px; }
-  .foot__credit { left: 16px; right: 16px; bottom: 10px; text-align: center; font-size: 9px; }
+  .foot__credit { position: static; margin-top: -18px; padding: 0 16px; text-align: center; font-size: 9px; }
   .game__bubble { font-size: 13px; }
+}
+/* Phones: the headline on three centred lines, "i was / created to / create", each word with its stickers. The two
+   Figma lines stop being boxes of their own and everything flows as one block, broken where .foot__br says. */
+@media (max-width: 640px) {
+  .foot__text { --F: min(12vw, 60px); font-size: var(--F); width: auto; max-width: calc(100vw - 24px); translate: none; flex-flow: row wrap; justify-content: center; row-gap: 0.06em; }
+  .foot__text p { display: contents; }
+  .foot__br { display: block; flex-basis: 100%; height: 0; }
+  .resume-pill { left: 50%; top: -38px; }
 }
 /* A phone on its side: very little height, so the headline and the cat are sized by the height instead */
 @media (max-height: 500px) and (orientation: landscape) {
   .foot__text { --F: min(9.2vw, 60px, 9svh); font-size: var(--F); }
   .resume-pill { font-size: 12px; }
   .foot__center { padding-top: calc(var(--fold) + 24px); } /* centred in what's showing below the page */
-  .game { bottom: 58px; }
-  .foot__rights { bottom: 22px; padding: 6px 12px; }
-  .foot__credit { bottom: 6px; }
+  .foot__rights { padding: 6px 12px; }
 }
 /* narrow phones: the hero's two buttons share the row evenly, or stack at full width */
 @media (max-width: 420px) { .about__ctas .cta { flex: 1 1 auto; justify-content: center; } }
@@ -967,6 +1077,12 @@ img { -webkit-user-drag: none; }
 }
 .tl__head.is-shown .tl__caption { opacity: 1; visibility: visible; translate: 0 0; transition: opacity 0.3s ease 0.18s, translate 0.35s ease 0.18s, visibility 0s; }
 
+/* the knob's handle: an invisible, fingertip-sized spot over it that the browser never scrolls from, so holding
+   it and then dragging always drags (see onGrip in Timeline.tsx) */
+.tl__grip {
+  position: absolute; left: -26px; top: -26px; z-index: 4; width: 52px; height: 52px; border-radius: 50%;
+  touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; will-change: transform;
+}
 /* the scrubber knob, on touch screens (see Timeline.tsx): a pulsing ring until it's first dragged */
 .tl__knob-ring { fill: none; stroke: var(--violet); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: knob-ping 1.8s ease-out infinite; }
 .tl__knob.is-used .tl__knob-ring { animation: none; opacity: 0; }

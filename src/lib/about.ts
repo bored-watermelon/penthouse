@@ -64,3 +64,24 @@ export const camera = {
     .map((p) => cameraPhotoFiles[p]),
   buttons: { normal: buttonByName('default'), hover: buttonByName('hover'), pressed: buttonByName('pressed'), disabled: buttonByName('disabled') },
 }
+
+// ----- the iPod: every song in "opened assets/songs", named "Song Name - Artist Name" -----
+
+const songFiles = import.meta.glob('../../about/opened assets/songs/*.{mp3,MP3,m4a,M4A,aac,AAC,wav,WAV,ogg,OGG,oga,flac,FLAC,opus}', { query: '?url', import: 'default', eager: true }) as Record<string, string>
+
+export type Song = { id: string; title: string; artist: string; src: string }
+
+/** "Song Name - Artist Name" (a – or — works too, and so does "Song Name by Artist"); anything else is just a title. */
+function readSongName(name: string) {
+  // split at the last dash (titles can have dashes of their own); "by" only when there's no dash at all
+  const m = name.match(/^(.*\S)\s+[-–—]\s+(\S.*)$/) ?? name.match(/^(.*\S)\s+by\s+(\S.*)$/i)
+  return m ? { title: m[1].trim(), artist: m[2].trim() } : { title: name.trim(), artist: 'Unknown Artist' }
+}
+
+/** Every song, A to Z by title, the way an iPod's "All Songs" lists them. */
+export const songs: Song[] = Object.keys(songFiles)
+  .map((path) => {
+    const id = path.split('/').pop()!.replace(/\.[^.]+$/, '')
+    return { id, ...readSongName(id), src: songFiles[path] }
+  })
+  .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }))

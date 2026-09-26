@@ -207,6 +207,8 @@ export default function Footer() {
               <Stickers c={CLUSTERS.afterI} gap={-4} />
               <DragWord className="foot__word" style={{ marginRight: u(-4) }}>was</DragWord>
               <Stickers c={CLUSTERS.afterWas} gap={-4} />
+              {/* phones only: the headline goes onto three lines, "i was / created to / create" */}
+              <span className="foot__br" aria-hidden />
               <DragWord className="foot__word sel" style={{ marginRight: u(-4) }}>
                 <i className="sel__h sel__h--l" aria-hidden />
                 created
@@ -218,6 +220,7 @@ export default function Footer() {
               <Stickers c={CLUSTERS.cd} gap={-10} />
               <DragWord className="foot__to" style={{ marginRight: u(-10) }}>[to]</DragWord>
               <Stickers c={CLUSTERS.afterTo} gap={-10} />
+              <span className="foot__br" aria-hidden />
               <DragWord className="foot__create" style={{ marginRight: u(-10) }}>
                 <img src={doodle.create} alt="create" draggable={false} style={{ width: u(346), height: u(68) }} />
               </DragWord>
@@ -230,20 +233,22 @@ export default function Footer() {
               tap, then tilt your phone 👀
             </button>
           )}
+          {/* On a laptop these pin to the bottom of the footer (see .foot__rights); on a phone they follow the
+              headline, leaving the bottom edge to the cat */}
+          <p className="foot__rights" data-solid>
+            <img src={doodle.copyright} alt="" width={20} height={20} />
+            <span>
+              copy<s>right</s> wrong → sneha, {new Date().getFullYear()}
+            </span>
+          </p>
+
+          <small className="foot__credit" data-solid>
+            video and image courtesies : lubhawani, RAHUL, harsh
+          </small>
         </div>
 
         <CatGame active={active} revealed={revealed} />
 
-        <p className="foot__rights" data-solid>
-          <img src={doodle.copyright} alt="" width={20} height={20} />
-          <span>
-            copy<s>right</s> wrong → sneha, {new Date().getFullYear()}
-          </span>
-        </p>
-
-        <small className="foot__credit" data-solid>
-          video and image courtesies : lubhawani, RAHUL, harsh
-        </small>
       </footer>
       <div className="foot-spacer" ref={spacer} aria-hidden />
     </>

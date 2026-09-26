@@ -201,6 +201,7 @@ export default function Timeline() {
   const target = useRef(0)
   const raf = useRef(0)
   const knob = useRef<SVGGElement>(null)
+  const grip = useRef<HTMLSpanElement>(null) // the knob's handle: what a finger actually holds
   // Touch screens have no hover, so the line gets a knob to drag instead: the bump follows the finger, and
   // snaps to the chunk it's let go over. The chosen chunk's caption always shows.
   const [touch, setTouch] = useState(() => matchMedia('(hover: none)').matches)
@@ -279,6 +280,7 @@ export default function Timeline() {
     main.current?.setAttribute('d', d)
     years.forEach((x, k) => dots.current[k]?.setAttribute('cy', bump(x, c).toFixed(1)))
     knob.current?.setAttribute('transform', `translate(${c.toFixed(1)} ${bump(c, c).toFixed(1)})`)
+    if (grip.current) grip.current.style.transform = `translate(${c.toFixed(1)}px, ${bump(c, c).toFixed(1)}px)`
   }
   const run = () => {
     cancelAnimationFrame(raf.current)
@@ -326,8 +328,16 @@ export default function Timeline() {
   // Scrubbing: a sideways drag anywhere on the board (a vertical one still scrolls the page, see touch-action)
   const chunkAt = (x: number) => Math.min(LAST, Math.max(0, Math.floor((x - g.left) / g.cw)))
   const onDown = (e: React.PointerEvent) => {
-    if (e.pointerType === 'mouse') return
+    if (e.pointerType === 'mouse' || drag.current?.on) return
     drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, on: false }
+  }
+  // Held by the handle itself, it's a drag from the first touch: no waiting to see which way the finger goes, and
+  // the handle never lets the page scroll instead (see .tl__grip), however long it's held before moving.
+  const onGrip = (e: React.PointerEvent) => {
+    e.preventDefault()
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, on: true }
+    board.current!.setPointerCapture(e.pointerId)
+    setScrubbed(true)
   }
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current
@@ -415,6 +425,7 @@ export default function Timeline() {
             </g>
           )}
         </svg>
+        {touch && <span ref={grip} className="tl__grip" aria-hidden onPointerDown={onGrip} onContextMenu={(e) => e.preventDefault()} />}
 
         {/* the years under the line: where each chunk starts, and the present at the end */}
         <ol className="tl__years" aria-hidden>

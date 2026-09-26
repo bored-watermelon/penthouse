@@ -114,11 +114,11 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     }
 
     // Anything low in the footer marked data-solid (the copyright pill, the credit line) is ground too, so the icons
-    // pile up around it instead of hiding it. (On phones those move to the top, where they'd just catch everything.)
+    // pile up around it instead of hiding it. (On phones those sit under the headline, mid-air, so they aren't.)
     const buildSolids = () => {
       solids.forEach((b) => Composite.remove(world, b))
       const hr = host.getBoundingClientRect()
-      const low = [...(host.parentElement?.querySelectorAll<HTMLElement>('[data-solid]') ?? [])].map((el) => el.getBoundingClientRect()).filter((r) => r.top - hr.top > H / 2)
+      const low = [...(host.parentElement?.querySelectorAll<HTMLElement>('[data-solid]') ?? [])].map((el) => el.getBoundingClientRect()).filter((r) => r.width > 0 && r.top - hr.top > H * 0.8) // only what's down at the bottom: on a phone the pill sits under the headline, mid-air
       solids = low.map((r) =>
         Bodies.rectangle(r.left - hr.left + r.width / 2, r.top - hr.top + r.height / 2, r.width + 8, r.height + 8, {
           isStatic: true,
