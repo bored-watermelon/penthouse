@@ -255,7 +255,7 @@ export default function Timeline() {
       if (prev.some((p) => p.chunk === active && !p.leaving)) return prev
       return [...prev.filter((p) => !p.leaving).map((p) => ({ ...p, leaving: true })), { chunk: active, seed: Math.floor(Math.random() * 1e9), leaving: false }]
     })
-    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 180)
+    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 100)
     return () => window.clearTimeout(t)
   }, [active])
 
@@ -287,7 +287,7 @@ export default function Timeline() {
                   <MediaBlob
                     key={b.item}
                     m={c.media[b.item]}
-                    leaving={set.leaving}
+                    leaving={set.leaving || set.chunk !== active} // in the same render that starts raising the new heading
                     style={{ left: b.x, top: b.y, width: b.size, height: b.size, borderRadius: b.round, rotate: `${b.rot}deg`, animationDelay: `${b.delay}ms` }}
                   />
                 ))}

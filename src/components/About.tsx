@@ -1,5 +1,4 @@
 import Ticker from './Ticker'
-import LocalTime from './LocalTime'
 import { findLogo } from '../lib/logos'
 
 /** A place in the "rudrapur → roorkee → mumbai" line, with a small note that appears on hover or focus. */
@@ -19,7 +18,6 @@ export default function About() {
   const juspay = findLogo('Juspay')
   return (
     <section className="about">
-      <LocalTime />
       <p className="about__note">
         do not question my design decisions.
         <br />i did not question them myself.

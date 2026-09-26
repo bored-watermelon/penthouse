@@ -49,6 +49,16 @@ const FACETS: { key: Facet; label: string }[] = [
 const facetOptions = (key: Facet) =>
   [...new Map(projects.flatMap((p) => p[key]).map((v) => [v.toLowerCase(), v])).values()].sort((a, b) => a.localeCompare(b))
 const FACET_OPTIONS = Object.fromEntries(FACETS.map((f) => [f.key, facetOptions(f.key)])) as Record<Facet, string[]>
+// Play shows in a new random order on every visit, rather than grouped folder by folder. Shuffled once per page
+// load, so filtering and the viewer's next/previous keep a stable order while you're here.
+const PLAY_MIXED = (() => {
+  const a = [...playItems]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+})()
 const PLAY_ALL = 'Everything' // the play row's first pill, like "Selected Works" for work
 const PLAY_TAGS = buildFilters(PLAY_ALL, PLAY_ORDER, playItems.flatMap((i) => i.tags)).slice(1)
 
@@ -179,7 +189,7 @@ export default function Work() {
 
   // A project shows if, for every filter with something ticked, it has at least one of the ticked values.
   const shownProjects = projects.filter((p) => FACETS.every(({ key }) => !facet[key].length || facet[key].some((v) => has(p[key], v))))
-  const shownPlay = playItems.filter((p) => !playTags.length || playTags.some((t) => has(p.tags, t)))
+  const shownPlay = PLAY_MIXED.filter((p) => !playTags.length || playTags.some((t) => has(p.tags, t)))
   const workFiltered = FACETS.some(({ key }) => facet[key].length > 0)
   const clearWork = () => setFacet({ interfaces: [], distribution: [], domain: [] })
   const togglePlay = (t: string) => setPlayTags((on) => (has(on, t) ? on.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...on, t]))
