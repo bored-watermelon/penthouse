@@ -1,0 +1,34 @@
+<svg width="346" height="68" viewBox="0 0 346 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M49 68H13V55H49V68ZM72 68H59V19H72V68ZM167 68H131V55H167V68ZM195 32C204.941 32 213 40.0589 213 50C213 59.9411 204.941 68 195 68C185.059 68 177 59.9411 177 50C177 40.0589 185.059 32 195 32ZM226 68H213V19H226V68ZM287 68H260V55H287V68ZM346 68H310V55H346V68ZM13 55H0V19H13V55ZM131 55H118V26H131V55ZM260 55H247V26H260V55ZM310 55H297V26H310V55ZM149 5C158.941 5 167 13.0589 167 23C167 32.9411 158.941 41 149 41C139.059 41 131 32.9411 131 23C131 13.0589 139.059 5 149 5ZM328 5C337.941 5 346 13.0589 346 23C346 32.9411 337.941 41 328 41C318.059 41 310 32.9411 310 23C310 13.0589 318.059 5 328 5ZM247 26H236V13H247V26ZM287 26H260V13H287V26ZM49 19H13V6H49V19ZM108 19H72V6H108V19ZM213 19H182V6H213V19ZM260 13H247V0H260V13Z" fill="url(#paint0_radial_7166_45596)"/>
+<rect x="0.75" y="19.75" width="11.5" height="34.5" stroke="black" stroke-width="1.5"/>
+<rect x="48.25" y="6.75" width="11.5" height="34.5" transform="rotate(90 48.25 6.75)" stroke="black" stroke-width="1.5"/>
+<rect x="48.25" y="55.75" width="11.5" height="34.5" transform="rotate(90 48.25 55.75)" stroke="black" stroke-width="1.5"/>
+<rect x="59.75" y="19.75" width="11.5" height="47.5" stroke="black" stroke-width="1.5"/>
+<rect x="107.25" y="6.75" width="11.5" height="34.5" transform="rotate(90 107.25 6.75)" stroke="black" stroke-width="1.5"/>
+<rect x="118.75" y="26.75" width="11.5" height="27.5" stroke="black" stroke-width="1.5"/>
+<rect x="166.25" y="55.75" width="11.5" height="34.5" transform="rotate(90 166.25 55.75)" stroke="black" stroke-width="1.5"/>
+<circle cx="149" cy="23" r="17.25" stroke="black" stroke-width="1.5"/>
+<rect x="213.75" y="19.75" width="11.5" height="47.5" stroke="black" stroke-width="1.5"/>
+<rect x="212.25" y="6.75" width="11.5" height="29.5" transform="rotate(90 212.25 6.75)" stroke="black" stroke-width="1.5"/>
+<circle cx="195" cy="50" r="17.25" stroke="black" stroke-width="1.5"/>
+<rect x="247.75" y="26.75" width="11.5" height="27.5" stroke="black" stroke-width="1.5"/>
+<rect x="286.25" y="55.75" width="11.5" height="25.5" transform="rotate(90 286.25 55.75)" stroke="black" stroke-width="1.5"/>
+<rect x="286.25" y="13.75" width="11.5" height="25.5" transform="rotate(90 286.25 13.75)" stroke="black" stroke-width="1.5"/>
+<rect x="246.25" y="13.75" width="11.5" height="9.5" transform="rotate(90 246.25 13.75)" stroke="black" stroke-width="1.5"/>
+<rect x="259.25" y="0.75" width="11.5" height="11.5" transform="rotate(90 259.25 0.75)" stroke="black" stroke-width="1.5"/>
+<rect x="297.75" y="26.75" width="11.5" height="27.5" stroke="black" stroke-width="1.5"/>
+<rect x="345.25" y="55.75" width="11.5" height="34.5" transform="rotate(90 345.25 55.75)" stroke="black" stroke-width="1.5"/>
+<circle cx="328" cy="23" r="17.25" stroke="black" stroke-width="1.5"/>
+<defs>
+<radialGradient id="paint0_radial_7166_45596" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(177 14.5) rotate(167.372) scale(187.537 300.514)">
+<stop stop-color="#F70202"/>
+<stop offset="0.153871" stop-color="#F47404"/>
+<stop offset="0.302911" stop-color="#E9C223"/>
+<stop offset="0.38945" stop-color="#A5FE13"/>
+<stop offset="0.471182" stop-color="#38E510"/>
+<stop offset="0.64426" stop-color="#0D4EE4"/>
+<stop offset="0.822147" stop-color="#9A09EE"/>
+<stop offset="0.98561" stop-color="#EA17BC"/>
+</radialGradient>
+</defs>
+</svg>

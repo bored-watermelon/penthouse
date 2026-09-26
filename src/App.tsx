@@ -4,7 +4,6 @@ import About from './components/About'
 import CaseStudy from './components/CaseStudy'
 import Divider from './components/Divider'
 import Work from './components/Work'
-import Experiments from './components/Experiments'
 import Timeline from './components/Timeline'
 import AboutMe from './components/AboutMe'
 import Footer from './components/Footer'
@@ -43,7 +42,6 @@ export default function App() {
           <About />
         </div>
         <Work />
-        <Experiments />
         <Timeline />
         <AboutMe />
       </div>

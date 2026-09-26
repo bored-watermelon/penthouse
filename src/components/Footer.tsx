@@ -28,24 +28,24 @@ const CLUSTERS: Record<string, Cluster> = {
   afterWas: {
     w: 94, h: 168,
     bits: [
-      { src: sticker('@geminis'), x: 0, y: 0, w: 94, h: 96, crop: [-37.5, -35, 175, 170] },
-      { src: sticker('_ (24)'), x: 0, y: 96, w: 72, h: 72, crop: [-15.28, -15.28, 130.56, 130.56] },
+      { src: sticker('@geminis'), x: 7.7, y: 18.22, w: 78, h: 80, crop: [-37.5, -35, 175, 170] },
+      { src: sticker('_ (24)'), x: 4.7, y: 101.22, w: 63, h: 62, crop: [-15.28, -15.28, 130.56, 130.56] },
     ],
   },
   // lightning bolt and camera, after "created"
   afterCreated: {
     w: 126.4, h: 171.6,
     bits: [
-      { src: doodle.bolt, x: -2, y: -1.97, w: 47.72, h: 87.04 },
-      { src: sticker('_ (26)'), x: 11, y: 74.78, w: 106, h: 84, rot: -15.71, crop: [-18.15, -35.98, 136.3, 171.96] },
+      { src: doodle.bolt, x: 2.7, y: 8.03, w: 38, h: 67.97 },
+      { src: sticker('_ (26)'), x: 24.51, y: 85.48, w: 78.98, h: 62.6, rot: -15.71, crop: [-18.15, -35.98, 136.3, 171.96] },
     ],
   },
-  cd: { w: 112, h: 112, bits: [{ src: sticker('archive'), x: 0, y: 0, w: 112, h: 112 }] },
+  cd: { w: 68, h: 69, bits: [{ src: sticker('archive'), x: 0, y: 0, w: 68, h: 69 }] },
   // arrows and a blue heart, pointing at "create"
   afterTo: {
     w: 111, h: 126,
     bits: [
-      { src: sticker('_ (23)'), x: 21, y: 0, w: 90, h: 126 },
+      { src: sticker('_ (23)'), x: 35, y: 19.44, w: 61, h: 87 },
       { src: sticker('_ (21)'), x: 0, y: 67, w: 53, h: 53, crop: [-129.24, -80.51, 265.34, 320.94] },
     ],
   },
@@ -53,9 +53,9 @@ const CLUSTERS: Record<string, Cluster> = {
   afterCreate: {
     w: 153, h: 130.5,
     bits: [
-      { src: doodle.pencil, x: -2, y: 67, w: 95.98, h: 68.52 },
-      { src: sticker('journaling'), x: 9, y: 0, w: 84, h: 71 },
-      { src: sticker('_ (22)'), x: 99, y: 39, w: 54, h: 54 },
+      { src: doodle.pencil, x: 5.05, y: 71.82, w: 81.87, h: 58.87 },
+      { src: sticker('journaling'), x: 18, y: 7.7, w: 66, h: 56 },
+      { src: sticker('_ (22)'), x: 95, y: 44.7, w: 42, h: 42 },
     ],
   },
 }
@@ -131,7 +131,7 @@ export default function Footer() {
     const look = (e: PointerEvent) => {
       eyes.current?.querySelectorAll<HTMLElement>('.eye').forEach((eye) => {
         const r = eye.getBoundingClientRect()
-        const travel = r.width * 0.3 // the pupil is 37.5% of the eye, so this keeps it just inside
+        const travel = r.width * 0.35 // as far out as the Figma eyes look
         const a = Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2))
         eye.style.setProperty('--px', `${Math.cos(a) * travel}px`)
         eye.style.setProperty('--py', `${Math.sin(a) * travel}px`)
@@ -153,15 +153,18 @@ export default function Footer() {
               href="/Sneha%20Jain%20Resume.pdf"
               download="Sneha Jain Resume.pdf"
               draggable={false}
-              style={{ zIndex: pill.z, transform: `translate(-50%, -50%) translate(${pill.pos.x}px, ${pill.pos.y}px) rotate(${pill.dragging ? -2 : -6.11}deg)` }}
+              style={{ zIndex: pill.z, transform: `translate(-50%, -50%) translate(${pill.pos.x}px, ${pill.pos.y}px) rotate(-6.74deg) scale(1.05)` }}
               {...pill.handlers}
               // a drag that ends on the pill shouldn't also download the file
               onClick={(e) => pill.moved.current && e.preventDefault()}
             >
-              Download resume
-              <span className="eyes" ref={eyes} aria-hidden>
-                <span className="eye" />
-                <span className="eye" />
+              {/* the face does the hover and drag moves; the link itself stays put so the cursor doesn't flicker */}
+              <span className="resume-pill__face">
+                Download resume
+                <span className="eyes" ref={eyes} aria-hidden>
+                  <span className="eye" />
+                  <span className="eye" />
+                </span>
               </span>
             </a>
 
@@ -171,9 +174,9 @@ export default function Footer() {
               <DragWord className="foot__word" style={{ marginRight: u(-4) }}>was</DragWord>
               <Stickers c={CLUSTERS.afterWas} gap={-4} />
               <DragWord className="foot__word sel" style={{ marginRight: u(-4) }}>
-                <i className="sel__h sel__h--l" aria-hidden><img src={doodle['sel-handle']} alt="" draggable={false} /></i>
+                <i className="sel__h sel__h--l" aria-hidden />
                 created
-                <i className="sel__h" aria-hidden><img src={doodle['sel-handle']} alt="" draggable={false} /></i>
+                <i className="sel__h sel__h--r" aria-hidden />
               </DragWord>
               <Stickers c={CLUSTERS.afterCreated} gap={0} />
             </p>
@@ -181,7 +184,9 @@ export default function Footer() {
               <Stickers c={CLUSTERS.cd} gap={-10} />
               <DragWord className="foot__to" style={{ marginRight: u(-10) }}>[to]</DragWord>
               <Stickers c={CLUSTERS.afterTo} gap={-10} />
-              <DragWord className="foot__create" style={{ marginRight: u(-10) }}>create</DragWord>
+              <DragWord className="foot__create" style={{ marginRight: u(-10) }}>
+                <img src={doodle.create} alt="create" draggable={false} style={{ width: u(346), height: u(68) }} />
+              </DragWord>
               <Stickers c={CLUSTERS.afterCreate} gap={0} />
             </p>
           </div>

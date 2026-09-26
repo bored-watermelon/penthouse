@@ -54,6 +54,9 @@ export default function About() {
           these days, i’m getting my hands dirty in the world of payments at{' '}
           {juspay ? <img className="inline-logo" src={juspay.src} alt="Juspay" /> : 'Juspay'}.
         </p>
+        <p data-reveal>
+          i may not have 8 years of experience, but give me a weekend and an ominous deadline and i can lowkey learn anything.
+        </p>
       </div>
 
       <footer className="worked">

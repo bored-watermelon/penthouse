@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { caseStudies } from '../lib/caseStudy'
 import { navigate } from '../lib/router'
 import { projects } from '../content'
-import { frogDoodle } from '../lib/about'
 
 const EMAIL = 'heyiamsnehajain@gmail.com'
 
@@ -93,9 +92,8 @@ export default function CaseStudy({ slug }: { slug: string }) {
   if (!doc)
     return (
       <div className="cs cs--empty">
-        {frogDoodle && <img className="cs__empty-art" src={frogDoodle} alt="" />}
         <p className="cs__empty-title">this one isn’t written up yet.</p>
-        <p className="cs__empty-sub">the frog is guarding it until it is. the finished ones are back on the home page.</p>
+        <p className="cs__empty-sub">the finished ones are back on the home page.</p>
         <BackButton onClick={goHome} />
       </div>
     )

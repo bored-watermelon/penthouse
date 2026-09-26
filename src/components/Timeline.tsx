@@ -1,199 +1,301 @@
-import { useEffect, useRef, useState } from 'react'
-import { END, PARTS, START, periodFor, years } from '../lib/timeline'
-import TimelineArt from './TimelineArt'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { chunks, type Chunk } from '../lib/timeline'
 
-const CARD_W = 360
-const SVG_H = 250
-const BASE = 165 // y of the flat line
-const AMP = 100 // height of the bump
-const SIGMA = 62 // how wide the bump is
-const PAD = 36 // space left and right of the line
+/*
+ * Laid out on the 1512-wide Figma frame: sizes below are design px, scaled to the board's width. The line runs edge
+ * to edge, with the chunks of time sharing it equally. Hovering a chunk lifts the line under it, raises its heading
+ * with the caption, and pops its media into blobs around the board.
+ */
+const DW = 1512
+const CAPTION_W = 261
+
+/** Where the blobs can go: centre and size in design px (the grey shapes in Figma), and their tilt. */
+const SLOTS = [
+  { x: 707, y: 299, size: 227, rot: -12 },
+  { x: 224, y: 353, size: 189, rot: 15 },
+  { x: 485, y: 469, size: 142, rot: -15 },
+  { x: 1144, y: 252, size: 142, rot: -3 },
+  { x: 1360, y: 418, size: 142, rot: 20 },
+  { x: 732, y: 550, size: 142, rot: -3 },
+  { x: 940, y: 543, size: 142, rot: 30 },
+  { x: 387, y: 154, size: 142, rot: 8 },
+  { x: 207, y: 624, size: 142, rot: -7 },
+]
+const ROUND = ['50%', '50%', '31%', '35%', '37%', '42%'] // circles and rounded squares, as in Figma
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+/** A small seeded random, so a layout stays the same through a resize. */
+const rng = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+const shuffle = <T,>(a: T[], r: () => number) => {
+  const b = [...a]
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1))
+    ;[b[i], b[j]] = [b[j], b[i]]
+  }
+  return b
+}
+
+type Geo = ReturnType<typeof geometry>
+function geometry(width: number, tallest: number) {
+  const s = width / DW
+  const bs = clamp(s, 0.5, 1.15) // blobs and heights shrink less than the width, so a phone still shows them
+  const left = width * 0.05
+  const cw = (width * 0.9) / chunks.length
+  const amp = Math.round(134 * clamp(s, 0.6, 1))
+  // On a narrow screen the blobs get a band of their own, above the tallest raised heading and caption
+  const band = 260
+  const narrow = width < 700
+  const line = narrow ? Math.round(band + amp + tallest + 90) : Math.round(640 * bs)
+  const vs = narrow ? band / 640 : bs // vertical scale for the blob slots
+  return { s, bs, vs, left, cw, line, amp, reach: Math.max(270 * s, cw * 0.85), height: line + 64 }
+}
+const centerOf = (g: Geo, i: number) => g.left + (i + 0.5) * g.cw
+const edgeOf = (g: Geo, i: number) => g.left + i * g.cw
+/**
+ * The raised heading's left edge. A full-width caption starts a little left of the peak, as in Figma; a short one
+ * (like "i ate mud") sits centred on the peak. Always on the board.
+ */
+const raisedLeft = (g: Geo, i: number, width: number, bw: number) =>
+  clamp(centerOf(g, i) - (bw < 200 ? bw / 2 : 74 * g.s), 8, Math.max(8, width - 8 - bw))
+
+type Size = { w: number; h: number } // a raised heading with its caption: widest line, and the caption's height
+type Blob = { item: number; x: number; y: number; size: number; rot: number; round: string; delay: number }
+/** Scatters a chunk's media over the free slots, in random order and random shapes. */
+function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: number): Blob[] {
+  const r = rng(seed)
+  const hl = raisedLeft(g, i, width, block.w) - 20
+  const keep = { l: hl, r: hl + block.w + 40, t: g.line - g.amp - 14 - block.h - 60 }
+  const slots = SLOTS.map((sl) => {
+    const size = sl.size * g.bs * (0.9 + r() * 0.2)
+    const half = size * 0.62 + 8 // never cut off by the screen edge
+    return { ...sl, x: clamp(sl.x * g.s, half, width - half), y: Math.max(half, (sl.y - 60) * g.vs), size }
+  })
+  const free = slots.filter((sl) => {
+    const h = sl.size * 0.62 // half the rotated box, roughly
+    const clash = sl.x + h > keep.l && sl.x - h < keep.r && sl.y + h > keep.t
+    return !clash && sl.y + h < g.line - 70 // clear of the headings resting on the line
+  })
+  const pool = shuffle(free, r).concat(shuffle(slots.filter((sl) => !free.includes(sl)), r)) // crowded chunks spill over
+  return shuffle(c.media.map((_, k) => k), r)
+    .slice(0, pool.length)
+    .map((item, k) => ({ item, ...pool[k], rot: pool[k].rot + (r() - 0.5) * 12, round: ROUND[Math.floor(r() * ROUND.length)], delay: k * 70 + r() * 60 }))
+}
+
+const LAST = chunks.length - 1
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export default function Timeline() {
-  const root = useRef<HTMLDivElement>(null)
-  const card = useRef<HTMLDivElement>(null)
+  const board = useRef<HTMLDivElement>(null)
   const main = useRef<SVGPathElement>(null)
-  const echo = useRef<SVGPathElement>(null)
-  const stem = useRef<SVGLineElement>(null)
-  const dot = useRef<SVGGElement>(null)
-  const ticks = useRef<(SVGCircleElement | null)[]>([])
+  const dots = useRef<(SVGCircleElement | null)[]>([])
+  const heads = useRef<(HTMLDivElement | null)[]>([])
+  const captions = useRef<(HTMLParagraphElement | null)[]>([])
   const [width, setWidth] = useState(1200)
-  const [active, setActive] = useState(END)
-  const [touched, setTouched] = useState(false) // the "time-travel" hint goes away after the first scrub
-  const raf = useRef(0)
-  const cx = useRef<number | null>(null) // where the bump currently is (springs toward its target)
+  const [hover, setHover] = useState<number | null>(null)
+  const [sizes, setSizes] = useState<Size[]>([])
+  // the media on show; the set being replaced stays a moment to shrink away
+  const [sets, setSets] = useState([{ chunk: LAST, seed: 1, leaving: false }])
+  const cx = useRef<number | null>(null)
   const target = useRef(0)
+  const raf = useRef(0)
   const leave = useRef(0)
+
+  const active = hover ?? LAST // with nothing hovered, the line rests on the present
+  const g = geometry(width, Math.max(110, ...sizes.map((z) => z.h)))
+  const sizeOf = (i: number): Size => sizes[i] ?? { w: CAPTION_W, h: 110 }
 
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
-    ro.observe(root.current!)
+    ro.observe(board.current!)
     return () => ro.disconnect()
   }, [])
 
-  // The line is split into equal-width parts (one per chapter), so short chapters get as much room as long ones.
-  const parts = PARTS.length - 1
-  const xOf = (year: number) => {
-    const i = Math.min(parts - 1, PARTS.findLastIndex((b) => year >= b))
-    const t = (i + (year - PARTS[i]) / (PARTS[i + 1] - PARTS[i])) / parts
-    return PAD + t * (width - PAD * 2)
+  // block widths, to centre short ones on the peak, and caption heights, to keep the blobs clear of them
+  const measure = () => {
+    const grow = matchMedia('(max-width: 860px)').matches ? 1.35 : 1.6 // raised text headings, see .tl__head.is-up h3
+    setSizes(
+      chunks.map((c, i) => {
+        const cap = captions.current[i]
+        const head = heads.current[i]?.firstElementChild as HTMLElement | null
+        const hw = (head?.offsetWidth ?? 0) * ('text' in c.heading ? grow : 1)
+        return { w: Math.max(hw, cap?.offsetWidth ?? 0), h: cap?.offsetHeight ?? 0 }
+      }),
+    )
   }
-  const bump = (x: number, c: number) => BASE - AMP * Math.exp(-((x - c) ** 2) / (2 * SIGMA * SIGMA))
+  useLayoutEffect(() => {
+    measure()
+    document.fonts?.ready.then(measure)
+    // a late font or logo changes the sizes too
+    const ro = new ResizeObserver(() => measure())
+    captions.current.forEach((c) => c && ro.observe(c))
+    return () => ro.disconnect()
+  }, [width]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // one dot per year, spread evenly across its chunk, and one more on the present
+  const years = chunks.flatMap((c, i) => {
+    const span = Math.max(1, c.to - c.from)
+    return Array.from({ length: span }, (_, k) => edgeOf(g, i) + (k / span) * g.cw)
+  })
+  years.push(edgeOf(g, chunks.length))
+
+  const bump = (x: number, c: number) => {
+    const d = Math.abs(x - c)
+    return d >= g.reach ? g.line : g.line - (g.amp * (1 + Math.cos((Math.PI * d) / g.reach))) / 2
+  }
   const paint = (c: number) => {
     let d = ''
-    let d2 = ''
-    for (let x = 0; x <= width; x += 3) {
-      const y = bump(x, c)
-      d += `${x ? 'L' : 'M'}${x} ${y.toFixed(1)}`
-      d2 += `${x ? 'L' : 'M'}${x} ${(y + 9).toFixed(1)}`
-    }
+    for (let x = 0; x <= width + 3; x += 3) d += `${x ? 'L' : 'M'}${x} ${bump(x, c).toFixed(1)}`
     main.current?.setAttribute('d', d)
-    echo.current?.setAttribute('d', d2)
-    const peak = bump(c, c)
-    stem.current?.setAttribute('x1', String(c))
-    stem.current?.setAttribute('x2', String(c))
-    stem.current?.setAttribute('y2', String(peak - 16))
-    dot.current?.setAttribute('transform', `translate(${c} ${peak})`)
-    years.forEach((yr, i) => {
-      const t = ticks.current[i]
-      if (t) {
-        const x = xOf(yr)
-        t.setAttribute('cx', String(x))
-        t.setAttribute('cy', String(bump(x, c)))
-      }
-    })
-    // the card rides along with the bump but never leaves the section
-    const left = Math.min(Math.max(c - CARD_W / 2, 0), Math.max(0, width - CARD_W))
-    if (card.current) card.current.style.transform = `translateX(${left}px)`
+    years.forEach((x, k) => dots.current[k]?.setAttribute('cy', bump(x, c).toFixed(1)))
   }
-
   const run = () => {
     cancelAnimationFrame(raf.current)
     let last = performance.now()
     const step = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05)
       last = now
-      cx.current! += (target.current - cx.current!) * (1 - Math.exp(-dt * 11))
+      cx.current! += (target.current - cx.current!) * (1 - Math.exp(-dt * 9))
+      const done = Math.abs(target.current - cx.current!) < 0.2
+      if (done) cx.current = target.current
       paint(cx.current!)
-      if (Math.abs(target.current - cx.current!) > 0.15) raf.current = requestAnimationFrame(step)
-      else {
-        cx.current = target.current
-        paint(cx.current)
-      }
+      if (!done) raf.current = requestAnimationFrame(step)
     }
     raf.current = requestAnimationFrame(step)
   }
 
-  const go = (year: number) => {
-    const y = Math.min(END, Math.max(START, year))
-    setActive(y)
-    target.current = xOf(y)
-    if (cx.current === null) cx.current = target.current
-    run()
-  }
-
-  // start on the current year, and keep the bump on its year when the window resizes
+  // the bump springs to the active chunk; a resize puts it straight there
   useEffect(() => {
-    target.current = xOf(active)
-    if (cx.current === null || reducedMotion()) cx.current = target.current
-    else run()
-    paint(cx.current)
+    target.current = centerOf(g, active)
+    if (cx.current === null || reducedMotion()) {
+      cx.current = target.current
+      paint(cx.current)
+    } else run()
     return () => cancelAnimationFrame(raf.current)
+  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    cx.current = centerOf(g, active)
+    paint(cx.current)
   }, [width]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const nearest = (clientX: number) => {
-    const r = root.current!.getBoundingClientRect()
-    const t = Math.min(1, Math.max(0, (clientX - r.left - PAD) / (width - PAD * 2))) * parts
-    const i = Math.min(parts - 1, Math.floor(t))
-    return Math.round(PARTS[i] + (t - i) * (PARTS[i + 1] - PARTS[i]))
-  }
-  // Anywhere on the board (the card area above the line included) scrubs the timeline. The card itself holds
-  // still so its link can be reached.
-  const onMove = (e: React.PointerEvent) => {
+  // a new chunk brings a new scatter; the old one shrinks away
+  useEffect(() => {
+    setSets((prev) => {
+      if (prev.some((p) => p.chunk === active && !p.leaving)) return prev
+      return [...prev.filter((p) => !p.leaving).map((p) => ({ ...p, leaving: true })), { chunk: active, seed: Math.floor(Math.random() * 1e9), leaving: false }]
+    })
+    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 320)
+    return () => window.clearTimeout(t)
+  }, [active])
+
+  const enter = (i: number) => {
     window.clearTimeout(leave.current)
-    if ((e.target as Element).closest('.tl__card')) return
-    window.clearTimeout(leave.current)
-    setTouched(true)
-    go(nearest(e.clientX))
+    setHover(i)
   }
-  // a mouse drifting away returns to the present; touch stays where it was left
+  // a mouse drifting off the board settles back on the present; touch stays where it was left
   const onLeave = (e: React.PointerEvent) => {
     if (e.pointerType !== 'mouse') return
-    leave.current = window.setTimeout(() => go(END), 700)
+    leave.current = window.setTimeout(() => setHover(null), 600)
   }
-
-  const p = periodFor(active)
 
   return (
     <section className="tl" id="timeline">
       <div className="work__inner">
         <p className="work__intro" data-reveal>
-          so, how did i get here? <span className="hl hl--purple">a quick tour, 2002 to now.</span>
+          so, how did i get here? <span className="hl hl--purple">a quick tour, {chunks[0]?.from ?? 2002} to now.</span>
         </p>
+      </div>
 
-        <div className="tl__board" ref={root} onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={onLeave}>
-          <div className="tl__cardrow">
-            <div className="tl__card" ref={card} style={{ width: CARD_W }}>
-              <div className="tl__inner" key={p.id}>
-                <div className="tl__pic" style={{ background: p.image ? `center / cover url(${p.image})` : `linear-gradient(135deg, ${p.tint[0]}, ${p.tint[1]})` }}>
-                  {!p.image && <TimelineArt id={p.id} />}
-                  <span className="tl__badge">{active}</span>
-                </div>
-                <div className="tl__body">
-                  <span className="tl__dates">{p.dates}</span>
-                  <h3>{p.title}</h3>
-                  <p>{p.text}</p>
-                  {p.link && (
-                    <a href={p.link} className="tl__more">
-                      Explore chapter <span aria-hidden>↗</span>
-                    </a>
-                  )}
+      <div
+        className="tl__board"
+        ref={board}
+        style={{ height: g.height }}
+        onPointerEnter={() => window.clearTimeout(leave.current)}
+        onPointerLeave={onLeave}
+      >
+        <div className="tl__media" aria-hidden>
+          {sets.map((set) => {
+            const c = chunks[set.chunk]
+            if (!c) return null
+            return place(c, set.chunk, g, width, sizeOf(set.chunk), set.seed).map((b) => {
+              const m = c.media[b.item]
+              return (
+                <span
+                  key={`${set.seed}-${b.item}`}
+                  className={`tl__blob${set.leaving ? ' is-leaving' : ''}`}
+                  style={{ left: b.x, top: b.y, width: b.size, height: b.size, borderRadius: b.round, rotate: `${b.rot}deg`, animationDelay: `${b.delay}ms` }}
+                >
+                  {m.video ? <video src={m.src} autoPlay muted loop playsInline /> : <img src={m.thumb ?? m.src} alt="" draggable={false} />}
+                </span>
+              )
+            })
+          })}
+        </div>
+
+        <svg className="tl__svg" width={width} height={g.height} viewBox={`0 0 ${width} ${g.height}`} aria-hidden>
+          <path ref={main} fill="none" stroke="currentColor" strokeWidth="1.5" />
+          {years.map((x, k) => (
+            <circle key={k} ref={(el) => { dots.current[k] = el }} cx={x} cy={g.line} r="4" fill="currentColor" />
+          ))}
+        </svg>
+
+        {/* the years under the line: where each chunk starts, and the present at the end */}
+        <ol className="tl__years" aria-hidden>
+          {chunks.map((c, i) => (
+            <li key={c.id} style={{ left: edgeOf(g, i), top: g.line + 22 }}>{c.from}</li>
+          ))}
+          <li style={{ left: edgeOf(g, chunks.length), top: g.line + 22 }}>{chunks[LAST]?.to}</li>
+        </ol>
+
+        {/* each chunk's hover area is the whole height of the board over its stretch of the line */}
+        {chunks.map((c, i) => (
+          <button
+            type="button"
+            key={c.id}
+            className="tl__zone"
+            style={{
+              left: i === 0 ? 0 : edgeOf(g, i),
+              width: (i === LAST ? width : edgeOf(g, i + 1)) - (i === 0 ? 0 : edgeOf(g, i)),
+              top: 0,
+              bottom: 0,
+            }}
+            aria-label={`${c.from} to ${c.to}: ${'text' in c.heading ? c.heading.text : c.heading.name}. ${c.caption}`}
+            onPointerEnter={() => enter(i)}
+            onPointerDown={() => enter(i)}
+            onFocus={() => enter(i)}
+            onBlur={() => setHover(null)}
+          />
+        ))}
+
+        {chunks.map((c, i) => {
+          const up = i === active
+          const shown = i === hover
+          const top = up ? g.line - g.amp - 16 : g.line - 20 // the bottom of the heading, or of the caption once it opens
+          return (
+            <div
+              key={c.id}
+              className={`tl__head${up ? ' is-up' : ''}${shown ? ' is-shown' : ''}`}
+              ref={(el) => { heads.current[i] = el }}
+              style={{ left: up ? raisedLeft(g, i, width, sizeOf(i).w) : centerOf(g, i), top }}
+              aria-hidden
+            >
+              {'logo' in c.heading ? <img className="tl__logo" src={c.heading.logo} alt={c.heading.name} draggable={false} onLoad={measure} /> : <h3>{c.heading.text}</h3>}
+              <div className="tl__more">
+                <div>
+                  <p className="tl__caption" ref={(el) => { captions.current[i] = el }} style={{ maxWidth: Math.min(CAPTION_W, width - 16) }}>
+                    {c.caption}
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-
-          <p className={`tl__hint${touched ? ' is-gone' : ''}`} aria-hidden>
-            <svg viewBox="0 0 64 20" width="52" height="16" fill="none">
-              <path d="M4 10h56M11 3L4 10l7 7M53 3l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="for-mouse">hover</span>
-            <span className="for-touch">drag</span>
-            <span className="tl__hint-long"> along the line</span> to time-travel
-          </p>
-
-          <div className="tl__axis">
-            <svg className="tl__svg" width={width} height={SVG_H} viewBox={`0 0 ${width} ${SVG_H}`} aria-hidden>
-              <path ref={echo} fill="none" stroke="#e4e0f0" strokeWidth="2" />
-              <path ref={main} fill="none" stroke="#1d1d1b" strokeWidth="2" />
-              <line ref={stem} y1="0" stroke="#1d1d1b" strokeWidth="2" />
-              {years.map((yr, i) => (
-                <circle key={yr} ref={(el) => { ticks.current[i] = el }} r={yr === active ? 0 : 3} fill="#1d1d1b" />
-              ))}
-              <g ref={dot}>
-                <circle r="19" fill="#fff" stroke="#e2e2e6" strokeWidth="2" />
-                <circle r="8" fill="#1d1d1b" />
-              </g>
-            </svg>
-
-            <ul className="tl__years">
-              {years
-                .filter((yr) => yr === active || (PARTS.includes(yr) && Math.abs(xOf(yr) - xOf(active)) > 64))
-                .map((yr) => (
-                <li key={yr} style={{ left: xOf(yr) }} className={yr === active ? 'is-on' : ''}>
-                  <button type="button" onClick={() => go(yr)} onFocus={() => go(yr)} aria-label={`${yr}, ${periodFor(yr).title}`} aria-current={yr === active}>
-                    {yr}
-                  </button>
-                  {yr === active && <small>{periodFor(yr).title}</small>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+          )
+        })}
       </div>
+
     </section>
   )
 }
-
-const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches

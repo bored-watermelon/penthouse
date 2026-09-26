@@ -1,4 +1,0 @@
-Type: doodle
-Image: frog-doodle.png
-Caption: a frog i drew. he’s on my resume too.
-Size: 2x2

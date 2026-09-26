@@ -363,6 +363,7 @@ img { -webkit-user-drag: none; }
 .work__intro { margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; line-height: 1.45; letter-spacing: -0.02em; }
 .hl--purple { color: var(--violet); }
 .hl--pink { color: var(--pink); }
+.hl--red { color: #e63b21; background-image: linear-gradient(transparent 60%, #fcc6be 60%, #fcc6be 88%, transparent 88%); } /* the about heading, as in Figma */
 
 .modes { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: clamp(26px, 2.8vw, 40px); font-weight: 500; letter-spacing: -0.02em; margin-bottom: 28px; }
 .modes__lead { margin-right: 4px; }
@@ -549,6 +550,28 @@ img { -webkit-user-drag: none; }
 .lightbox__arrow--next { right: 28px; }
 .lightbox__arrow:hover { background: #fff; transform: scale(1.08); }
 
+/* the camera from the about box, opened (CameraViewer.tsx) */
+.camview__inner { display: flex; flex-direction: column; align-items: center; gap: 22px; cursor: default; animation: cam-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.lightbox.is-leaving .camview__inner { animation: lb-out 0.22s ease both; }
+.camview__camera { position: relative; width: min(1100px, 92vw, calc((100svh - 140px) * 1706 / 1182)); aspect-ratio: 1706 / 1182; user-select: none; -webkit-user-select: none; }
+.camview__body { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 24px 40px rgb(0 0 0 / 0.22)); }
+/* a hair bigger than the hole, so no seam shows at its edges; black like a camera's playback screen */
+.camview__screen { position: absolute; margin: -0.3%; padding: 0.3%; box-sizing: content-box; background: #0b0b0c; overflow: hidden; }
+.camview__screen img { display: block; width: 100%; height: 100%; object-fit: contain; animation: cam-shot 0.28s ease both; }
+.camview__osd { position: absolute; top: 6%; right: 5%; font-family: var(--mono); font-size: clamp(10px, 1.3vw, 15px); letter-spacing: 0.04em; color: rgb(255 255 255 / 0.85); text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
+.cambtn {
+  position: absolute; width: max(8.2%, 34px); aspect-ratio: 95 / 90; /* no smaller than a fingertip on phones */ translate: -50% -50%; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--b-normal) center / 100% no-repeat;
+}
+.cambtn--prev { transform: scaleX(-1); } /* the art points right */
+.cambtn:hover { background-image: var(--b-hover); }
+.cambtn:active:not(:disabled) { background-image: var(--b-pressed); background-size: 93.7%; } /* the pressed art is drawn a touch smaller */
+.cambtn:disabled { background-image: var(--b-disabled); cursor: default; }
+.cambtn:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
+@keyframes cam-in { from { opacity: 0; transform: scale(0.94) translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes cam-shot { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .camview__inner, .camview__screen img { animation: none !important; } }
+
 @keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lb-from-right { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: none; } }
 @keyframes lb-from-left { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: none; } }
@@ -578,20 +601,24 @@ img { -webkit-user-drag: none; }
 .foot__text {
   position: relative; pointer-events: none; display: flex; flex-direction: column; align-items: center;
   width: 9.566em; font-size: clamp(30px, 6.13vw, 106px); font-family: var(--body); font-weight: 400; color: #fff;
+  /* In Figma the second line starts at the block's left edge while the first is centred, so the words and stickers
+     together sit 0.52em left of the block's middle. This puts what you see in the middle of the screen instead. */
+  translate: 0.52em 0;
 }
 .foot__text p { margin: 0; display: flex; align-items: center; white-space: nowrap; }
 .foot__l2 { align-self: stretch; }
-.foot__word { line-height: 1.0189; letter-spacing: -0.07em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); }
-.sel { display: inline-flex; align-items: center; gap: 0.1132em; background: #c2e9fa; color: #32333f; text-shadow: none; }
-.sel__h { position: relative; flex: none; width: 0; height: 1.0377em; }
-.sel__h img { position: absolute; left: -0.1258em; top: -0.0236em; width: 0.2516em; height: 1.1871em; max-width: none; pointer-events: none; }
-.sel__h--l { transform: scaleY(-1); }
-.foot__to { font-family: 'Intel One Mono', var(--mono); font-size: 1.0377em; line-height: normal; letter-spacing: -0.03em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); }
-.foot__create {
-  font-family: 'Caesar Dressing', var(--body); font-size: 1.5943em; line-height: 1.0651; letter-spacing: -0.03em;
-  background: url("data:image/svg+xml;utf8,<svg viewBox='0 0 417 180' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%' width='100%' fill='url(%23grad)'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(18.679 7.75 -6.4988 23.337 208.91 63)'><stop stop-color='rgb(255,6,6)' offset='0'/><stop stop-color='rgb(255,30,6)' offset='0.031854'/><stop stop-color='rgb(255,53,7)' offset='0.063708'/><stop stop-color='rgb(255,100,7)' offset='0.12742'/><stop stop-color='rgb(255,146,7)' offset='0.19113'/><stop stop-color='rgb(255,193,7)' offset='0.25483'/><stop stop-color='rgb(195,201,23)' offset='0.31613'/><stop stop-color='rgb(135,208,39)' offset='0.37742'/><stop stop-color='rgb(105,212,47)' offset='0.40806'/><stop stop-color='rgb(75,216,55)' offset='0.43871'/><stop stop-color='rgb(45,220,63)' offset='0.46935'/><stop stop-color='rgb(15,223,71)' offset='0.5'/><stop stop-color='rgb(13,214,117)' offset='0.54688'/><stop stop-color='rgb(12,204,163)' offset='0.59376'/><stop stop-color='rgb(10,195,209)' offset='0.64065'/><stop stop-color='rgb(8,185,255)' offset='0.68753'/><stop stop-color='rgb(32,139,255)' offset='0.73561'/><stop stop-color='rgb(55,93,255)' offset='0.78368'/><stop stop-color='rgb(67,69,255)' offset='0.80772'/><stop stop-color='rgb(79,46,255)' offset='0.83176'/><stop stop-color='rgb(90,23,255)' offset='0.8558'/><stop stop-color='rgb(96,12,255)' offset='0.86782'/><stop stop-color='rgb(102,0,255)' offset='0.87984'/><stop stop-color='rgb(135,2,255)' offset='0.90985'/><stop stop-color='rgb(168,3,255)' offset='0.93987'/><stop stop-color='rgb(234,7,255)' offset='0.9999'/></radialGradient></defs></svg>") 0 0 / 100% 100% no-repeat;
-  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
-}
+.foot__word { font-size: 0.8868em; line-height: 1.1489; letter-spacing: -0.07em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); } /* 94px on 108 */
+/* "created" as a text selection: a light-blue box with a caret handle at each end. The stems run exactly the
+   height of the box; the start handle's dot sits on its top end and the end handle's on its bottom end. */
+.sel { position: relative; display: inline-block; padding: 0 0.16em; background: #c2e9fa; color: #32333f; text-shadow: none; }
+.sel__h { position: absolute; top: 0; bottom: 0; width: max(2px, 0.035em); background: #0057ff; }
+.sel__h::after { content: ''; position: absolute; left: 50%; width: 0.19em; height: 0.19em; border-radius: 50%; background: #0057ff; transform: translate(-50%, -50%); }
+.sel__h--l { left: 0; }
+.sel__h--l::after { top: 0; }
+.sel__h--r { right: 0; }
+.sel__h--r::after { top: 100%; }
+.foot__to { font-family: 'Intel One Mono', var(--mono); font-size: 0.7925em; line-height: normal; letter-spacing: -0.03em; text-shadow: 0 2px 30px rgb(0 0 0 / 0.25); } /* 84px */
+.foot__create img { display: block; max-width: none; pointer-events: none; }
 
 /* the stickers and doodles between the words; each one can be dragged off */
 .cluster { position: relative; flex: none; display: block; }
@@ -602,19 +629,27 @@ img { -webkit-user-drag: none; }
 .bit--crop img { inset: auto; }
 
 .resume-pill {
-  position: absolute; left: 9.07%; top: -2.56%; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
-  display: inline-flex; align-items: center; gap: 0.4167em; padding: 0.4167em 0.4167em 0.4167em 1.25em;
-  border-radius: 99px; background: #ffa1cc; color: #5f002c; text-decoration: none;
-  font-family: var(--body); font-weight: 600; font-size: max(12px, 0.2264em); line-height: normal; letter-spacing: 0; text-transform: uppercase; white-space: nowrap;
-  box-shadow: inset -4px -4px 8px #f85ca3, inset 4px 4px 8px #ffd0e5;
-  transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1), scale 0.18s;
+  position: absolute; left: 6.9%; top: -1.39%; display: block; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  color: #5f002c; text-decoration: none;
+  font-family: var(--body); font-weight: 600; font-size: max(12px, 0.1887em); line-height: normal; letter-spacing: 0; text-transform: uppercase; white-space: nowrap;
+  transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
-.resume-pill:hover { scale: 1.05; }
-.resume-pill.is-dragging { cursor: grabbing; transition: none; scale: 1.05; box-shadow: inset -4px -4px 8px #f85ca3, inset 4px 4px 8px #ffd0e5, 0 14px 30px rgb(0 0 0 / 0.35); }
+.resume-pill.is-dragging { cursor: grabbing; transition: none; }
+/* States from Figma ("download resume buton"). The link is fixed at the resting pose (-6.74°, a touch larger) so its
+   hit area never moves; the face inside tips on to -9° on hover, and while dragging also settles back to the base
+   size, flat on the page with no shadow. */
+.resume-pill__face {
+  display: inline-flex; align-items: center; gap: 0.5em; padding: 0.4em 0.4em 0.4em 1.5em; border-radius: 99px;
+  background: #ffa1cc; box-shadow: inset -2px -2px 8px #f85ca3, inset 2px 2px 8px #ffd0e5;
+  filter: drop-shadow(2px 4px 6px rgb(0 0 0 / 0.25));
+  transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1), filter 0.18s;
+}
+.resume-pill:hover .resume-pill__face { transform: rotate(-2.26deg); }
+.resume-pill.is-dragging .resume-pill__face { transform: rotate(-2.26deg) scale(0.952); filter: none; }
 .eyes { display: inline-flex; flex: none; gap: 0.25em; }
 /* the pupils start off looking left, as in Figma; Footer.tsx then points them at the cursor */
-.eye { --px: -0.6em; --py: 0px; position: relative; width: 2em; height: 2em; border-radius: 50%; background: #fff; }
-.eye::after { content: ''; position: absolute; width: 0.75em; height: 0.75em; border-radius: 50%; background: #0049ff; left: 0.625em; top: 0.625em; transform: translate(var(--px), var(--py)); transition: transform 0.08s; }
+.eye { --px: -0.66em; --py: 0.14em; position: relative; width: 1.9em; height: 1.9em; border-radius: 50%; background: #fff; }
+.eye::after { content: ''; position: absolute; width: 0.66em; height: 0.66em; border-radius: 50%; background: #0049ff; left: 0.62em; top: 0.62em; transform: translate(var(--px), var(--py)); transition: transform 0.08s; }
 
 .foot__rights {
   position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 4; /* the cat walks behind it */ margin: 0; pointer-events: none;
@@ -630,11 +665,7 @@ img { -webkit-user-drag: none; }
 .game { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .game__cat { position: absolute; left: 0; bottom: 0; width: clamp(150px, 22.3vw, 400px); pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transform-origin: 50% 100%; will-change: transform; }
 .game__cat:active { cursor: grabbing; }
-.game__cat img {
-  display: block; width: 100%; height: auto; pointer-events: none; transform-origin: 50% 100%;
-  /* the photo is cut off at the bottom; a soft edge keeps that from showing mid-jump */
-  -webkit-mask-image: linear-gradient(to top, transparent, #000 14%); mask-image: linear-gradient(to top, transparent, #000 14%);
-}
+.game__cat img { display: block; width: 100%; height: auto; pointer-events: none; transform-origin: 50% 100%; }
 .game__cat.is-happy img { animation: cat-happy 0.42s var(--ease-spring); }
 .game__cat.is-landing img { animation: cat-land 0.26s ease-out; }
 @keyframes cat-happy { 35% { scale: 1.05 0.93; } 70% { scale: 0.98 1.03; } }
@@ -647,22 +678,22 @@ img { -webkit-user-drag: none; }
 .social__icon.is-round { border-radius: 50%; }
 .social__icon:active { cursor: grabbing; }
 .social__icon img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-.social__icon.is-caught img { animation: icon-caught 0.36s var(--ease-spring); }
-@keyframes icon-caught { 0% { scale: 1.3 0.7; } 100% { scale: 1; } }
 
 .game__bubble {
-  --tail: 0px;
   position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none;
-  display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 14px;
   background: #fff; color: var(--ink); box-shadow: 0 10px 28px rgb(0 0 0 / 0.28);
   font-family: var(--body); font-size: 14px; font-weight: 500; white-space: nowrap;
   opacity: 0; transition: opacity 0.25s ease;
 }
 .game__bubble.is-on { opacity: 1; }
+/* it sits beside the cat, so the tail points sideways at it */
 .game__bubble::after {
-  content: ''; position: absolute; left: clamp(14px, calc(50% + var(--tail)), calc(100% - 14px)); bottom: -5px;
-  width: 12px; height: 12px; border-radius: 2px; background: #fff; transform: translateX(-50%) rotate(45deg);
+  content: ''; position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 2px; background: #fff;
+  transform: translateY(-50%) rotate(45deg);
 }
+.game__bubble[data-side='right']::after { left: -5px; }
+.game__bubble[data-side='left']::after { right: -5px; }
 .game__bubble b { font-weight: 600; font-variant-numeric: tabular-nums; }
 .game__bubble kbd {
   display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px;
@@ -687,219 +718,169 @@ img { -webkit-user-drag: none; }
 
 .dword { display: inline-block; position: relative; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1); }
 .dword.is-dragging { cursor: grabbing; transition: none; }
-.dword.is-dragging:not(.foot__create) { filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.3)); }
+.dword.is-dragging { filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.3)); }
 
-/* ---------- Experiments (videos over parallax clouds) ---------- */
-.exp { position: relative; overflow: hidden; padding: 40px 20px 140px; min-height: 100vh; min-height: 100svh; }
-.exp__sky {
-  position: absolute; left: 0; right: 0; top: -35vh; bottom: -35vh; overflow: hidden; will-change: transform;
-  background: linear-gradient(180deg, #d6e9f8 0%, #eff7fd 100%);
-}
-/* One puff. Position, size, opacity and timing all come from lib/sky.ts as inline styles; this just sets the
-   shape and the crossing. The negative delays mean the sky is already full of clouds on first paint. */
-.exp__cloud {
-  position: absolute; left: 0; pointer-events: none; will-change: transform;
-  background: radial-gradient(ellipse at 50% 50%, #fff 0%, rgb(255 255 255 / 0.72) 42%, rgb(255 255 255 / 0) 72%);
-  animation: cloud-left linear infinite;
-}
-.exp__cloud--right { animation-name: cloud-right; }
-@keyframes cloud-left { from { transform: translate3d(110vw, 0, 0); } to { transform: translate3d(-120%, 0, 0); } }
-@keyframes cloud-right { from { transform: translate3d(-120%, 0, 0); } to { transform: translate3d(110vw, 0, 0); } }
-
-.exp__fade { position: absolute; left: 0; right: 0; pointer-events: none; }
-.exp__fade--top { top: 0; height: 420px; background: linear-gradient(#fff 0, rgb(255 255 255 / 0.85) 25%, rgb(255 255 255 / 0) 100%); }
-.exp__fade--bottom { bottom: 0; height: 260px; background: linear-gradient(rgb(255 255 255 / 0), #fff 100%); }
-.exp__inner { position: relative; }
-.exp__list { display: flex; flex-direction: column; align-items: center; gap: 72px; margin-top: 56px; }
-
-/* No videos yet: the section is an interlude — one big line over the sky, a paper plane, a pointer to the play tab */
-.exp--interlude { min-height: 84vh; min-height: 84svh; display: flex; align-items: center; padding: 120px 20px; }
-.exp--interlude .exp__inner { width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.exp--interlude .exp__fade--top { height: 280px; }
-.exp--interlude .exp__fade--bottom { height: 220px; }
-.exp--interlude .exp__statement { max-width: 1000px; font-size: clamp(28px, 3.7vw, 54px); line-height: 1.25; letter-spacing: -0.035em; text-wrap: balance; }
-.exp__proof { display: flex; flex-direction: column; align-items: center; margin-top: 36px; color: var(--ink); }
-.plane { width: min(300px, 64vw); height: auto; overflow: visible; }
-.plane__trail { animation: trail 1.4s linear infinite; }
-.plane__body { animation: glide 3.6s ease-in-out infinite; }
-@keyframes trail { to { stroke-dashoffset: -22; } }
-@keyframes glide { 0%, 100% { translate: 0 0; } 50% { translate: 5px -7px; } }
-.exp__proof-link {
-  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 6px 12px; border: 0; border-radius: 12px; background: none; cursor: pointer;
-  font-family: var(--hand); font-size: 26px; line-height: 1.1; color: var(--pink); transition: color 0.2s ease;
-}
-.exp__proof-link svg { transition: translate 0.3s var(--ease-spring); }
-.exp__proof-link:hover { color: var(--pink-deep); }
-.exp__proof-link:hover svg { translate: 0 -3px; }
-@media (prefers-reduced-motion: reduce) { .plane__trail, .plane__body { animation: none; } }
-
-.vid { margin: 0; width: min(100%, 1040px); }
-.vid__frame { position: relative; border-radius: 20px; overflow: hidden; background: #1c2635; box-shadow: 0 24px 60px rgb(20 40 90 / 0.28); aspect-ratio: 16 / 9; }
-.vid__frame--placeholder { background: #d4d7dc; box-shadow: 0 24px 60px rgb(20 40 90 / 0.18); }
-.vid__frame video { display: block; width: 100%; height: 100%; object-fit: cover; }
-.vid__play {
-  position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border: 0; border-radius: 50%; color: #fff; cursor: pointer;
-  display: grid; place-items: center; background: rgb(255 255 255 / 0.28); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 20px rgb(0 0 0 / 0.2); transition: transform 0.2s, opacity 0.25s, background 0.2s;
-}
-.vid__play svg { margin-left: 3px; width: 26px; height: 26px; }
-.vid__play:hover { transform: scale(1.08); background: rgb(255 255 255 / 0.4); }
-.vid__frame.is-playing .vid__play { opacity: 0; pointer-events: none; }
-.vid figcaption {
-  display: inline-block; margin-top: 16px; padding: 10px 18px; border-radius: 14px; background: rgb(255 255 255 / 0.78);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 18px; line-height: 1.35; letter-spacing: -0.01em;
-}
-@media (max-width: 860px) {
-  .exp { padding: 32px 20px 100px; }
-  .exp__fade--top { height: 300px; }
-  .exp__list { gap: 44px; margin-top: 36px; }
-  .vid__play { width: 60px; height: 60px; margin: -30px 0 0 -30px; }
-  .vid figcaption { font-size: 15px; }
-}
-@media (prefers-reduced-motion: reduce) { .exp__sky { transform: none !important; } .exp__cloud { animation: none; } }
-
-/* ---------- About me board ---------- */
+/* ---------- About me: a box of keepsakes on a blanket (AboutMe.tsx) ---------- */
 .me { background: #fff; padding: 40px 20px 140px; border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px; }
-.amap { position: relative; margin-top: 36px; }
-.acard {
-  position: absolute; left: 0; top: 0; overflow: hidden; container-type: size; user-select: none; -webkit-user-select: none; touch-action: pan-y;
-  cursor: grab; transition: transform 0.45s cubic-bezier(0.25, 1.15, 0.4, 1), width 0.45s ease, height 0.45s ease, border-radius 0.45s ease, box-shadow 0.2s;
-  will-change: transform;
+.me__intro { max-width: 1100px; }
+.me > .work__inner { position: relative; z-index: 2; } /* so the enlarged picture in the heading comes up over the blanket */
+
+/* the picture in the heading: small and in line with the words; it grows to a proper look on hover and shrinks
+   back into place after (it stays on top while it shrinks, then drops back behind) */
+.reality {
+  position: relative; z-index: 1; display: inline-block; vertical-align: -0.3em; height: 1.3em; aspect-ratio: 1622 / 1660; margin-left: 0.08em;
+  cursor: zoom-in; outline: none; transition: z-index 0s 0.5s;
 }
-.acard.is-dragging { cursor: grabbing; transition: width 0.3s, height 0.3s, border-radius 0.3s, box-shadow 0.2s; box-shadow: 0 24px 50px rgb(0 0 0 / 0.25); }
-.acard[role='button'] { cursor: pointer; }
-.acard:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
-.acard__pad { height: 100%; padding: clamp(14px, 6cqw, 26px); display: flex; flex-direction: column; gap: 0.6em; font-size: clamp(13px, 5.2cqw, 20px); }
-.acard__pad--center { justify-content: center; align-items: center; text-align: center; }
-.acard h4 { margin: 0; font-family: var(--mono); font-weight: 500; font-size: clamp(11px, 3.6cqw, 15px); letter-spacing: 0.02em; text-transform: uppercase; opacity: 0.75; }
-.acard p, .acard ol { margin: 0; line-height: 1.3; letter-spacing: -0.01em; }
-.acard ol { padding-left: 1.3em; display: grid; gap: 0.3em; }
-.acard blockquote { margin: 0; font-size: clamp(16px, 7cqw, 30px); line-height: 1.2; letter-spacing: -0.02em; font-weight: 500; }
-.acard cite { font-family: var(--mono); font-style: normal; font-size: clamp(11px, 3.4cqw, 14px); opacity: 0.6; }
-.acard__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.acard__ph { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, #e4e6eb 0 14px, #eceef2 14px 28px); }
-.acard__chip { position: absolute; left: 14px; bottom: 14px; background: rgb(255 255 255 / 0.85); backdrop-filter: blur(6px); padding: 6px 14px; border-radius: 999px; font-size: 14px; }
-.friends { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
-.friends figure { margin: 0; text-align: center; width: clamp(44px, 17cqw, 76px); }
-.friends img, .friends__ph { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; background: #fff; border: 3px solid #fff; box-shadow: 0 2px 6px rgb(0 0 0 / 0.15); font-weight: 600; font-size: 1.4em; }
-.friends figcaption { margin-top: 6px; font-size: clamp(11px, 3.6cqw, 14px); }
-.acard__gal img, .acard__gal svg { width: 56%; height: auto; max-height: 55%; object-fit: contain; transition: transform 0.3s cubic-bezier(0.3, 1.5, 0.5, 1); pointer-events: none; }
-.acard__gal small { font-family: var(--mono); font-size: 11px; opacity: 0.6; }
-.acard--gallery:hover .acard__gal img, .acard--gallery:hover .acard__gal svg { transform: rotate(-8deg) scale(1.08); }
-
-.acard--light { box-shadow: inset 0 0 0 1.5px var(--line); }
-.acard--light.is-dragging { box-shadow: inset 0 0 0 1.5px var(--line), 0 24px 50px rgb(0 0 0 / 0.18); }
-
-/* your own doodle, on paper */
-.acard__doodle { position: absolute; inset: 0; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6% 6% 4%; gap: 2%; }
-.acard__doodle img { width: 100%; min-height: 0; flex: 1; object-fit: contain; pointer-events: none; }
-.acard__doodle figcaption { font-family: var(--hand); font-size: clamp(16px, 5cqw, 26px); line-height: 1.1; color: var(--ink-2); text-align: center; }
-
-/* the route between places */
-.journey { gap: 0; }
-.journey__map { width: 100%; flex: 1; min-height: 0; overflow: visible; }
-.journey__path { animation: trail 1.6s linear infinite; }
-.journey__name { font-family: var(--body); font-size: 22px; font-weight: 500; letter-spacing: -0.02em; fill: var(--ink); }
-.journey__note { font-family: var(--hand); font-size: 19px; fill: var(--blue-ink); }
-
-/* sketchbook: three pages fanned out, spreading further on hover */
-.acard__gal--stack { justify-content: space-between; color: #fff; }
-.fan { position: relative; flex: 1; min-height: 0; }
-.fan img {
-  position: absolute; left: 50%; top: 50%; width: 52%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px;
-  border: 3px solid #fff; box-shadow: 0 6px 16px rgb(0 0 0 / 0.35); pointer-events: none;
-  translate: calc(-50% + (var(--i) - 1) * 22%) -50%; rotate: calc((var(--i) - 1) * 9deg);
-  transition: translate 0.45s var(--ease-spring), rotate 0.45s var(--ease-spring);
+.reality img {
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0.14em; box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out), border-radius 0.5s var(--ease-out);
 }
-.fan img:nth-child(2) { z-index: 2; }
-.acard--gallery:hover .fan img { translate: calc(-50% + (var(--i) - 1) * 34%) -54%; rotate: calc((var(--i) - 1) * 14deg); }
-.acard__gal-text { display: flex; flex-direction: column; gap: 4px; }
-.acard__gal--stack h4 { opacity: 1; }
-.acard__gal--stack small { font-family: var(--mono); font-size: clamp(10px, 3.4cqw, 12px); opacity: 0.6; }
+.reality:hover, .reality:focus-visible { z-index: 30; transition: z-index 0s; }
+.reality:hover img, .reality:focus-visible img { transform: translate(var(--dx), var(--dy)) scale(var(--grow)); box-shadow: 0 30px 70px rgb(0 0 0 / 0.3); border-radius: 0.03em; }
+.reality:focus-visible img { outline: 2px solid var(--violet); outline-offset: 1px; }
 
-/* link cards: a real title, where it goes, and an arrow that nudges on hover */
-.acard__link { justify-content: flex-end; gap: 6px; }
-.acard__link-title { font-size: clamp(17px, 7cqw, 28px); font-weight: 500; line-height: 1.12; letter-spacing: -0.02em; }
-.acard__link-host { font-family: var(--mono); font-size: clamp(10px, 3.2cqw, 12px); opacity: 0.6; }
-.acard__link-arrow {
-  position: absolute; top: clamp(12px, 5cqw, 20px); right: clamp(12px, 5cqw, 20px); display: grid; place-items: center;
-  width: clamp(30px, 11cqw, 40px); aspect-ratio: 1; border-radius: 50%; background: var(--ink); color: #fff;
-  transition: transform 0.35s var(--ease-spring);
+/* the box sits beside a paper-doll collage of me (Collage.tsx), who's pointing at it */
+.toybox { position: relative; display: flex; align-items: flex-end; gap: clamp(4px, 1.5vw, 24px); max-width: 1560px; margin: 28px auto 0; }
+.toybox__stage { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding-top: 78px; }
+.toybox__box {
+  position: relative; width: min(1100px, calc(100% - 48px)); aspect-ratio: 2940 / 1840; /* the 48px is room to shake it */
+  cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform;
 }
-.acard--link:hover .acard__link-arrow { transform: rotate(45deg) scale(1.08); }
-.acard--link[style*='rgb(29, 29, 27)'] .acard__link-arrow, .acard--link[style*='#1d1d1b'] .acard__link-arrow { background: #fff; color: var(--ink); }
-
-/* text cards read like a small poster: label up top, the sentence big at the bottom */
-.acard__text { justify-content: space-between; }
-.acard__text p { font-size: clamp(15px, 4.1cqw, 27px); line-height: 1.22; letter-spacing: -0.02em; font-weight: 500; max-width: 30ch; }
-.acard__text strong { font-weight: 600; background: rgb(255 255 255 / 0.55); border-radius: 6px; padding: 0 0.15em; }
-.acard__doodle-mark { position: absolute; right: 6%; bottom: 5%; width: clamp(56px, 34cqw, 120px); height: auto; color: var(--ink); rotate: -6deg; transition: rotate 0.4s var(--ease-spring); pointer-events: none; }
-.acard:hover .acard__doodle-mark { rotate: 4deg; }
-
-/* a picture peeking out of a link card (the resume, on its card) */
-.acard__peek {
-  position: absolute; right: 7%; top: 16%; width: 30%; border-radius: 4px; background: #fff; pointer-events: none;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 0.08), 0 14px 30px rgb(0 0 0 / 0.14); rotate: 6deg; transform-origin: 50% 0;
-  transition: rotate 0.45s var(--ease-spring), translate 0.45s var(--ease-spring);
+.toybox__box.is-dragging { cursor: grabbing; }
+.toybox__cardboard { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 22px 26px rgb(16 28 64 / 0.38)); }
+.toybox__item {
+  position: absolute; left: 0; top: 0; padding: 0; border: 0; background: none; cursor: grab; touch-action: none;
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.35)); transition: filter 0.2s ease, scale 0.2s ease;
 }
-.acard--link:hover .acard__peek { rotate: 2deg; translate: 0 -6%; }
-.acard__link:has(.acard__peek) .acard__link-arrow { right: auto; left: clamp(12px, 5cqw, 20px); }
-.acard__link:has(.acard__peek) .acard__link-title { max-width: 58%; font-size: clamp(16px, 5.2cqw, 28px); }
+.toybox__item img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.toybox__item:hover { filter: drop-shadow(0 7px 10px rgb(0 0 0 / 0.35)); }
+.toybox__item.is-held { z-index: 999 !important; cursor: grabbing; scale: 1.06; filter: drop-shadow(0 16px 18px rgb(0 0 0 / 0.35)); }
+.toybox__item:focus-visible { outline: 3px solid var(--violet); outline-offset: 4px; border-radius: 6px; }
+
+/* the handwritten notes, in the blue pen from Figma */
+.toybox__note, .collage__note { position: absolute; z-index: 6; margin: 0; font-family: var(--hand); font-size: 17px; line-height: 1.4; letter-spacing: 0.02em; color: #4355fb; }
+.toybox__note { bottom: calc(100% + 10px); right: 8%; max-width: 290px; pointer-events: none; } /* on the box, so it moves with it */
+.toybox__note-arrow { position: absolute; right: calc(100% + 10px); top: 10px; width: 32px; rotate: -90deg; scale: 1 -1; }
+.collage__note--me { top: 0; left: 58%; width: 62%; }
+.collage__note-arrow { position: absolute; left: 0; top: calc(100% + 4px); width: 30px; }
+
+/* ----- the paper doll (Collage.tsx); every piece is placed in % of the doll, so it all scales together ----- */
+.collage { position: relative; flex: none; width: clamp(240px, 27vw, 420px); padding-top: 96px; }
+.collage__doll { position: relative; margin: 0; width: 100%; aspect-ratio: 540 / 990; }
+.collage__star { position: absolute; z-index: 0; pointer-events: none; }
+.collage__part { position: absolute; display: block; object-fit: contain; pointer-events: none; user-select: none; -webkit-user-select: none; }
+.collage__face { z-index: 1; object-position: 50% 100%; transform-origin: 50% 100%; }
+.collage__hand { z-index: 1; }
+.collage__hand--top { transform-origin: 0% 70%; }
+.collage__hand--bottom { transform-origin: 0% 35%; }
+.collage__top { z-index: 3; object-position: 50% 0; }
+/* a leg is a trouser leg with its shoe, hung from the hip and angled out, the right one mirrored */
+/* pivoting on the inner top corner (the art has ~20% of empty space on its inner side at the waist) keeps the legs
+   joined at the crotch whatever their angle */
+.collage__leg { position: absolute; z-index: 2; }
+.collage__leg--l { transform-origin: 79% 0; transform: rotate(5deg); }
+.collage__leg--r { transform-origin: 21% 0; transform: rotate(-11deg); }
+.collage__trouser { left: 0; top: 0; width: 100%; height: 89.1%; object-position: 50% 0; }
+.collage__leg--r .collage__trouser { transform: scaleX(-1); }
+.collage__shoe { top: 80.9%; width: 100%; height: 18.2%; object-position: 50% 100%; transform-origin: 50% 100%; }
+.collage__leg--l .collage__shoe { left: -30%; transform: rotate(-5deg) scaleX(-1); } /* toes out: the left foot points left */
+.collage__leg--r .collage__shoe { left: 30%; transform: rotate(11deg); }
+.collage__swap { z-index: 5; width: 30px; }
+
+/* hover me and I come alive, gently: my head tilts towards the box, my hands wave at it, my feet run on the spot
+   (the legs stay put), and the stars behind me twinkle */
+.collage__doll:hover .collage__face { animation: wig-face 1.1s ease-in-out infinite; }
+.collage__doll:hover .collage__hand--top { animation: wig-hand-top 0.9s ease-in-out infinite; }
+.collage__doll:hover .collage__hand--bottom { animation: wig-hand-bottom 0.9s ease-in-out 0.15s infinite; }
+.collage__doll:hover .collage__shoe { animation: run 0.5s ease-in-out infinite; }
+.collage__doll:hover .collage__leg--r .collage__shoe { animation-delay: -0.25s; } /* the other foot, half a step apart */
+.collage__doll:hover .collage__star { animation: twinkle 2.4s ease-in-out infinite; }
+.collage__doll:hover .collage__star + .collage__star { animation-delay: -1.2s; }
+@keyframes wig-face { 0%, 100% { rotate: 0deg; } 35% { rotate: 4deg; } 65% { rotate: 1.5deg; } }
+@keyframes wig-hand-top { 0%, 100% { rotate: 0deg; } 50% { rotate: -4deg; } }
+@keyframes wig-hand-bottom { 0%, 100% { rotate: 0deg; } 50% { rotate: 3.5deg; } }
+/* a step: the foot lifts, heel first, and comes back down */
+@keyframes run { 0%, 100% { translate: 0 0; rotate: 0deg; } 35% { translate: 0 -14%; rotate: -10deg; } 60% { translate: 0 -6%; rotate: 4deg; } }
+@keyframes twinkle { 0%, 100% { scale: 1; rotate: 0deg; } 50% { scale: 0.86; rotate: 9deg; } }
+
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-@media (max-width: 860px) { .me { padding: 32px 20px 100px; border-radius: 0 0 32px 32px; } }
-@media (prefers-reduced-motion: reduce) { .acard { transition: none; } }
-
-/* ---------- Timeline ---------- */
-.tl { background: #fff; padding: 60px 20px 40px; }
-.tl__board { --row: 470px; position: relative; margin-top: 36px; touch-action: pan-y; }
-.tl__cardrow { position: relative; height: var(--row); }
-.tl__card {
-  position: absolute; left: 0; bottom: 0; background: #fffdfb; border: 1px solid #e7e2dc; border-radius: 30px; padding: 10px;
-  box-shadow: 0 24px 60px rgb(40 30 20 / 0.14); will-change: transform;
+@media (max-width: 860px) {
+  .me { padding: 32px 20px 100px; border-radius: 0 0 32px 32px; }
+  .toybox { flex-direction: column; align-items: center; gap: 8px; }
+  .collage { width: min(300px, 72vw); padding-top: 64px; }
+  .toybox__stage { width: 100%; padding-top: 58px; }
+  .toybox__box { width: calc(100% - 24px); }
+  .toybox__note { right: 4%; font-size: 15px; max-width: 70%; }
+  .collage__note--me { font-size: 14px; left: 52%; width: 70%; }
 }
-.tl__inner { animation: rise 0.35s ease both; }
-.tl__pic { position: relative; height: 170px; border-radius: 22px; overflow: hidden; }
-.tl__badge { position: absolute; left: 16px; top: 16px; background: rgb(255 255 255 / 0.9); padding: 8px 16px; border-radius: 999px; font-family: var(--mono); font-size: 15px; letter-spacing: 0.04em; }
-.tl__body { padding: 18px 20px 14px; }
-.tl__dates { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--violet); }
-.tl__body h3 { margin: 10px 0 8px; font-size: 30px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; }
-.tl__body p { margin: 0; font-size: 16px; line-height: 1.5; color: #67625d; }
-.tl__more { display: inline-flex; gap: 8px; margin-top: 16px; color: var(--violet); text-decoration: none; font-size: 16px; }
-.tl__more:hover { text-decoration: underline; text-underline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .reality img, .toybox__item { transition: none; } .collage__doll * { animation: none !important; } }
 
-.tl__pic { display: grid; place-items: center; }
-.tl-art { width: 100%; height: 100%; padding: 10px 14px 6px; }
-.tl-art__bob { animation: bob 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
-@media (prefers-reduced-motion: reduce) { .tl-art__bob { animation: none; } }
+/* ---------- Timeline (Figma node 884:15380, see Timeline.tsx) ---------- */
+.tl { background: #fff; padding: 60px 20px 40px; overflow: hidden; }
+/* full bleed: the line runs from edge to edge */
+.tl__board { position: relative; margin: 20px -20px 0; color: var(--ink); touch-action: pan-y; }
+.tl__svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
 
-.tl__hint {
-  position: absolute; left: 4px; top: calc(var(--row) + 165px - 58px); margin: 0; display: inline-flex; align-items: center; gap: 10px; pointer-events: none; /* just above the flat line (y 165 in the svg) */
-  font-family: var(--hand); font-size: 22px; line-height: 1; color: var(--violet); white-space: nowrap; transition: opacity 0.5s ease;
+.tl__years { list-style: none; margin: 0; padding: 0; }
+.tl__years li { position: absolute; translate: -50% 0; font-family: var(--pixel); font-size: 16px; line-height: 1.2; color: #79716b; pointer-events: none; }
+
+.tl__zone { position: absolute; z-index: 2; border: 0; padding: 0; background: none; cursor: default; }
+.tl__zone:focus-visible { outline: 2px solid var(--violet); outline-offset: -6px; border-radius: 12px; }
+
+/* a chunk's heading: resting on the line (centred on its stretch), or riding the bump with its caption under it.
+   "top" is the block's bottom edge, so an opening caption pushes the heading up and always ends just above the peak. */
+.tl__head {
+  position: absolute; z-index: 3; translate: -50% -100%; pointer-events: none;
+  transition: top 0.5s cubic-bezier(0.3, 1.25, 0.5, 1), left 0.5s cubic-bezier(0.3, 1.1, 0.5, 1), translate 0.5s cubic-bezier(0.3, 1.1, 0.5, 1);
 }
-@media (max-width: 640px) { .tl__hint { font-size: 18px; gap: 6px; top: calc(var(--row) + 165px + 10px); } /* under the flat line, where the curve can't reach */ .tl__hint svg { width: 36px; } .tl__hint-long { display: none; } }
-.tl__hint.is-gone { opacity: 0; }
-.for-touch { display: none; }
-@media (hover: none) { .for-mouse { display: none; } .for-touch { display: inline; } }
-
-.tl__axis { position: relative; touch-action: pan-y; cursor: pointer; }
-.tl__svg { display: block; overflow: visible; }
-.tl__years { position: relative; list-style: none; margin: -50px 0 0; padding: 0; height: 130px; }
-.tl__years li { position: absolute; top: 0; transform: translateX(-50%); text-align: center; white-space: nowrap; }
-.tl__years button {
-  border: 0; background: none; padding: 4px 2px; cursor: pointer; font-family: var(--mono); font-size: 12px; color: #a9a5b3;
-  transition: color 0.2s, font-size 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+.tl__head.is-up { translate: 0 -100%; }
+.tl__head h3 {
+  width: max-content; margin: 0; font-size: 16px; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; white-space: nowrap; color: #000;
+  transform-origin: 0 100%; transition: scale 0.4s cubic-bezier(0.3, 1.3, 0.5, 1);
 }
-.tl__years li.is-on button { font-family: var(--body); font-weight: 500; font-size: clamp(34px, 4.4vw, 60px); letter-spacing: -0.03em; color: #1d1d1b; }
-.tl__years small { display: block; margin-top: 2px; font-family: var(--mono); font-size: 13px; color: #1d1d1b; letter-spacing: 0.04em; animation: rise 0.3s ease both; }
-.tl__years li:not(.is-on):hover button { color: #1d1d1b; }
+.tl__head:not(.is-up) h3 { transform-origin: 50% 100%; }
+.tl__head.is-up h3 { scale: 1.6; }
+.tl__logo { display: block; height: 38px; width: auto; max-width: none; }
+/* the caption opens by growing its row from nothing; while resting on the line it takes no width either, so the
+   heading alone is centred */
+.tl__more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(0.3, 1.1, 0.5, 1); }
+.tl__more > div { min-height: 0; overflow: hidden; }
+.tl__head:not(.is-up) .tl__more { width: 0; }
+.tl__head.is-shown .tl__more { grid-template-rows: 1fr; }
+.tl__caption {
+  width: max-content; margin: 0; padding-top: 10px;
+  font-family: var(--pixel); font-size: 16px; line-height: 1.4; letter-spacing: 0.02em; color: #57534d;
+  opacity: 0; visibility: hidden; translate: 0 6px; transition: opacity 0.25s ease, translate 0.3s ease, visibility 0s 0.25s;
+}
+.tl__head.is-shown .tl__caption { opacity: 1; visibility: visible; translate: 0 0; transition: opacity 0.3s ease 0.15s, translate 0.35s ease 0.15s, visibility 0s; }
+
+/* the media, popped into blobs */
+.tl__media { position: absolute; inset: 0; }
+.tl__blob {
+  position: absolute; z-index: 1; translate: -50% -50%; overflow: hidden; background: #e2e8f0; pointer-events: none; /* the hover belongs to the chunk underneath */
+  animation: blob-in 0.55s cubic-bezier(0.3, 1.5, 0.55, 1) both; 
+}
+.tl__blob img, .tl__blob video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tl__blob.is-leaving { animation: blob-out 0.3s ease-in both; }
+@keyframes blob-in { from { scale: 0; } }
+@keyframes blob-out { from { scale: 1; opacity: 1; } to { scale: 0.4; opacity: 0; } }
 
 @media (max-width: 860px) {
   .tl { padding: 40px 20px 20px; }
-  .tl__board { --row: 440px; }
-  .tl__card { width: min(360px, 100%) !important; }
+  .tl__logo { height: 26px; }
+  .tl__head h3, .tl__caption, .tl__years li { font-size: 14px; }
+}
+@media (max-width: 700px) {
+  .tl__head:not(.is-up) .tl__logo { height: 18px; } /* four chunks share a phone's width */
+  .tl__head:not(.is-up) h3 { font-size: 13px; }
+  .tl__years li { font-size: 12px; }
+  .tl__head.is-up h3 { scale: 1.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl__head, .tl__head h3, .tl__more, .tl__caption, .tl__blob { transition: none; }
+  .tl__blob, .tl__blob.is-leaving { animation: none; }
 }
 
 /* A tile with no case study written yet: the pointer is replaced by this pill (Figma node 880:15350).
@@ -925,7 +906,6 @@ img { -webkit-user-drag: none; }
   background: var(--stone-50); color: var(--stone-800);
 }
 .cs--empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 100vh; min-height: 100svh; text-align: center; }
-.cs__empty-art { width: min(340px, 70vw); height: auto; margin-bottom: 12px; }
 .cs__empty-title { margin: 0; font-size: clamp(24px, 3vw, 34px); font-weight: 500; letter-spacing: -0.02em; }
 .cs__empty-sub { margin: 0 0 18px; max-width: 34ch; color: var(--stone-500, #79716b); font-size: 17px; line-height: 1.45; }
 .cs__back {
@@ -1065,7 +1045,6 @@ img { -webkit-user-drag: none; }
   .cs__thanks { font-size: 26px; }
   .cs__article th + th, .cs__article td + td { padding-left: 0; margin-top: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .tl__inner, .tl__years small { animation: none; } }
 
 /* ---------- Dock (floating section nav, see Dock.tsx) ---------- */
 .dock {
