@@ -15,11 +15,18 @@ const FLOOR = { l: 0.1, t: 0.13, r: 0.9, b: 0.905 }
 /** The same floor with the picture turned a quarter clockwise, as it stands on a phone (see .toybox__cardboard). */
 const FLOOR_TALL = { l: 1 - FLOOR.b, t: FLOOR.l, r: 1 - FLOOR.t, b: FLOOR.r }
 /**
- * Shaking the phone: how much of the phone's real acceleration reaches the things in the box. The full amount
- * (they'd feel exactly what the phone does, at the box's real size) sends everything flying on the gentlest wobble.
+ * Shaking the phone: the things feel the phone's own acceleration, at the box's real size (1 = exactly what a real
+ * box in your hand would do), so a gentle shake nudges them and a hard one throws them about.
  */
-const SHAKE = 0.3
-const SHAKE_FLOOR = 2.5 // m/s²; a hand's usual tremble is below this and shouldn't stir anything
+const SHAKE = 1
+const SHAKE_FLOOR = 1.5 // m/s²; a hand's usual tremble is below this and shouldn't stir anything
+/**
+ * Tilting it: gravity pulls along the floor towards whichever side is lower, against each thing's grip on the
+ * cardboard, like a real box. Measured from how the phone is being held, which it follows slowly, so reading it at
+ * any angle doesn't leave everything piled at the bottom; tip it and they slide that way.
+ */
+const TILT = 0.7
+const TILT_SETTLE = 0.004 // how fast "how it's being held" catches up (per reading, ~60 a second)
 /**
  * How hard the cardboard floor grips the things on it, as a deceleration in box-widths per second². Move the box more
  * gently than this and they ride along; yank it, stop it short or shake it and they slide, until the floor slows them.
@@ -77,10 +84,10 @@ function ShakeHint() {
   if (needsTap)
     return (
       <button type="button" className="toybox__shake" onClick={ask}>
-        tap here, then shake your phone
+        tap here, then shake or tilt your phone
       </button>
     )
-  return allowed ? <span className="toybox__shake-note">(or just shake your phone!)</span> : null
+  return allowed ? <span className="toybox__shake-note">(or shake it, or tilt it!)</span> : null
 }
 
 /** Phones only: me under the box, just my face and two hands reaching up for it. Tap the face for another. */
@@ -114,7 +121,7 @@ export default function AboutMe() {
   const els = useRef<(HTMLButtonElement | null)[]>([])
   const [open, setOpen] = useState<number | null>(null)
   const [special, setSpecial] = useState<string | null>(null) // a thing that opens into its own viewer, like the camera
-  const viewer: PlayItem[] = useMemo(() => artifacts.map((a) => ({ id: a.id, src: a.src, video: false, tags: [], caption: '' })), [])
+  const viewer: PlayItem[] = useMemo(() => artifacts.map((a) => ({ id: a.id, src: a.src, thumb: a.thumb, width: a.width, height: a.height, video: false, tags: [], caption: '' })), [])
 
   // fetch the opened-camera art as the box comes near, so the camera viewer opens complete
   useEffect(() => {
@@ -160,6 +167,7 @@ export default function AboutMe() {
     const boxV = { x: 0, y: 0 } // the box's velocity, lightly smoothed (the pointer and the screen don't tick in step)
     let limit = { l: 0, r: 0, u: 0, d: 0 } // how far the box can go from where it sits: left, right, up, down
     const kick = { x: 0, y: 0 } // the phone's change in speed since the last frame, in px/s
+    const tilt = { x: 0, y: 0 } // the pull of the phone's tilt along the floor, in px/s²
     const jig = { x: 0, y: 0 } // and the little jolt it gives the box on screen, with its speed
     const jv = { x: 0, y: 0 }
     let boxDrag: { px: number; py: number; ox: number; oy: number; id: number } | null = null
@@ -346,13 +354,13 @@ export default function AboutMe() {
         dvx += kick.x
         dvy += kick.y
         // which also jolts the box a few pixels, springing back, so the shake shows
-        jv.x += kick.x * 0.25
-        jv.y += kick.y * 0.25
+        jv.x += kick.x * 0.35
+        jv.y += kick.y * 0.35
         kick.x = kick.y = 0
         jv.x += (-jig.x * 900 - jv.x * 28) * dt
         jv.y += (-jig.y * 900 - jv.y * 28) * dt
-        jig.x = clamp(jig.x + jv.x * dt, -10, 10)
-        jig.y = clamp(jig.y + jv.y * dt, -10, 10)
+        jig.x = clamp(jig.x + jv.x * dt, -18, 18)
+        jig.y = clamp(jig.y + jv.y * dt, -18, 18)
         // The things are simulated from the box's point of view. When the box changes speed they keep theirs, so
         // relative to the box they gain the opposite; then the floor's friction pulls them back towards the box's
         // speed, but only so hard. Gentle moves are fully cancelled (they ride along); sharp ones aren't (they slide,
@@ -362,8 +370,8 @@ export default function AboutMe() {
           const grip = (GRIP * grips[i] * L * dt) / 60
           // and each one tumbles a little its own way
           const jolt = reduced ? 0 : Math.hypot(dvx, dvy) / 60
-          let ux = b.velocity.x - (reduced ? 0 : (dvx * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35
-          let uy = b.velocity.y - (reduced ? 0 : (dvy * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35
+          let ux = b.velocity.x - (reduced ? 0 : (dvx * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35 + (tilt.x * dt) / 60
+          let uy = b.velocity.y - (reduced ? 0 : (dvy * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35 + (tilt.y * dt) / 60
           const u = Math.hypot(ux, uy)
           const slow = u > grip ? (u - grip) / u : 0
           ux *= slow
@@ -417,19 +425,49 @@ export default function AboutMe() {
     // The things in the box feel the phone's acceleration the way they'd feel the box being yanked: added to the
     // box's change in speed each frame, scaled from metres to the box's size on screen.
     let lastMotion = 0
+    const grav = { x: 0, y: 0, set: false } // for phones that only report acceleration with gravity in it
     const onMotion = (e: DeviceMotionEvent) => {
-      const a = e.acceleration
       const now = performance.now()
       const dt = lastMotion ? Math.min(0.1, (now - lastMotion) / 1000) : 0.016
       lastMotion = now
-      if (!a || a.x == null || a.y == null) return
-      if (Math.hypot(a.x, a.y) < SHAKE_FLOOR) return
-      const s = toScreen(a.x, a.y)
+      let ax: number
+      let ay: number
+      const a = e.acceleration
+      if (a && a.x != null && a.y != null) [ax, ay] = [a.x, a.y]
+      else {
+        // take gravity out ourselves: it's the slow part of the reading, the shake is what's left
+        const w = e.accelerationIncludingGravity
+        if (!w || w.x == null || w.y == null) return
+        if (!grav.set) Object.assign(grav, { x: w.x, y: w.y, set: true })
+        grav.x += (w.x - grav.x) * 0.08
+        grav.y += (w.y - grav.y) * 0.08
+        ;[ax, ay] = [w.x - grav.x, w.y - grav.y]
+      }
+      if (Math.hypot(ax, ay) < SHAKE_FLOOR) return
+      const s = toScreen(ax, ay)
       const scale = size * 100 * SHAKE // px per metre
       kick.x += s.x * scale * dt
       kick.y += s.y * scale * dt
     }
-    if (isTouchDevice()) window.addEventListener('devicemotion', onMotion)
+    let held: { b: number; g: number } | null = null // how the phone is being held, followed slowly
+    const onTilt = (e: DeviceOrientationEvent) => {
+      if (e.beta == null || e.gamma == null) return
+      if (!held) held = { b: e.beta, g: e.gamma }
+      held.b += (e.beta - held.b) * TILT_SETTLE
+      held.g += (e.gamma - held.g) * TILT_SETTLE
+      // the first few degrees do nothing: a hand's natural wobble shouldn't send anything sliding
+      const rad = (d: number) => (Math.sign(d) * Math.max(0, Math.min(60, Math.abs(d)) - 5) * Math.PI) / 180
+      // gravity along the phone's face, in its own frame (x right, y up): right edge lower pulls right, top edge
+      // raised pulls towards the bottom
+      const s = toScreen(9.81 * Math.sin(rad(e.gamma - held.g)), -9.81 * Math.sin(rad(e.beta - held.b)))
+      const scale = size * 100 * TILT
+      tilt.x = s.x * scale
+      tilt.y = s.y * scale
+    }
+    if (isTouchDevice()) {
+      window.addEventListener('devicemotion', onMotion)
+      window.addEventListener('deviceorientation', onTilt)
+    }
 
     box.addEventListener('pointerdown', onBoxDown)
     box.addEventListener('pointermove', onBoxMove)
@@ -482,6 +520,7 @@ export default function AboutMe() {
       ro.disconnect()
       onItemUp()
       window.removeEventListener('devicemotion', onMotion)
+      window.removeEventListener('deviceorientation', onTilt)
       box.removeEventListener('pointerdown', onBoxDown)
       box.removeEventListener('pointermove', onBoxMove)
       box.removeEventListener('pointerup', onBoxUp)

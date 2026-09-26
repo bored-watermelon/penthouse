@@ -37,18 +37,6 @@ function MediaBlob({ m, leaving, style }: { m: PlayItem; leaving: boolean; style
 const DW = 1512
 const CAPTION_W = 261
 
-/** Where the blobs can go: centre and size in design px (the grey shapes in Figma), and their tilt. */
-const SLOTS = [
-  { x: 707, y: 299, size: 227, rot: -12 },
-  { x: 224, y: 353, size: 189, rot: 15 },
-  { x: 485, y: 469, size: 142, rot: -15 },
-  { x: 1144, y: 252, size: 142, rot: -3 },
-  { x: 1360, y: 418, size: 142, rot: 20 },
-  { x: 732, y: 550, size: 142, rot: -3 },
-  { x: 940, y: 543, size: 142, rot: 30 },
-  { x: 387, y: 154, size: 142, rot: 8 },
-  { x: 207, y: 624, size: 142, rot: -7 },
-]
 const ROUND = ['50%', '50%', '31%', '35%', '37%', '42%'] // circles and rounded squares, as in Figma
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -69,18 +57,14 @@ const shuffle = <T,>(a: T[], r: () => number) => {
 }
 
 type Geo = ReturnType<typeof geometry>
-function geometry(width: number, tallest: number) {
+/** The board fills the rest of a screen-tall section: the line runs near its bottom, the years under it. */
+function geometry(width: number, height: number) {
   const s = width / DW
-  const bs = clamp(s, 0.5, 1.15) // blobs and heights shrink less than the width, so a phone still shows them
   const left = width * 0.05
   const cw = (width * 0.9) / chunks.length
   const amp = Math.round(134 * clamp(s, 0.6, 1))
-  // On a narrow screen the blobs get a band of their own, above the tallest raised heading and caption
-  const band = 260
-  const narrow = width < 700
-  const line = narrow ? Math.round(band + amp + tallest + 90) : Math.round(640 * bs)
-  const vs = narrow ? band / 640 : bs // vertical scale for the blob slots
-  return { s, bs, vs, left, cw, line, amp, reach: Math.max(270 * s, cw * 0.85), height: line + 64 }
+  const line = Math.max(amp + 240, Math.round(height - 64))
+  return { s, left, cw, line, amp, reach: Math.max(270 * s, cw * 0.85), height: line + 64 }
 }
 const centerOf = (g: Geo, i: number) => g.left + (i + 0.5) * g.cw
 const edgeOf = (g: Geo, i: number) => g.left + i * g.cw
@@ -93,11 +77,21 @@ const raisedLeft = (g: Geo, i: number, width: number, bw: number) =>
 
 type Size = { w: number; h: number } // a raised heading with its caption: widest line, and the caption's height
 type Blob = { item: number; x: number; y: number; size: number; rot: number; round: string; delay: number }
-/** Scatters a chunk's media over the free slots, in random order and random shapes. */
+const layouts = new Map<string, Blob[]>()
+/**
+ * Packs a chunk's media into the free space above the line: as large as they can all be while fitting, and spread
+ * evenly, so however many a chunk has, they fill the area (clear of the line, its raised bump and the heading).
+ * Found by trying ever bigger sizes until they no longer fit; seeded, so a chunk's layout stays put.
+ */
 function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: number): Blob[] {
-  const r = rng(seed)
+  const n = c.media.length
+  if (!n) return []
+  const key = [c.id, seed, width, g.line, Math.round(block.w), Math.round(block.h)].join('|')
+  const cached = layouts.get(key)
+  if (cached) return cached
+
   const hl = raisedLeft(g, i, width, block.w) - 20
-  const keep = { l: hl, r: hl + block.w + 40, t: g.line - g.amp - 14 - block.h - 60 }
+  const keep = { l: hl, r: hl + block.w + 40, t: g.line - g.amp - 14 - block.h - 48 }
   const peak = centerOf(g, i)
   // the line under a stretch of the board, with this chunk's bump raised: a blob's lowest point must stay above
   // its highest point there, with room to spare (and above the headings resting on the flat line)
@@ -106,40 +100,85 @@ function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: nu
     return d >= g.reach ? g.line : g.line - (g.amp * (1 + Math.cos((Math.PI * d) / g.reach))) / 2
   }
   const floor = (l: number, rr: number) => Math.min(g.line - 70, lineAt(clamp(peak, l, rr)) - 28)
-  const half = (size: number) => size * 0.64 // half the rotated shape, roughly
-  const placed: { x: number; y: number; size: number }[] = []
-  const fits = (x: number, y: number, size: number) => {
-    const h = half(size)
-    const k = size * 0.72 // a tilted square's corner reaches this far
-    if (x - h < 8 || x + h > width - 8 || y - h < 4) return false
+  const half = (size: number) => size * 0.6 // a rounded square's corner, tilted, reaches about this far
+  type P = { x: number; y: number; size: number }
+  const fits = (x: number, y: number, size: number, placed: P[]) => {
+    const k = size * 0.72
+    if (x - k < 8 || x + k > width - 8 || y - k < 8) return false
     if (y + k > floor(x - k, x + k)) return false
     if (x + k > keep.l && x - k < keep.r && y + k > keep.t) return false
-    return placed.every((p) => Math.hypot(p.x - x, p.y - y) > (half(p.size) + h) * 0.9)
+    return placed.every((p) => Math.hypot(p.x - x, p.y - y) > half(p.size) + half(size) + 10)
   }
-
-  const out: Blob[] = []
-  const items = shuffle(c.media.map((_, k) => k), r)
-  const add = (item: number, x: number, y: number, size: number, rot: number) => {
-    placed.push({ x, y, size })
-    out.push({ item, x, y, size, rot: rot + (r() - 0.5) * 12, round: ROUND[Math.floor(r() * ROUND.length)], delay: 180 + out.length * 70 + r() * 60 }) // after the last heading has settled back down
+  // how much room a photo at (x, y) has: the gap to the nearest other photo, or to the region's edges
+  const room = (x: number, y: number, size: number, others: P[]) => {
+    const k = size * 0.72
+    let d = Math.min(x - k - 8, width - 8 - x - k, y - k - 8, floor(x - k, x + k) - y - k)
+    for (const p of others) d = Math.min(d, Math.hypot(p.x - x, p.y - y) - half(p.size) - half(size))
+    return d
   }
-  // first the spots from Figma, in random order
-  for (const sl of shuffle(SLOTS, r)) {
-    if (out.length === items.length) break
-    const size = sl.size * g.bs * (0.9 + r() * 0.2)
-    const x = sl.x * g.s
-    const y = (sl.y - 60) * g.vs
-    if (fits(x, y, size)) add(items[out.length], x, y, size, sl.rot)
+  // All n at about size s, or null if they don't all fit. Each goes where it's snuggest (packing tight is what
+  // lets them be big), then they're eased apart into whatever space is left, so the gaps come out even.
+  const attempt = (s: number, r: () => number) => {
+    const placed: P[] = []
+    for (let k = 0; k < n; k++) {
+      const size = s * (0.86 + r() * 0.28)
+      let best: P | null = null
+      let score = Infinity
+      for (let t = 0; t < 360; t++) {
+        const x = r() * width
+        const y = r() * g.line
+        if (!fits(x, y, size, placed)) continue
+        const d = room(x, y, size, placed)
+        if (d < score) {
+          best = { x, y, size }
+          score = d
+        }
+      }
+      if (!best) return null
+      placed.push(best)
+    }
+    for (let pass = 0; pass < 24; pass++) {
+      placed.forEach((p, k) => {
+        const others = placed.filter((_, j) => j !== k)
+        let here = room(p.x, p.y, p.size, others)
+        for (let t = 0; t < 6; t++) {
+          const a = r() * Math.PI * 2
+          const step = 4 + r() * 14
+          const x = p.x + Math.cos(a) * step
+          const y = p.y + Math.sin(a) * step
+          if (!fits(x, y, p.size, others)) continue
+          const d = room(x, y, p.size, others)
+          if (d > here) {
+            p.x = x
+            p.y = y
+            here = d
+          }
+        }
+      })
+    }
+    return placed
   }
-  // then, for a chunk with more to show, anywhere else that's free; blobs get a little smaller the harder a
-  // place is to find, and whatever still doesn't fit is left out rather than put over the line
-  const base = 142 * g.bs
-  for (let tries = 0; out.length < items.length && tries < 1500; tries++) {
-    const size = base * (1 - Math.min(0.45, tries / 1500)) * (0.85 + r() * 0.3)
-    const x = r() * width
-    const y = r() * g.line
-    if (fits(x, y, size)) add(items[out.length], x, y, size, (r() - 0.5) * 40)
+  let lo = 36
+  let hi = Math.min(width * 0.42, g.line * 0.55, 380)
+  let found = attempt(lo, rng(seed))
+  for (let it = 0; it < 11 && hi - lo > 4; it++) {
+    const mid = (lo + hi) / 2
+    const lay = attempt(mid, rng(seed + it * 7919))
+    if (lay) {
+      found = lay
+      lo = mid
+    } else hi = mid
   }
+  const r = rng(seed ^ 0x5bd1e995) // shapes, tilts and order, the same whatever size won
+  const order = shuffle(c.media.map((_, k) => k), r)
+  const out = (found ?? []).map((p, k) => ({
+    item: order[k],
+    ...p,
+    rot: (r() - 0.5) * 28,
+    round: ROUND[Math.floor(r() * ROUND.length)],
+    delay: 180 + k * 70 + r() * 60, // after the last heading has settled back down
+  }))
+  layouts.set(key, out)
   return out
 }
 
@@ -153,6 +192,7 @@ export default function Timeline() {
   const heads = useRef<(HTMLDivElement | null)[]>([])
   const captions = useRef<(HTMLParagraphElement | null)[]>([])
   const [width, setWidth] = useState(1200)
+  const [height, setHeight] = useState(720)
   const [hover, setHover] = useState<number | null>(null)
   const [sizes, setSizes] = useState<Size[]>([])
   // the media on show; the set being replaced stays a moment to shrink away
@@ -165,7 +205,7 @@ export default function Timeline() {
   // snaps to the chunk it's let go over. The chosen chunk's caption always shows.
   const [touch, setTouch] = useState(() => matchMedia('(hover: none)').matches)
   const [scrubbed, setScrubbed] = useState(false) // the "drag" hint goes once it's been used
-  const drag = useRef<{ id: number; x0: number; y0: number; on: boolean } | null>(null)
+  const drag = useRef<{ id: number; x0: number; y0: number; x: number; on: boolean } | null>(null)
   useEffect(() => {
     const m = matchMedia('(hover: none)')
     const on = () => setTouch(m.matches)
@@ -174,7 +214,7 @@ export default function Timeline() {
   }, [])
 
   const active = hover ?? LAST // with nothing hovered, the line rests on the present
-  const g = geometry(width, Math.max(110, ...sizes.map((z) => z.h)))
+  const g = geometry(width, height)
   const sizeOf = (i: number): Size => sizes[i] ?? { w: CAPTION_W, h: 110 }
 
   // fetch every chunk's pictures as the timeline comes near, so hovering shows them straight away
@@ -189,7 +229,10 @@ export default function Timeline() {
   }, [])
 
   useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
+    const ro = new ResizeObserver(([e]) => {
+      setWidth(e.contentRect.width)
+      setHeight(e.contentRect.height)
+    })
     ro.observe(board.current!)
     return () => ro.disconnect()
   }, [])
@@ -215,11 +258,15 @@ export default function Timeline() {
     return () => ro.disconnect()
   }, [width]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // one dot per year, spread evenly across its chunk, and one more on the present
+  // one dot per year, spread evenly across its chunk, and one more on the present. They're all there however narrow
+  // the screen (each dot is a year); on a small one they're just drawn smaller, sized so the most crowded chunk's
+  // dots still stand apart, and the same size everywhere so the line looks even.
   const years = chunks.flatMap((c, i) => {
     const span = Math.max(1, c.to - c.from)
     return Array.from({ length: span }, (_, k) => edgeOf(g, i) + (k / span) * g.cw)
   })
+  const tightest = Math.min(...chunks.map((c) => g.cw / Math.max(1, c.to - c.from)))
+  const dotR = clamp(tightest * 0.34, 1.5, 4)
   years.push(edgeOf(g, chunks.length))
 
   const bump = (x: number, c: number) => {
@@ -261,7 +308,7 @@ export default function Timeline() {
   useEffect(() => {
     cx.current = centerOf(g, active)
     paint(cx.current)
-  }, [width]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [width, height]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // a new chunk brings a new scatter; the old one shrinks away
   useEffect(() => {
@@ -280,7 +327,7 @@ export default function Timeline() {
   const chunkAt = (x: number) => Math.min(LAST, Math.max(0, Math.floor((x - g.left) / g.cw)))
   const onDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse') return
-    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, on: false }
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, on: false }
   }
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current
@@ -292,6 +339,7 @@ export default function Timeline() {
       board.current!.setPointerCapture(e.pointerId)
       setScrubbed(true)
     }
+    d.x = e.clientX
     const x = Math.min(g.left + g.cw * chunks.length, Math.max(g.left, e.clientX - board.current!.getBoundingClientRect().left))
     target.current = x
     run()
@@ -302,7 +350,9 @@ export default function Timeline() {
     if (!d || d.id !== e.pointerId) return
     drag.current = null
     if (!d.on) return
-    const x = e.clientX - board.current!.getBoundingClientRect().left
+    // where the finger was last seen, not where this event says: a phone that cancels the touch (it does, if it
+    // thinks the page should scroll after all) can report 0, which snapped the knob to the far left
+    const x = d.x - board.current!.getBoundingClientRect().left
     const i = chunkAt(x)
     setHover(i)
     target.current = centerOf(g, i) // settle on the chunk it was let go over
@@ -320,7 +370,6 @@ export default function Timeline() {
       <div
         className="tl__board"
         ref={board}
-        style={{ height: g.height }}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
@@ -350,7 +399,7 @@ export default function Timeline() {
         <svg className="tl__svg" width={width} height={g.height} viewBox={`0 0 ${width} ${g.height}`} aria-hidden>
           <path ref={main} fill="none" stroke="currentColor" strokeWidth="1.5" />
           {years.map((x, k) => (
-            <circle key={k} ref={(el) => { dots.current[k] = el }} cx={x} cy={g.line} r="4" fill="currentColor" />
+            <circle key={k} ref={(el) => { dots.current[k] = el }} cx={x} cy={g.line} r={dotR} fill="currentColor" />
           ))}
           {/* the scrubber, on touch screens: it rides the top of the bump */}
           {touch && (

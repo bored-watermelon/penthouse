@@ -120,7 +120,6 @@ function useScrolledUnder(head: RefObject<HTMLDivElement | null>, deps: unknown[
 export default function Work() {
   const [mode, setMode] = useState<Mode>('work')
   const [playSeen, setPlaySeen] = useState(false) // play stays mounted once visited, so its images don't reload
-  const [flipped, setFlipped] = useState(false) // hides the "flip me" nudge once the lever has been used
   const [open, setOpen] = useState<number | null>(null) // index into the visible play items
   const [playTags, setPlayTags] = useState<string[]>([]) // none ticked = everything
   const [facet, setFacet] = useState<Record<Facet, string[]>>({ interfaces: [], distribution: [], domain: [] })
@@ -144,7 +143,6 @@ export default function Work() {
     // start of the new content, with the header exactly where it already was.
     anchor.current = scrollY > pinPoint() + 1 ? 'instant' : null
     if (next === 'play') setPlaySeen(true)
-    setFlipped(true)
     setMode(next)
   }
 
@@ -155,7 +153,6 @@ export default function Work() {
       const next = (e as CustomEvent<Mode>).detail
       if (next !== 'work' && next !== 'play') return
       if (next === 'play') setPlaySeen(true)
-      setFlipped(true)
       anchor.current = 'smooth'
       setMode(next)
       if (next === mode) window.scrollTo({ top: pinPoint(), behavior: 'smooth' }) // no re-render coming, so go now
@@ -232,13 +229,6 @@ export default function Work() {
                   <button type="button" className={`modes__label modes__label--play${mode === 'play' ? ' is-on' : ''}`} onClick={() => switchMode('play')}>
                     some play
                   </button>
-                  <span className={`flip-hint${flipped ? ' is-gone' : ''}`} aria-hidden>
-                    <svg viewBox="0 0 70 30" width="54" height="23" fill="none">
-                      <path d="M66 22C52 28 27 27 9 14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                      <path d="M15 7.5L8 13.5L15.5 18.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    psst, flip it!
-                  </span>
                 </div>
 
                 {/* Figma 919:16952: the first pill is "everything", lit while nothing is filtered, and clicking it
