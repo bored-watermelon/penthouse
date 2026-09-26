@@ -6,11 +6,20 @@ import type { PlayItem } from '../content'
 import Lightbox from './Lightbox'
 import CameraViewer, { preloadCamera } from './CameraViewer'
 import Collage from './Collage'
+import { isTouchDevice, toScreen, useMotionAccess } from '../lib/motion'
 
 const { Engine, Events, Bodies, Body, Bounds, Composite, Constraint } = Matter
 
 /** The inside floor of cardboard.png, as fractions of the picture; the rest is the box's walls. */
 const FLOOR = { l: 0.1, t: 0.13, r: 0.9, b: 0.905 }
+/** The same floor with the picture turned a quarter clockwise, as it stands on a phone (see .toybox__cardboard). */
+const FLOOR_TALL = { l: 1 - FLOOR.b, t: FLOOR.l, r: 1 - FLOOR.t, b: FLOOR.r }
+/**
+ * Shaking the phone: how much of the phone's real acceleration reaches the things in the box. The full amount
+ * (they'd feel exactly what the phone does, at the box's real size) sends everything flying on the gentlest wobble.
+ */
+const SHAKE = 0.3
+const SHAKE_FLOOR = 2.5 // m/s²; a hand's usual tremble is below this and shouldn't stir anything
 /**
  * How hard the cardboard floor grips the things on it, as a deceleration in box-widths per second². Move the box more
  * gently than this and they ride along; yank it, stop it short or shake it and they slide, until the floor slows them.
@@ -58,6 +67,44 @@ function Reality() {
 }
 
 /**
+ * On a phone or tablet the box can be shaken by shaking the device. Says so under the handwritten note; on an
+ * iPhone, where the sensors need a tap to allow them, it's a button that asks.
+ */
+function ShakeHint() {
+  const { allowed, needsTap, ask } = useMotionAccess()
+  const [touch] = useState(isTouchDevice)
+  if (!touch) return null
+  if (needsTap)
+    return (
+      <button type="button" className="toybox__shake" onClick={ask}>
+        tap here, then shake your phone
+      </button>
+    )
+  return allowed ? <span className="toybox__shake-note">(or just shake your phone!)</span> : null
+}
+
+/** Phones only: me under the box, just my face and two hands reaching up for it. Tap the face for another. */
+function PhoneMe() {
+  const [face, setFace] = useState(0)
+  const img = useRef<HTMLImageElement>(null)
+  const faces = collage.faces
+  if (!faces.length) return null
+  const next = () => {
+    setFace((f) => (f + 1) % faces.length)
+    img.current?.animate([{ scale: '1 1' }, { scale: '1.12 0.88' }, { scale: '0.96 1.05' }, { scale: '1 1' }], { duration: 380, easing: 'ease-out' })
+  }
+  return (
+    <div className="toybox__me">
+      {collage.hands.top && <img className="toybox__me-hand toybox__me-hand--l" src={collage.hands.top} alt="" draggable={false} />}
+      {collage.hands.top && <img className="toybox__me-hand toybox__me-hand--r" src={collage.hands.top} alt="" draggable={false} />}
+      <button type="button" className="toybox__me-face" onClick={next} aria-label={faces.length > 1 ? 'show another photo of my face' : 'me'}>
+        <img ref={img} src={faces[face]} alt="" draggable={false} />
+      </button>
+    </div>
+  )
+}
+
+/**
  * The "about me" box: a cardboard box of keepsakes on a blanket. Drag the box and everything inside slides and
  * knocks about; drag the things themselves to rearrange them, or click one to see it up close.
  */
@@ -88,6 +135,8 @@ export default function AboutMe() {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     let W = 0 // the box, in px
     let H = 0
+    let L = 0 // its long side: the box is wide on a laptop and tall on a phone, and speeds are measured in this
+    let floor = FLOOR
     let size = 0 // px per real centimetre
     let walls: Matter.Body[] = []
     const bodies: Matter.Body[] = []
@@ -110,6 +159,9 @@ export default function AboutMe() {
     const prev = { x: 0, y: 0 } // where the box was last frame (the pointer moves it in between)
     const boxV = { x: 0, y: 0 } // the box's velocity, lightly smoothed (the pointer and the screen don't tick in step)
     let limit = { l: 0, r: 0, u: 0, d: 0 } // how far the box can go from where it sits: left, right, up, down
+    const kick = { x: 0, y: 0 } // the phone's change in speed since the last frame, in px/s
+    const jig = { x: 0, y: 0 } // and the little jolt it gives the box on screen, with its speed
+    const jv = { x: 0, y: 0 }
     let boxDrag: { px: number; py: number; ox: number; oy: number; id: number } | null = null
     let grab: { i: number; c: Matter.Constraint; sx: number; sy: number; moved: boolean } | null = null
     let raf = 0
@@ -117,10 +169,13 @@ export default function AboutMe() {
     let visible = false
 
     const measure = () => {
-      const old = W
+      const [oldW, oldH, oldSize, oldFloor] = [W, H, size, floor]
       W = box.clientWidth
       H = box.clientHeight
-      size = W / BOX_CM
+      L = Math.max(W, H)
+      floor = H > W ? FLOOR_TALL : FLOOR
+      size = L / BOX_CM
+      box.style.setProperty('--cm', `${size}px`) // the things' sizes in CSS, see .toybox__item
       // Left, it can go as far as my fingertips (when I'm beside it; on phones I'm above it, so the screen's edge);
       // right, to the edge of the screen; up, until its note nearly touches the heading; down, within its space.
       const at = box.getBoundingClientRect()
@@ -135,7 +190,7 @@ export default function AboutMe() {
       limit = { l: Math.max(0, home.l - Math.max(tip, 8)), r: Math.max(0, edge - home.r), u: Math.max(down, up), d: down }
       walls.forEach((b) => Composite.remove(world, b))
       const t = 400
-      const [l, top, r, b] = [FLOOR.l * W, FLOOR.t * H, FLOOR.r * W, FLOOR.b * H]
+      const [l, top, r, b] = [floor.l * W, floor.t * H, floor.r * W, floor.b * H]
       walls = [
         Bodies.rectangle(l - t / 2, H / 2, t, H * 3, { isStatic: true, restitution: 0.8, label: 'wall' }),
         Bodies.rectangle(r + t / 2, H / 2, t, H * 3, { isStatic: true, restitution: 0.8, label: 'wall' }),
@@ -143,23 +198,26 @@ export default function AboutMe() {
         Bodies.rectangle(W / 2, b + t / 2, W * 3, t, { isStatic: true, restitution: 0.8, label: 'wall' }),
       ]
       Composite.add(world, walls)
-      if (old && old !== W) {
+      // resized, or turned from wide to tall: everything keeps its place on the floor, at the new scale
+      if (oldW && (oldW !== W || oldH !== H)) {
         bodies.forEach((b) => {
-          Body.scale(b, W / old, W / old)
-          Body.setPosition(b, { x: (b.position.x * W) / old, y: (b.position.y * W) / old })
+          const fx = (b.position.x / oldW - oldFloor.l) / (oldFloor.r - oldFloor.l)
+          const fy = (b.position.y / oldH - oldFloor.t) / (oldFloor.b - oldFloor.t)
+          Body.scale(b, size / oldSize, size / oldSize)
+          Body.setPosition(b, { x: (floor.l + fx * (floor.r - floor.l)) * W, y: (floor.t + fy * (floor.b - floor.t)) * H })
         })
       }
     }
     measure()
 
     // start them spread over the floor in a loose grid, each at a slight angle
-    const cols = Math.max(1, Math.ceil(Math.sqrt(artifacts.length * 1.6)))
+    const cols = Math.max(1, Math.ceil(Math.sqrt(artifacts.length * (H > W ? 1 / 1.6 : 1.6))))
     const rows = Math.max(1, Math.ceil(artifacts.length / cols))
     artifacts.forEach((_, i) => {
       const c = i % cols
       const r = Math.floor(i / cols)
-      const x = (FLOOR.l + ((FLOOR.r - FLOOR.l) * (c + 0.5)) / cols) * W + (Math.random() - 0.5) * size * 3
-      const y = (FLOOR.t + ((FLOOR.b - FLOOR.t) * (r + 0.5)) / rows) * H + (Math.random() - 0.5) * size * 2
+      const x = (floor.l + ((floor.r - floor.l) * (c + 0.5)) / cols) * W + (Math.random() - 0.5) * size * 3
+      const y = (floor.t + ((floor.b - floor.t) * (r + 0.5)) / rows) * H + (Math.random() - 0.5) * size * 2
       bodies.push(
         Bodies.rectangle(x, y, dims[i].w * size * 0.92, dims[i].h * size * 0.92, {
           angle: (Math.random() - 0.5) * 0.5,
@@ -175,7 +233,7 @@ export default function AboutMe() {
     Composite.add(world, bodies)
 
     const paint = () => {
-      box.style.transform = `translate(${pos.x}px, ${pos.y}px)`
+      box.style.transform = `translate(${pos.x + jig.x}px, ${pos.y + jig.y}px)`
       if (restack) {
         order.forEach((i, rank) => {
           const el = els.current[i]
@@ -187,7 +245,7 @@ export default function AboutMe() {
         const el = els.current[i]
         if (!el) return
         // something skidding fast is half off the ground: it lifts a little
-        const lift = grab?.i === i ? 1 : 1 + Math.min(0.06, ((b.speed * 60) / W) * 0.05)
+        const lift = grab?.i === i ? 1 : 1 + Math.min(0.06, ((b.speed * 60) / L) * 0.05)
         el.style.transform = `translate(${b.position.x - (dims[i].w * size) / 2}px, ${b.position.y - (dims[i].h * size) / 2}px) rotate(${b.angle}rad) scale(${lift})`
       })
     }
@@ -201,7 +259,7 @@ export default function AboutMe() {
         const [thing, wall] = bodyA.label === 'wall' ? [bodyB, bodyA] : [bodyA, bodyB]
         if (wall.label !== 'wall') continue
         const i = bodies.indexOf(thing)
-        if (i >= 0 && i !== grab?.i && (thing.speed * 60) / W > 0.15) hits.add(i)
+        if (i >= 0 && i !== grab?.i && (thing.speed * 60) / L > 0.15) hits.add(i)
       }
     })
     const scatter = () => {
@@ -246,7 +304,7 @@ export default function AboutMe() {
       }
       bodies.forEach((b, i) => {
         if (grab?.i === i) return
-        const speed = (b.speed * 60) / W // box-widths per second
+        const speed = (b.speed * 60) / L // box lengths per second
         if (speed < 0.2) return
         const above = order.slice(order.indexOf(i) + 1)
         if (above.some((j) => Bounds.overlaps(b.bounds, bodies[j].bounds)) && Math.random() < Math.min(0.5, speed * dt * 3)) toTop(i)
@@ -280,17 +338,28 @@ export default function AboutMe() {
           vel.y = vel.y * 0.6 + vy * 0.4
         }
         const k = 1 - Math.exp(-dt / 0.03)
-        const dvx = (vx - boxV.x) * k // how much the box's velocity changed this frame
-        const dvy = (vy - boxV.y) * k
+        let dvx = (vx - boxV.x) * k // how much the box's velocity changed this frame
+        let dvy = (vy - boxV.y) * k
         boxV.x += dvx
         boxV.y += dvy
+        // and the phone's own shaking, gathered since the last frame (see onMotion)
+        dvx += kick.x
+        dvy += kick.y
+        // which also jolts the box a few pixels, springing back, so the shake shows
+        jv.x += kick.x * 0.25
+        jv.y += kick.y * 0.25
+        kick.x = kick.y = 0
+        jv.x += (-jig.x * 900 - jv.x * 28) * dt
+        jv.y += (-jig.y * 900 - jv.y * 28) * dt
+        jig.x = clamp(jig.x + jv.x * dt, -10, 10)
+        jig.y = clamp(jig.y + jv.y * dt, -10, 10)
         // The things are simulated from the box's point of view. When the box changes speed they keep theirs, so
         // relative to the box they gain the opposite; then the floor's friction pulls them back towards the box's
         // speed, but only so hard. Gentle moves are fully cancelled (they ride along); sharp ones aren't (they slide,
         // hit the walls and skid over each other). matter counts velocity in px per 1/60 s.
         bodies.forEach((b, i) => {
           if (grab?.i === i) return
-          const grip = (GRIP * grips[i] * W * dt) / 60
+          const grip = (GRIP * grips[i] * L * dt) / 60
           // and each one tumbles a little its own way
           const jolt = reduced ? 0 : Math.hypot(dvx, dvy) / 60
           let ux = b.velocity.x - (reduced ? 0 : (dvx * heft[i]) / 60) + (Math.random() - 0.5) * jolt * 0.35
@@ -344,6 +413,24 @@ export default function AboutMe() {
       boxDrag = null
       box.classList.remove('is-dragging')
     }
+    // ----- shaking the phone -----
+    // The things in the box feel the phone's acceleration the way they'd feel the box being yanked: added to the
+    // box's change in speed each frame, scaled from metres to the box's size on screen.
+    let lastMotion = 0
+    const onMotion = (e: DeviceMotionEvent) => {
+      const a = e.acceleration
+      const now = performance.now()
+      const dt = lastMotion ? Math.min(0.1, (now - lastMotion) / 1000) : 0.016
+      lastMotion = now
+      if (!a || a.x == null || a.y == null) return
+      if (Math.hypot(a.x, a.y) < SHAKE_FLOOR) return
+      const s = toScreen(a.x, a.y)
+      const scale = size * 100 * SHAKE // px per metre
+      kick.x += s.x * scale * dt
+      kick.y += s.y * scale * dt
+    }
+    if (isTouchDevice()) window.addEventListener('devicemotion', onMotion)
+
     box.addEventListener('pointerdown', onBoxDown)
     box.addEventListener('pointermove', onBoxMove)
     box.addEventListener('pointerup', onBoxUp)
@@ -394,6 +481,7 @@ export default function AboutMe() {
       io.disconnect()
       ro.disconnect()
       onItemUp()
+      window.removeEventListener('devicemotion', onMotion)
       box.removeEventListener('pointerdown', onBoxDown)
       box.removeEventListener('pointermove', onBoxMove)
       box.removeEventListener('pointerup', onBoxUp)
@@ -421,6 +509,7 @@ export default function AboutMe() {
             <p className="toybox__note">
               rummage through the box to know more about me
               {collage.arrows.box && <img className="toybox__note-arrow" src={collage.arrows.box} alt="" />}
+              <ShakeHint />
             </p>
             {artifacts.map((a, i) => (
               <button
@@ -431,7 +520,7 @@ export default function AboutMe() {
                 }}
                 className="toybox__item"
                 // sized here, as a share of the box, so it's right from the first paint
-                style={{ width: `${(DIMS[i].w / BOX_CM) * 100}%`, aspectRatio: `${a.width} / ${a.height}` }}
+                style={{ width: `calc(var(--cm, calc(100% / ${BOX_CM})) * ${DIMS[i].w})`, aspectRatio: `${a.width} / ${a.height}` }}
                 aria-label={`look at the ${a.id.replace(/[-_]+/g, ' ')}`}
                 onClick={(e) => {
                   const el = e.currentTarget
@@ -448,6 +537,7 @@ export default function AboutMe() {
               </button>
             ))}
           </div>
+          <PhoneMe />
         </div>
       </div>
 

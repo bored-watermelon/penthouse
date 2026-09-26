@@ -3,6 +3,7 @@ import CatGame from './CatGame'
 import DragWord from './DragWord'
 import { useDrag } from '../lib/useDrag'
 import { doodle, footerVideo, sticker } from '../lib/footerAssets'
+import { isTouchDevice, useMotionAccess } from '../lib/motion'
 
 /**
  * The headline is laid out on the Figma frame (1728 wide, "was" set at 106px), so every size below is in
@@ -104,6 +105,8 @@ export default function Footer() {
   const [active, setActive] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const pill = useDrag()
+  const motion = useMotionAccess()
+  const [touch] = useState(isTouchDevice)
 
   useEffect(() => {
     // active: any of the footer is showing. revealed: most of it is, so the socials don't drop before anyone's looking.
@@ -140,6 +143,37 @@ export default function Footer() {
     window.addEventListener('pointermove', look)
     return () => window.removeEventListener('pointermove', look)
   }, [active])
+
+  // On a phone there's no cursor to watch, so the pupils roll like marbles with the phone's tilt: tip it right
+  // and they roll right, tip the top back and they roll down. Measured from how it's being held (which drifts
+  // along slowly), so holding it still at any angle brings them back to the middle.
+  useEffect(() => {
+    if (!active || !touch || !motion.allowed) return
+    let base: { x: number; y: number } | null = null
+    const on = (e: DeviceOrientationEvent) => {
+      if (e.beta == null || e.gamma == null) return
+      const angle = ((screen.orientation?.angle ?? 0) + 360) % 360
+      // the tilt in screen directions, whichever way round the phone is
+      const [tx, ty] = angle === 90 ? [e.beta, -e.gamma] : angle === 270 ? [-e.beta, e.gamma] : angle === 180 ? [-e.gamma, -e.beta] : [e.gamma, e.beta]
+      if (!base) base = { x: tx, y: ty }
+      base.x += (tx - base.x) * 0.02
+      base.y += (ty - base.y) * 0.02
+      let dx = (tx - base.x) / 18
+      let dy = (ty - base.y) / 18
+      const m = Math.hypot(dx, dy)
+      if (m > 1) {
+        dx /= m
+        dy /= m
+      }
+      eyes.current?.querySelectorAll<HTMLElement>('.eye').forEach((eye) => {
+        const travel = eye.getBoundingClientRect().width * 0.35
+        eye.style.setProperty('--px', `${dx * travel}px`)
+        eye.style.setProperty('--py', `${dy * travel}px`)
+      })
+    }
+    window.addEventListener('deviceorientation', on)
+    return () => window.removeEventListener('deviceorientation', on)
+  }, [active, touch, motion.allowed])
 
   return (
     <>
@@ -190,6 +224,12 @@ export default function Footer() {
               <Stickers c={CLUSTERS.afterCreate} gap={0} />
             </p>
           </div>
+          {/* iPhones need a tap before the eyes can follow the phone's tilt */}
+          {touch && motion.needsTap && (
+            <button type="button" className="foot__eyes-ask" onClick={motion.ask}>
+              tap, then tilt your phone 👀
+            </button>
+          )}
         </div>
 
         <CatGame active={active} revealed={revealed} />

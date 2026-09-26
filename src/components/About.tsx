@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Ticker from './Ticker'
 import { findLogo } from '../lib/logos'
 
@@ -11,6 +12,44 @@ function Place({ children, note, past = false }: { children: React.ReactNode; no
         {note}
       </span>
     </span>
+  )
+}
+
+const EMAIL = 'heyiamsnehajain@gmail.com'
+
+/**
+ * On phones and tablets the chat beside the hero is dropped (typing a message into a fake chat is fiddly on a
+ * touch keyboard), so its two useful bits sit under the text instead: the resume, and the email address.
+ */
+function HeroActions() {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(EMAIL)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      window.location.href = `mailto:${EMAIL}`
+    }
+  }
+  return (
+    <div className="about__ctas">
+      <a className="cta cta--resume" href="/Sneha%20Jain%20Resume.pdf" download="Sneha Jain Resume.pdf">
+        download resume
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden>
+          <path d="M8 2.5v9m0 0-3.5-3.5M8 11.5l3.5-3.5M3 14h10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </a>
+      <button type="button" className={`cta${copied ? ' is-copied' : ''}`} onClick={copy} aria-label={copied ? 'Email copied' : `Copy email address, ${EMAIL}`}>
+        {copied ? 'copied ✓' : 'copy email'}
+        {!copied && (
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden>
+            <rect x="5" y="5" width="8.5" height="8.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M3 10.5V4a1.5 1.5 0 0 1 1.5-1.5H11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        )}
+      </button>
+    </div>
   )
 }
 
@@ -55,6 +94,7 @@ export default function About() {
         <p data-reveal>
           i may not have 8 years of experience, but give me a weekend and an ominous deadline and i can lowkey learn anything.
         </p>
+        <HeroActions />
       </div>
 
       <footer className="worked">

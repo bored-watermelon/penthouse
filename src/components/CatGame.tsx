@@ -172,7 +172,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       W = host.clientWidth
       H = host.clientHeight
       size = Math.round(clamp(W * 0.037, 44, 64))
-      catW = clamp(W * 0.223, 150, 400)
+      catW = Math.min(clamp(W * 0.223, 150, 400), Math.max(96, H * 0.42)) // and never too tall for a short screen, like a phone on its side
       const img = catEl.current?.querySelector('img')
       catH = catW * (img?.naturalWidth ? img.naturalHeight / img.naturalWidth : CAT_RATIO)
       if (catEl.current) catEl.current.style.width = `${catW}px`

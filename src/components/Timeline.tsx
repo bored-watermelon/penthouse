@@ -160,6 +160,18 @@ export default function Timeline() {
   const cx = useRef<number | null>(null)
   const target = useRef(0)
   const raf = useRef(0)
+  const knob = useRef<SVGGElement>(null)
+  // Touch screens have no hover, so the line gets a knob to drag instead: the bump follows the finger, and
+  // snaps to the chunk it's let go over. The chosen chunk's caption always shows.
+  const [touch, setTouch] = useState(() => matchMedia('(hover: none)').matches)
+  const [scrubbed, setScrubbed] = useState(false) // the "drag" hint goes once it's been used
+  const drag = useRef<{ id: number; x0: number; y0: number; on: boolean } | null>(null)
+  useEffect(() => {
+    const m = matchMedia('(hover: none)')
+    const on = () => setTouch(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
 
   const active = hover ?? LAST // with nothing hovered, the line rests on the present
   const g = geometry(width, Math.max(110, ...sizes.map((z) => z.h)))
@@ -219,6 +231,7 @@ export default function Timeline() {
     for (let x = 0; x <= width + 3; x += 3) d += `${x ? 'L' : 'M'}${x} ${bump(x, c).toFixed(1)}`
     main.current?.setAttribute('d', d)
     years.forEach((x, k) => dots.current[k]?.setAttribute('cy', bump(x, c).toFixed(1)))
+    knob.current?.setAttribute('transform', `translate(${c.toFixed(1)} ${bump(c, c).toFixed(1)})`)
   }
   const run = () => {
     cancelAnimationFrame(raf.current)
@@ -235,8 +248,9 @@ export default function Timeline() {
     raf.current = requestAnimationFrame(step)
   }
 
-  // the bump springs to the active chunk; a resize puts it straight there
+  // the bump springs to the active chunk (unless a finger is dragging it); a resize puts it straight there
   useEffect(() => {
+    if (drag.current?.on) return
     target.current = centerOf(g, active)
     if (cx.current === null || reducedMotion()) {
       cx.current = target.current
@@ -262,6 +276,39 @@ export default function Timeline() {
   // the last chunk hovered stays open, caption and all, until another one is hovered
   const enter = (i: number) => setHover(i)
 
+  // Scrubbing: a sideways drag anywhere on the board (a vertical one still scrolls the page, see touch-action)
+  const chunkAt = (x: number) => Math.min(LAST, Math.max(0, Math.floor((x - g.left) / g.cw)))
+  const onDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') return
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, on: false }
+  }
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    if (!d.on) {
+      const dx = Math.abs(e.clientX - d.x0)
+      if (dx < 8 || dx < Math.abs(e.clientY - d.y0)) return
+      d.on = true
+      board.current!.setPointerCapture(e.pointerId)
+      setScrubbed(true)
+    }
+    const x = Math.min(g.left + g.cw * chunks.length, Math.max(g.left, e.clientX - board.current!.getBoundingClientRect().left))
+    target.current = x
+    run()
+    setHover(chunkAt(x))
+  }
+  const onUp = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    drag.current = null
+    if (!d.on) return
+    const x = e.clientX - board.current!.getBoundingClientRect().left
+    const i = chunkAt(x)
+    setHover(i)
+    target.current = centerOf(g, i) // settle on the chunk it was let go over
+    run()
+  }
+
   return (
     <section className="tl" id="timeline">
       <div className="work__inner">
@@ -274,6 +321,10 @@ export default function Timeline() {
         className="tl__board"
         ref={board}
         style={{ height: g.height }}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
       >
         <div className="tl__media" aria-hidden>
           {/* each scatter is keyed, so when the one before it is cleared away it stays put instead of being
@@ -301,6 +352,19 @@ export default function Timeline() {
           {years.map((x, k) => (
             <circle key={k} ref={(el) => { dots.current[k] = el }} cx={x} cy={g.line} r="4" fill="currentColor" />
           ))}
+          {/* the scrubber, on touch screens: it rides the top of the bump */}
+          {touch && (
+            <g ref={knob} className={`tl__knob${scrubbed ? ' is-used' : ''}`}>
+              <circle className="tl__knob-ring" r="14" />
+              <circle r="14" fill="#fff" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M-3 -4.5 -7.5 0 -3 4.5 M3 -4.5 7.5 0 3 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              {!scrubbed && (
+                <text className="tl__knob-hint" y="38" textAnchor="middle">
+                  drag me
+                </text>
+              )}
+            </g>
+          )}
         </svg>
 
         {/* the years under the line: where each chunk starts, and the present at the end */}
@@ -324,15 +388,18 @@ export default function Timeline() {
               bottom: 0,
             }}
             aria-label={`${c.from} to ${c.to}: ${'text' in c.heading ? c.heading.text : c.heading.name}. ${c.caption}`}
-            onPointerEnter={() => enter(i)}
-            onPointerDown={() => enter(i)}
+            // a mouse chooses by hovering; a finger by tapping (so a swipe that happens to start here, to
+            // scroll the page, doesn't switch chunks)
+            onPointerEnter={(e) => e.pointerType === 'mouse' && enter(i)}
+            onPointerDown={(e) => e.pointerType === 'mouse' && enter(i)}
+            onClick={() => enter(i)}
             onFocus={() => enter(i)}
           />
         ))}
 
         {chunks.map((c, i) => {
           const up = i === active
-          const shown = i === hover
+          const shown = i === hover || (touch && i === active)
           const top = up ? g.line - g.amp - 16 : g.line - 20 // the bottom of the heading, or of the caption once it opens
           return (
             <div

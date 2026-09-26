@@ -280,13 +280,13 @@ export default function Work() {
 
             <div className="work__content" hidden={mode !== 'work'} key={`work-${Object.values(facet).flat().join('|')}`}>
               {shownProjects.length ? (
-                <div className="cards">
+                <CardRail count={shownProjects.length}>
                   {shownProjects.map((p) => (
                     <div className="stack__item" key={p.id}>
                       <ProjectCard p={p} />
                     </div>
                   ))}
-                </div>
+                </CardRail>
               ) : (
                 <p className="empty">Nothing here yet.</p>
               )}
@@ -311,6 +311,47 @@ export default function Work() {
         <Lightbox items={shownPlay} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />
       )}
     </section>
+  )
+}
+
+/**
+ * The project cards. On a phone they're a row you swipe through, one card at a time with the next one peeking in,
+ * and dots underneath to show where you are (CSS does the rest; see .cards in the phone styles).
+ */
+function CardRail({ children, count }: { children: React.ReactNode; count: number }) {
+  const rail = useRef<HTMLDivElement>(null)
+  const [at, setAt] = useState(0)
+  const step = () => {
+    const el = rail.current!
+    const first = el.firstElementChild as HTMLElement | null
+    return first ? first.offsetWidth + (parseFloat(getComputedStyle(el).columnGap) || 0) : el.clientWidth
+  }
+  useEffect(() => {
+    const el = rail.current!
+    const on = () => setAt(Math.round(el.scrollLeft / step()))
+    el.addEventListener('scroll', on, { passive: true })
+    return () => el.removeEventListener('scroll', on)
+  }, [])
+  return (
+    <>
+      <div className="cards" ref={rail}>
+        {children}
+      </div>
+      {count > 1 && (
+        <div className="cards__dots">
+          {Array.from({ length: count }, (_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={i === at ? 'is-on' : ''}
+              aria-label={`Project ${i + 1} of ${count}`}
+              aria-current={i === at}
+              onClick={() => rail.current!.scrollTo({ left: i * step(), behavior: 'smooth' })}
+            />
+          ))}
+        </div>
+      )}
+    </>
   )
 }
 

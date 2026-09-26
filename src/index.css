@@ -304,17 +304,30 @@ img { -webkit-user-drag: none; }
 .ticker__track { display: flex; align-items: center; height: 100%; width: max-content; will-change: transform; }
 .ticker__logo { height: 30px; width: auto; margin-right: 64px; flex: none; pointer-events: none; -webkit-user-drag: none; }
 
+/* the hero's resume and email buttons, standing in for the chat on phones and tablets */
+.about__ctas { display: none; flex-wrap: wrap; gap: 10px; }
+.cta {
+  display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border: 1px solid var(--line-strong); border-radius: 999px;
+  background: #fff; color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.cta:active { transform: scale(0.97); }
+.cta--resume { background: #ffa1cc; border-color: #ffa1cc; color: #5f002c; }
+.cta.is-copied { color: var(--chat-green-ink); border-color: currentColor; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
   .divider { display: none; }
-  .stage { grid-template-columns: 1fr; grid-template-rows: auto minmax(420px, 1fr); gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; }
+  /* no chat on phones and tablets: the hero is just the card, with the two buttons in it */
+  .chat { display: none; }
+  .about__ctas { display: flex; }
+  .stage { grid-template-columns: 1fr; grid-template-rows: auto; gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; }
   .about { order: -1; }
-  .about__copy { padding: 64px 24px 24px; gap: 28px; font-size: 24px; }
+  .about__copy { padding: 64px 24px 24px; gap: 28px; font-size: clamp(24px, 3.6vw, 30px); }
   .about__note { position: static; padding: 8px 24px 0; font-size: 12px; text-align: left; }
   .worked { padding-left: 20px; gap: 16px; height: 72px; }
   .worked__label { font-size: 14px; }
   .ticker__logo { height: 24px; margin-right: 44px; }
-  .chat { min-height: 480px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bubble, .reaction, .picker { animation: none; }
@@ -449,10 +462,42 @@ img { -webkit-user-drag: none; }
   .pin-switch { width: 74px; margin: -10px 0; }
   .flip-hint { font-size: 18px; }
   .flip-hint svg { width: 40px; }
-  .pills { gap: 8px; }
-  .pill, .dd__btn, .pills__clear { font-size: 13px; padding: 6px 12px; gap: 6px; }
-  .pills__clear { padding: 6px 6px; }
+  /* the filters: one row that scrolls sideways, so the pinned header stays short */
+  .pills { flex-wrap: nowrap; gap: 8px; overflow-x: auto; margin: 0 -20px; padding: 2px 20px; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .pills::-webkit-scrollbar { display: none; }
+  .pill, .dd__btn, .pills__clear { flex: none; font-size: 13px; padding: 7px 13px; gap: 6px; }
+  .pills__clear { padding: 7px 6px; }
+
+  /* the cards: a row you swipe through, one at a time, with the next one peeking in (see CardRail in Work.tsx) */
+  .work .cards { /* .work: to win over the tablet grid below */
+    display: flex; flex-direction: row; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 20px; overscroll-behavior-x: contain;
+    margin: 0 -20px; padding: 4px 20px 6px; scrollbar-width: none;
+  }
+  .cards::-webkit-scrollbar { display: none; }
+  .work .stack__item { flex: 0 0 min(84%, 360px); scroll-snap-align: start; }
+  .work .cards__dots { display: flex; }
+
+  /* play: two snug columns; the captions show in the viewer instead of crowding small tiles */
+  .masonry { column-gap: 8px; }
+  .tile { margin-bottom: 8px; border-radius: 10px; }
+  .tile figcaption { display: none; }
 }
+.cards__dots { display: none; justify-content: center; align-items: center; gap: 2px; margin-top: 10px; }
+.cards__dots button { width: 26px; height: 26px; padding: 0; border: 0; background: none; cursor: pointer; }
+.cards__dots button::before { content: ''; display: block; width: 7px; height: 7px; margin: auto; border-radius: 99px; background: var(--stone-200); transition: width 0.3s var(--ease-out), background 0.3s; }
+.cards__dots button.is-on::before { width: 18px; background: var(--stone-800); }
+
+/* the phone version of a filter's menu: a sheet up from the bottom, over a dimmed page (see Dropdown.tsx) */
+.dd__sheet {
+  position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 70; padding: 6px 8px 10px;
+  background: #fff; border: 1px solid var(--stone-800); border-radius: 20px; box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.35);
+  animation: sheet-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.dd__sheet .dd__menu { position: static; width: auto; min-width: 0; max-height: 55svh; padding: 0; border: 0; filter: none; animation: none; }
+.dd__sheet .dd__menu button { font-size: 16px; padding: 13px 12px; }
+.dd__sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 6px 10px 12px; font-family: var(--pixel); font-size: 15px; color: var(--stone-500); }
+.dd__sheet-head button { border: 0; border-radius: 99px; padding: 7px 16px; background: var(--stone-800); color: #fff; font-family: var(--pixel); font-size: 14px; cursor: pointer; }
+@keyframes sheet-up { from { translate: 0 110%; } }
 
 /* What clicking a card does, stated on the card itself (touch users never see the custom cursor): read time at
    rest, "read case study" sliding out on hover. */
@@ -498,10 +543,22 @@ img { -webkit-user-drag: none; }
 @media (max-width: 1000px) { .masonry { columns: 3; } }
 @media (max-width: 860px) {
   .work { padding: 8px 20px 104px; }
-  .work__head { top: var(--head-lift, 0px); } /* see useHeadLift: only the toggle and filters stay pinned */
-  .card { grid-template-columns: 1fr; aspect-ratio: auto; padding: 16px; gap: 16px; }
-  .card__thumb { aspect-ratio: 16 / 10; }
-  .card__shade { background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.3) 60%, transparent); }
+  .work__head { top: var(--head-lift, 0px); margin: 0 -20px; padding-left: 20px; padding-right: 20px; } /* see useHeadLift: only the toggle and filters stay pinned. Edge to edge, so nothing scrolling under it shows at the sides */
+  /* upright cards, two to a row on a tablet: the screenshot on top, the story under it */
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .stack__item { display: flex; }
+  .card { display: flex; flex-direction: column; width: 100%; aspect-ratio: auto; padding: 12px; gap: 14px; border-radius: 20px; }
+  .card__thumb { flex: none; aspect-ratio: 16 / 10; border-radius: 12px; }
+  .card__side { flex: 1; gap: 16px; }
+  .card__shade { background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.35) 55%, transparent); }
+  .client-pill { padding: 3px 10px; }
+  .client-pill img { height: 16px; }
+  .card__x { width: 16px; height: 16px; }
+  .card__text h3 { font-size: 20px; }
+  .card__text p { font-size: 14px; margin-bottom: 14px; }
+  .card__tags { gap: 6px; }
+  .card__tags span { font-size: 12px; padding: 3px 10px; }
+  .card__cta { right: 10px; bottom: 10px; font-size: 12px; padding: 3px 10px; }
 
   .masonry { columns: 2; }
 }
@@ -574,7 +631,7 @@ img { -webkit-user-drag: none; }
 
 /* ---------- Footer (revealed from behind the page) ---------- */
 :root { --fold: clamp(120px, 18svh, 210px); }
-.sheet { position: relative; z-index: 2; background: #fff; padding-bottom: clamp(40px, 7vw, 110px); } /* room for the peeled corner. Its outline (clip-path) comes from PageCurl.tsx */
+.sheet { position: relative; z-index: 2; background: #fff; padding-bottom: clamp(40px, 7vw, 110px); overflow-x: clip; /* nothing, even a box dragged to the edge, makes the page scroll sideways */ } /* room for the peeled corner. Its outline (clip-path) comes from PageCurl.tsx */
 /* The peeled corner at the bottom of the page (see PageCurl.tsx). Hangs from the sheet's bottom edge: the
    shadow sits under the page, the folded flap over it. */
 .curl { position: relative; height: 0; pointer-events: none; }
@@ -585,7 +642,11 @@ img { -webkit-user-drag: none; }
 .foot.is-active { visibility: visible; }
 .foot__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
-.foot__center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-top: calc(var(--fold) * 0.4); pointer-events: none; }
+.foot__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding-top: calc(var(--fold) * 0.4); pointer-events: none; }
+.foot__eyes-ask {
+  pointer-events: auto; padding: 8px 16px; border: 1px solid rgb(255 255 255 / 0.8); border-radius: 99px; cursor: pointer;
+  background: rgb(255 255 255 / 0.2); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; font: inherit; font-size: 14px;
+}
 /* Laid out on the 1728-wide Figma frame: 1em = the 106px of "was", and the block is 1014px wide. */
 .foot__text {
   position: relative; pointer-events: none; display: flex; flex-direction: column; align-items: center;
@@ -696,14 +757,28 @@ img { -webkit-user-drag: none; }
 .game__again kbd { min-width: 18px; height: 18px; font-size: 11px; background: rgb(255 255 255 / 0.14); border-color: rgb(255 255 255 / 0.3); color: #fff; }
 
 @media (max-width: 860px) {
-  .foot__text { font-size: min(9.2vw, 60px); }
-  .resume-pill { left: 38%; top: -26%; }
-  /* up top with the credit, so the (smaller) cat has the ground to itself */
-  .foot__rights { font-size: 13px; padding: 8px 14px; bottom: auto; top: calc(var(--fold) + 38px); }
+  .foot__text { --F: min(9.2vw, 60px); font-size: var(--F); }
+  /* centred over what you see of the headline (the block itself is nudged right by 0.52em, see .foot__text) */
+  .resume-pill { left: calc(50% - 0.52 * var(--F)); top: -34%; font-size: 15px; }
+  /* The copyright pill and the credit line sit in a strip at the very bottom, and the game's ground is just above
+     it: on a narrow screen the cat, its speech bubble and the fallen icons would otherwise pile on top of them. */
+  .game { bottom: 78px; }
+  .foot__rights { font-size: 13px; padding: 8px 14px; bottom: 30px; }
   .foot__rights img { width: 16px; height: 16px; }
-  .foot__credit { top: calc(var(--fold) + 14px); bottom: auto; left: 16px; right: 16px; text-align: right; font-size: 9px; }
+  .foot__credit { left: 16px; right: 16px; bottom: 10px; text-align: center; font-size: 9px; }
   .game__bubble { font-size: 13px; }
 }
+/* A phone on its side: very little height, so the headline and the cat are sized by the height instead */
+@media (max-height: 500px) and (orientation: landscape) {
+  .foot__text { --F: min(9.2vw, 60px, 9svh); font-size: var(--F); }
+  .resume-pill { font-size: 12px; }
+  .foot__center { padding-top: calc(var(--fold) + 24px); } /* centred in what's showing below the page */
+  .game { bottom: 58px; }
+  .foot__rights { bottom: 22px; padding: 6px 12px; }
+  .foot__credit { bottom: 6px; }
+}
+/* narrow phones: the hero's two buttons share the row evenly, or stack at full width */
+@media (max-width: 420px) { .about__ctas .cta { flex: 1 1 auto; justify-content: center; } }
 
 .dword { display: inline-block; position: relative; pointer-events: auto; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1); }
 .dword.is-dragging { cursor: grabbing; transition: none; }
@@ -804,7 +879,36 @@ img { -webkit-user-drag: none; }
   .toybox__note { right: 4%; font-size: 15px; max-width: 70%; }
   .collage__note--me { font-size: 14px; left: 52%; width: 70%; }
 }
-@media (prefers-reduced-motion: reduce) { .reality img, .toybox__item { transition: none; } .collage__doll * { animation: none !important; } }
+/* shaking the phone to shake the box (see ShakeHint in AboutMe.tsx) */
+.toybox__shake {
+  display: block; margin-top: 6px; padding: 5px 12px; pointer-events: auto; cursor: pointer;
+  border: 1px dashed currentColor; border-radius: 99px; background: #fff; color: inherit; font: inherit; font-size: 15px;
+}
+.toybox__shake-note { display: block; }
+
+/* Phones: the box stands upright, and instead of the whole paper doll it's just me underneath, face and hands
+   reaching up for it (see PhoneMe in AboutMe.tsx) */
+.toybox__me { display: none; }
+@media (max-width: 640px) {
+  .toybox .collage { display: none; }
+  .toybox__stage { padding-top: 64px; }
+  .toybox__box { width: min(76vw, 340px); aspect-ratio: 1840 / 2940; }
+  /* the same picture, turned a quarter clockwise; its shadow is set in the picture's own (turned) frame, so it still falls down */
+  .toybox__cardboard { inset: auto; left: 50%; top: 50%; width: calc(100% * 2940 / 1840); height: calc(100% * 1840 / 2940); translate: -50% -50%; rotate: 90deg; filter: drop-shadow(22px 0 26px rgb(16 28 64 / 0.38)); }
+  .toybox__note { right: 2%; max-width: 92%; font-size: 15px; }
+
+  .toybox__me { display: block; position: relative; width: min(84vw, 360px); aspect-ratio: 2.1 / 1; margin: -10px auto 0; }
+  .toybox__me-face { position: absolute; z-index: 2; left: 34%; top: 4%; width: 32%; padding: 0; border: 0; background: none; cursor: pointer; }
+  .toybox__me-face img { display: block; width: 100%; height: auto; transform-origin: 50% 100%; }
+  /* each arm pivots at the shoulder, just inside the face's lower corner; the left one is the same picture mirrored
+     about that same point, so it reaches out the other way */
+  .toybox__me-hand { position: absolute; z-index: 1; top: 46%; left: 58%; width: 44%; pointer-events: none; user-select: none; transform-origin: 0% 70%; }
+  .toybox__me-hand--r { rotate: -40deg; animation: wave-r 2.6s ease-in-out infinite; }
+  .toybox__me-hand--l { left: 42%; scale: -1 1; rotate: 40deg; animation: wave-l 2.6s ease-in-out -1.3s infinite; }
+}
+@keyframes wave-r { 0%, 100% { rotate: -40deg; } 50% { rotate: -32deg; } }
+@keyframes wave-l { 0%, 100% { rotate: 40deg; } 50% { rotate: 32deg; } }
+@media (prefers-reduced-motion: reduce) { .reality img, .toybox__item { transition: none; } .collage__doll *, .toybox__me-hand { animation: none !important; } }
 
 /* ---------- Timeline (Figma node 884:15380, see Timeline.tsx) ---------- */
 .tl { background: #fff; padding: 60px 20px 40px; overflow: hidden; }
@@ -849,6 +953,13 @@ img { -webkit-user-drag: none; }
   opacity: 0; visibility: hidden; translate: 0 6px; transition: opacity 0.12s ease, translate 0.2s ease, visibility 0s 0.12s;
 }
 .tl__head.is-shown .tl__caption { opacity: 1; visibility: visible; translate: 0 0; transition: opacity 0.3s ease 0.18s, translate 0.35s ease 0.18s, visibility 0s; }
+
+/* the scrubber knob, on touch screens (see Timeline.tsx): a pulsing ring until it's first dragged */
+.tl__knob-ring { fill: none; stroke: var(--violet); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: knob-ping 1.8s ease-out infinite; }
+.tl__knob.is-used .tl__knob-ring { animation: none; opacity: 0; }
+.tl__knob-hint { font-family: var(--hand); font-size: 16px; fill: var(--violet); stroke: #fff; stroke-width: 4px; stroke-linejoin: round; paint-order: stroke; } /* a white halo, to read over the line */
+@keyframes knob-ping { from { scale: 1; opacity: 0.8; } to { scale: 1.9; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tl__knob-ring { animation: none; opacity: 0; } }
 
 /* the media, popped into blobs */
 .tl__media { position: absolute; inset: 0; }
