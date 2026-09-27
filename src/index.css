@@ -1356,11 +1356,11 @@ a.pink:hover { color: var(--pink-deep); }
    the summary. A tall, near-empty panel with one centred line, so it reads as a pause rather than a section. */
 .cs-break {
   display: flex; align-items: center; justify-content: center;
-  min-height: 62vh; margin: 40px 0; text-align: center;
+  min-height: 35vh; margin: 40px 0; text-align: center;
 }
 .cs-break p {
   margin: 0; max-width: 18ch;
-  font-size: clamp(26px, 3.4vw, 38px); font-weight: 500; line-height: 1.25; letter-spacing: -0.01em;
+  font-size: 24px; font-weight: 500; line-height: 1.25; letter-spacing: -0.01em;
   color: var(--break-blue);
 }
 
@@ -1467,7 +1467,7 @@ a.pink:hover { color: var(--pink-deep); }
   .cs__article { gap: 88px; }
   .cs__nav ul { flex-direction: row; flex-wrap: wrap; gap: 8px 20px; padding: 0; }
   .cs-quote { padding: 64px 0; font-size: 24px; }
-  .cs-break { min-height: 52vh; margin: 24px 0; }
+  .cs-break { min-height: 35vh; margin: 24px 0; }
   .cs-statement { gap: 40px; }
   .cs-annot__brace { height: 7px; }
   .cs-annot__label { top: calc(100% + 10px); }
