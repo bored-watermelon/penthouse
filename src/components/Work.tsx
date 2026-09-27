@@ -15,7 +15,7 @@ type Mode = 'work' | 'play'
 const INTRO = {
   work: (
     <>
-      i’ve worked on a bunch of <span className="hl hl--green">0 → 1 products</span>, across corporate travel, agentic commerce and virtual
+      i’ve worked on a bunch of <span className="hl hl--purple">0 → 1 products</span>, across corporate travel, agentic commerce and virtual
       corporate cards.
     </>
   ),

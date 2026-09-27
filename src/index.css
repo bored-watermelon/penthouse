@@ -33,15 +33,22 @@
   --violet: #7c5cf0;
   --violet-deep: #5f41d9;
   --violet-soft: #ece6fd;
-  --pink: #e5507e;
-  --pink-deep: #c93a67;
-  --pink-soft: #fde3ea;
+  --pink: #f6339a; /* pink/500 */
+  --pink-deep: #e60076; /* pink/600 */
+  --pink-soft: #fccee8; /* pink/100 */
 
   /* soft surfaces */
   --green: #e2f8cd;
   --blue: #d5ebf7;
   --blue-ink: #1f6f9f;
-  --yellow: #fce68d;
+  --yellow: #fff085; /* yellow/200: the "worked with" bar */
+
+  /* the rest of the Tailwind scales the hero pulls from */
+  --cyan-100: #cefafe; --cyan-600: #0092b8; --cyan-700: #007595;
+  --lime-600: #5ea500; --lime-700: #497d00;
+  --yellow-400: #fdc700;
+  --red-500: #fb2c36;
+  --purple-600: #9810fa;
   /* Tailwind's stone scale, as the Figma files name it */
   --stone-50: #fafaf9; --stone-100: #f5f5f4; --stone-200: #e7e5e4; --stone-300: #d6d3d1; --stone-400: #a6a09b; --stone-500: #79716b; --stone-600: #57534d; --stone-800: #292524;
   --purple: var(--violet); /* older name, kept so nothing breaks */
@@ -256,6 +263,8 @@ img { -webkit-user-drag: none; }
 
 /* ---------- About card ---------- */
 .about {
+  --worked-h: 56px;
+  --ball-size: 160px;
   position: relative;
   border-radius: var(--card-r);
   overflow: hidden;
@@ -278,7 +287,33 @@ img { -webkit-user-drag: none; }
 .place:focus-visible { border-radius: 8px; box-shadow: 0 0 0 2px var(--violet); }
 
 .chip { display: inline-block; transition: rotate 0.3s var(--ease-spring), background 0.2s; }
-.chip:hover { rotate: -4deg; background: #c6e3f5; }
+.selfie:hover .chip { rotate: -4deg; background: var(--cyan-100); }
+
+/* the photo over the highlighted name, with two stars behind it that only show on hover or a tap */
+.selfie { position: relative; display: inline-block; }
+.selfie__art {
+  position: absolute; left: -24px; bottom: calc(100% - 6px);
+  width: 108px; height: 142px;
+  pointer-events: none; /* only the photo itself is hoverable, so the empty corners don't swallow the line above */
+}
+.selfie__photo {
+  position: relative; z-index: 1; pointer-events: auto;
+  width: 100%; height: 100%; object-fit: cover; object-position: 58% 0;
+}
+.selfie__star {
+  position: absolute; z-index: 0; overflow: visible;
+  opacity: 0; scale: 0.4;
+  transition: opacity 0.25s ease, scale 0.35s var(--ease-spring);
+}
+.selfie__star--red { left: 8px; top: 12px; width: 48px; height: 48px; fill: var(--red-500); }
+.selfie__star--gold { left: 82px; top: 62px; width: 42px; height: 42px; fill: var(--yellow-400); }
+.selfie:hover .selfie__star, .selfie.is-lit .selfie__star, .selfie:focus-within .selfie__star { opacity: 1; scale: 1; animation: twinkle 3s ease-in-out infinite; }
+.selfie:hover .selfie__star--gold, .selfie.is-lit .selfie__star--gold, .selfie:focus-within .selfie__star--gold { animation-duration: 3.8s; animation-delay: -1.4s; }
+/* barely there on purpose: a slow turn, and a breath in and out */
+@keyframes twinkle {
+  0%, 100% { transform: rotate(-5deg) scale(0.93); }
+  50% { transform: rotate(5deg) scale(1.07); }
+}
 
 .about__copy {
   flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px;
@@ -288,22 +323,38 @@ img { -webkit-user-drag: none; }
 }
 .about__copy p { margin: 0; }
 .about s { opacity: 0.55; }
-.chip { background: var(--blue); color: var(--blue-ink); padding: 0 10px; border-radius: 12px; }
+/* a highlighter stripe: cyan/100 let down over the paper so it reads as ink on paper, not a filled tag */
+.chip { background: color-mix(in srgb, var(--cyan-100) 60%, var(--paper)); color: var(--cyan-600); padding: 0 10px; border-radius: 12px; }
 .purple { color: var(--violet); text-decoration: none; }
-.pink { color: var(--pink); text-decoration: none; }
-.purple, .pink { transition: color 0.15s; }
+.pink { color: var(--pink); }
+.lime { color: var(--lime-600); text-decoration: none; }
+.purple, .pink, .lime { transition: color 0.15s; }
 .purple:hover { color: var(--violet-deep); }
-.pink:hover { color: var(--pink-deep); }
+a.pink:hover { color: var(--pink-deep); }
+.lime:hover { color: var(--lime-700); }
 .inline-logo { height: 0.72em; width: auto; vertical-align: -0.02em; margin-left: 0.1em; }
 
+/* the Art Attack logo, standing in for the words. It is taller than the line, so it hangs out of the line box
+   rather than pushing the paragraph apart. */
+.art-attack { display: inline-block; width: 3.4em; vertical-align: middle; margin: -1em -0.1em; }
+.art-attack img { display: block; width: 100%; height: auto; transition: rotate 0.3s var(--ease-spring), scale 0.3s var(--ease-spring); }
+.art-attack:hover img { rotate: -4deg; scale: 1.06; }
+
 .worked {
+  flex: none;
   display: flex; align-items: center; gap: 32px;
-  background: var(--yellow); padding: 0 0 0 40px; height: 84px;
+  background: var(--yellow); padding: 0 0 0 40px; height: var(--worked-h);
 }
 .worked__label {
-  font-family: 'Tanker', var(--mono); font-weight: 400; font-size: 24px; letter-spacing: 0.03em; line-height: 1;
+  font-family: 'Tanker', var(--mono); font-weight: 400; font-size: 28px; letter-spacing: 0.03em; line-height: 1;
   white-space: nowrap; text-transform: uppercase;
 }
+
+/* The basketball's playfield: the white part of the card, with the yellow bar as its floor. */
+.ball-field { position: absolute; inset: 0 0 var(--worked-h) 0; pointer-events: none; z-index: 3; }
+.ball { position: absolute; top: 0; left: 0; width: var(--ball-size); height: var(--ball-size); pointer-events: auto; cursor: grab; touch-action: none; will-change: transform; }
+.ball.is-held { cursor: grabbing; }
+.ball img { width: 100%; height: 100%; display: block; }
 .ticker {
   flex: 1; min-width: 0; height: 100%; overflow: hidden; cursor: grab; touch-action: pan-y; user-select: none;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
@@ -331,15 +382,20 @@ img { -webkit-user-drag: none; }
   .chat { display: none; }
   .about__ctas { display: flex; }
   .stage { grid-template-columns: 1fr; grid-template-rows: auto; gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; }
-  .about { order: -1; }
-  .about__copy { padding: 64px 24px 24px; gap: 28px; font-size: clamp(24px, 3.6vw, 30px); }
+  .about { order: -1; --worked-h: 52px; --ball-size: 88px; }
+  /* the photo needs headroom above the first line, so the copy starts further down than the note */
+  .about__copy { padding: 124px 24px 24px; gap: 28px; font-size: clamp(24px, 3.6vw, 30px); }
   .about__note { position: static; padding: 8px 24px 0; font-size: 12px; text-align: left; }
-  .worked { padding-left: 20px; gap: 16px; height: 72px; }
-  .worked__label { font-size: 17px; }
+  .selfie__art { left: -16px; width: 82px; height: 108px; }
+  .selfie__star--red { left: 6px; top: 9px; width: 36px; height: 36px; }
+  .selfie__star--gold { left: 62px; top: 47px; width: 32px; height: 32px; }
+  .worked { padding-left: 20px; gap: 16px; }
+  .worked__label { font-size: 20px; }
   .ticker__logo { height: 24px; margin-right: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bubble, .reaction, .picker { animation: none; }
+  .selfie__star { animation: none !important; }
 }
 
 /* ---------- Work / Play section ---------- */
@@ -376,9 +432,8 @@ img { -webkit-user-drag: none; }
 
 .work__intros { margin-bottom: 20px; }
 .work__intro { margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; line-height: 1.45; letter-spacing: -0.02em; }
-.hl--purple { color: var(--violet); }
+.hl--purple { color: var(--purple-600); } /* the coloured words in the work intro */
 .hl--pink { color: var(--pink); }
-.hl--green { color: #15803d; } /* green/700: the coloured words in the work intro */
 .hl--fuchsia { color: #c026d3; } /* fuchsia/600: the coloured words in the play intro */
 .hl--yellow { color: #ca8a04; } /* yellow/600: "2002 to now" in the timeline heading */
 .hl--red { color: #e63b21; background-image: linear-gradient(transparent 60%, #fcc6be 60%, #fcc6be 88%, transparent 88%); } /* the about heading, as in Figma */
@@ -402,17 +457,19 @@ img { -webkit-user-drag: none; }
 @media (prefers-reduced-motion: reduce) { .pin-art__lever, .pin-art__ball { transition: none; } }
 .pin-switch:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 12px; }
 
-/* filter row (Figma 919:16952): Geist Pixel pills with a dark outline, lit dark when on */
-.pills { display: flex; align-items: center; gap: clamp(10px, 1.1vw, 20px); flex-wrap: wrap; }
+/* filter row (Figma 7195:5841 / 7195:5864): Geist Pixel pills, quiet on stone/100 until they carry a choice,
+   and then filled stone/800. An open menu marks its pill with a stone/400 outline. */
+.pills { display: flex; align-items: center; gap: clamp(10px, 1.1vw, 14px); flex-wrap: wrap; }
 .pill, .dd__btn, .pills__clear {
-  display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--stone-800); background: var(--paper); border-radius: 99px; padding: 8px 20px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--stone-200); background: var(--stone-100); border-radius: 99px; padding: 6px 18px; cursor: pointer;
   font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--stone-800); white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.pill:hover, .dd__btn:hover { background: var(--stone-100); }
-.pill.is-on, .dd__btn.is-on { background: var(--stone-800); color: #fff; }
-.pills__divider { align-self: stretch; width: 1px; margin: 4px 0; background: var(--stone-500); }
-.pills__clear { border-color: transparent; padding: 8px 10px; }
+.pill:hover, .dd__btn:hover { background: var(--stone-200); }
+.pill.is-on, .dd__btn.is-on { background: var(--stone-800); border-color: var(--stone-800); color: #fff; }
+.dd__btn.is-open:not(.is-on) { border-color: var(--stone-400); background: var(--stone-100); }
+.pills__divider { align-self: stretch; width: 1px; margin: 4px 0; background: var(--stone-300); }
+.pills__clear { border-color: transparent; background: none; padding: 8px 10px; }
 .pills__clear:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 .work__content { animation: fade 0.3s ease both; }
@@ -423,20 +480,22 @@ img { -webkit-user-drag: none; }
 /* dropdown filters: several options can be ticked; the menu stays open while picking */
 .dd { position: relative; }
 .dd__label { color: var(--stone-500); }
-.dd__btn.is-on .dd__label { color: #fff; }
+.dd__value { color: var(--stone-800); }
+.dd__btn.is-on .dd__label, .dd__btn.is-on .dd__value { color: #fff; }
 .dd__chev { flex: none; transition: transform 0.2s; }
 .dd__btn.is-open .dd__chev { transform: rotate(180deg); }
 .dd__menu {
   position: absolute; z-index: 20; top: calc(100% + 5px); left: 0; width: max-content; min-width: 228px; max-height: 360px; overflow-y: auto; /* its own width, not the pill's, which grows as options are ticked */
-  display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px; list-style: none;
-  background: var(--paper); border: 1px solid var(--stone-800); border-radius: 12px; filter: drop-shadow(2px 2px 3.5px rgb(0 0 0 / 0.13)); animation: rise 0.15s ease both;
+  display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 8px; list-style: none;
+  background: #fff; border: 1px solid var(--stone-200); border-radius: 12px; filter: drop-shadow(2px 2px 3.5px rgb(0 0 0 / 0.16)); animation: rise 0.15s ease both;
 }
 .dd__menu button {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; background: none; text-align: left; white-space: nowrap; cursor: pointer;
-  padding: 10px; border-radius: 8px; font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--ink);
+  padding: 8px; border-radius: 8px; font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--ink);
 }
 .dd__menu button:hover { background: var(--stone-100); }
-.dd__menu button.is-picked { background: var(--stone-200); color: var(--stone-800); }
+/* a ticked option is marked by the check alone, not a fill (Figma 7205:7056) */
+.dd__menu button.is-picked { color: var(--stone-800); }
 .dd__menu svg { flex: none; }
 
 /* project cards (Figma 919:16808): the screenshot on the left, clients at the top right, the story at the bottom

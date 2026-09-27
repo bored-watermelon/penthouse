@@ -65,14 +65,23 @@ export const camera = {
   buttons: { normal: buttonByName('default'), hover: buttonByName('hover'), pressed: buttonByName('pressed'), disabled: buttonByName('disabled') },
 }
 
-// ----- the iPod: every song in "opened assets/songs", named "Song Name - Artist Name" -----
+// ----- the iPod: every song in "opened assets/songs", named "Song-[Title]; Artist Name-[Artist]" -----
 
 const songFiles = import.meta.glob('../../about/opened assets/songs/*.{mp3,MP3,m4a,M4A,aac,AAC,wav,WAV,ogg,OGG,oga,flac,FLAC,opus}', { query: '?url', import: 'default', eager: true }) as Record<string, string>
 
 export type Song = { id: string; title: string; artist: string; src: string }
 
-/** "Song Name - Artist Name" (a – or — works too, and so does "Song Name by Artist"); anything else is just a title. */
+/**
+ * File names are written "Song-[Song Name]; Artist Name-[Artist Name]", the same bracketed shape the /play
+ * files use. Either field can be left out, and the order doesn't matter. A name that doesn't use the brackets
+ * at all falls back to the older "Song Name - Artist Name" (a – or — works too, and so does "… by …").
+ */
 function readSongName(name: string) {
+  const field = (key: string) => name.match(new RegExp(`${key}\\s*-\\s*\\[([^\\]]*)\\]`, 'i'))?.[1].trim()
+  const title = field('Song')
+  const artist = field('Artist(?:\\s*Name)?')
+  if (title || artist) return { title: title || name.trim(), artist: artist || 'Unknown Artist' }
+
   // split at the last dash (titles can have dashes of their own); "by" only when there's no dash at all
   const m = name.match(/^(.*\S)\s+[-–—]\s+(\S.*)$/) ?? name.match(/^(.*\S)\s+by\s+(\S.*)$/i)
   return m ? { title: m[1].trim(), artist: m[2].trim() } : { title: name.trim(), artist: 'Unknown Artist' }

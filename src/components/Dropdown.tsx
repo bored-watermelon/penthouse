@@ -37,8 +37,10 @@ export default function Dropdown({ label, value, options, onChange }: Props) {
 
   const picked = (o: string) => value.some((v) => v.toLowerCase() === o.toLowerCase())
   const toggle = (o: string) => onChange(picked(o) ? value.filter((v) => v.toLowerCase() !== o.toLowerCase()) : [...value, o])
-  // keep the pill's text in the menu's order, whatever order things were ticked in
+  // keep the pill's text in the menu's order, whatever order things were ticked in. Past the first, the rest
+  // are counted rather than listed ("Mobile + 1 more"), so the pill never stretches the filter row.
   const shown = options.filter(picked)
+  const summary = !shown.length ? 'All' : shown.length === 1 ? shown[0] : `${shown[0]} + ${shown.length - 1} more`
 
   const list = (
     <ul className="dd__menu" role="listbox" aria-label={label} aria-multiselectable="true">
@@ -47,7 +49,7 @@ export default function Dropdown({ label, value, options, onChange }: Props) {
           <button type="button" className={picked(o) ? 'is-picked' : ''} onClick={() => toggle(o)}>
             {o}
             {picked(o) && (
-              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+              <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden>
                 <path d="M4 10.5 8 14.5 16 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
@@ -61,7 +63,7 @@ export default function Dropdown({ label, value, options, onChange }: Props) {
     <div className="dd" ref={root}>
       <button type="button" className={`dd__btn${shown.length ? ' is-on' : ''}${open ? ' is-open' : ''}`} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="dd__label">{label} :</span>
-        <span className="dd__value">{shown.length ? shown.join(', ') : 'All'}</span>
+        <span className="dd__value">{summary}</span>
         <svg className="dd__chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden>
           <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

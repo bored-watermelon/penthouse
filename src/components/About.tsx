@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Ticker from './Ticker'
+import Basketball from './Basketball'
 import { findLogo } from '../lib/logos'
+import { heroImage } from '../lib/heroAssets'
 
 /** A place in the "rudrapur → roorkee → mumbai" line, with a small note that appears on hover or focus. */
 function Place({ children, note, past = false }: { children: React.ReactNode; note: string; past?: boolean }) {
@@ -11,6 +13,35 @@ function Place({ children, note, past = false }: { children: React.ReactNode; no
       <span className="place__note" aria-hidden>
         {note}
       </span>
+    </span>
+  )
+}
+
+/**
+ * The photo over the highlighted name. The two stars behind it stay hidden until the photo or the name is
+ * hovered — or tapped, since a phone has no hover — and then twinkle: a slow, slight turn and breathe.
+ */
+function Selfie() {
+  const [lit, setLit] = useState(false)
+  const timer = useRef(0)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const flash = () => {
+    setLit(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setLit(false), 2600)
+  }
+  return (
+    <span className={`selfie${lit ? ' is-lit' : ''}`} onPointerDown={flash}>
+      <span className="selfie__art">
+        <svg className="selfie__star selfie__star--red" viewBox="0 0 100 100" aria-hidden>
+          <polygon points="50,0 58.5,35.3 93.3,25 67,50 93.3,75 58.5,64.7 50,100 41.5,64.7 6.7,75 33,50 6.7,25 41.5,35.3" />
+        </svg>
+        <svg className="selfie__star selfie__star--gold" viewBox="0 0 100 100" aria-hidden>
+          <path d="M50 0C54.5 31 69 45.5 100 50 69 54.5 54.5 69 50 100 45.5 69 31 54.5 0 50 31 45.5 45.5 31 50 0Z" />
+        </svg>
+        <img className="selfie__photo" src={heroImage.me} alt="Sneha in a leopard-print beanie, a cat’s eyes held over her own" />
+      </span>
+      <span className="chip">sneha,</span>
     </span>
   )
 }
@@ -64,7 +95,7 @@ export default function About() {
 
       <div className="about__copy">
         <p data-reveal>
-          i am <span className="chip">sneha</span>, a product designer from
+          i am <Selfie /> a product designer from
           <br />
           <Place past note="where it all started">
             rudrapur 🍼
@@ -78,24 +109,26 @@ export default function About() {
         </p>
         <p data-reveal>
           before i was a designer, i was a kid frantically following along to{' '}
-          <a className="purple" href="https://youtu.be/YDi9-uXXRfc?si=Izbf_ubp6q1wHw8t" target="_blank" rel="noreferrer">
-            Art Attack
+          <a className="art-attack" href="https://youtu.be/YDi9-uXXRfc?si=Izbf_ubp6q1wHw8t" target="_blank" rel="noreferrer">
+            <img src={heroImage['art-attack']} alt="Art Attack" draggable={false} />
           </a>{' '}
-          and devouring the tutorials on{' '}
-          <a className="pink" href="https://www.arvindguptatoys.com/toys.html" target="_blank" rel="noreferrer">
+          and making tops from{' '}
+          <a className="lime" href="https://www.arvindguptatoys.com/toys.html" target="_blank" rel="noreferrer">
             arvindguptatoys.com
           </a>
-          .
         </p>
         <p data-reveal>
           these days, i’m getting my hands dirty in the world of payments at{' '}
-          {juspay ? <img className="inline-logo" src={juspay.src} alt="Juspay" /> : 'Juspay'}.
+          {juspay ? <img className="inline-logo" src={juspay.src} alt="Juspay" /> : 'Juspay'}
         </p>
         <p data-reveal>
-          i may not have 8 years of experience, but give me a weekend and an ominous deadline and i can lowkey learn anything.
+          i may not have 8 years of experience, but given a weekend and an ominous deadline,{' '}
+          <span className="pink">i can lowkey learn anything</span>.
         </p>
         <HeroActions />
       </div>
+
+      <Basketball />
 
       <footer className="worked">
         <span className="worked__label">worked with</span>
