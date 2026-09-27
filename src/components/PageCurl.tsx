@@ -115,15 +115,15 @@ export default function PageCurl({ sheet }: { sheet: React.RefObject<HTMLDivElem
   return (
     <div className="curl" aria-hidden>
       <svg ref={shadowSvg} className="curl__shadow" preserveAspectRatio="none">
-        <path ref={shadow} fill="#fff" />
+        <path ref={shadow} fill="#fafaf9" />
       </svg>
       <svg ref={flapSvg} className="curl__flap" preserveAspectRatio="none">
         <defs>
           <linearGradient id="curl-shine" ref={shine} gradientUnits="userSpaceOnUse">
             <stop offset="0" stopColor="#d6d3d1" />
-            <stop offset="0.35" stopColor="#efedeb" />
-            <stop offset="0.8" stopColor="#fbfaf9" />
-            <stop offset="1" stopColor="#ffffff" />
+            <stop offset="0.35" stopColor="#efedec" />
+            <stop offset="0.8" stopColor="#f5f5f4" />
+            <stop offset="1" stopColor="#fafaf9" />
           </linearGradient>
         </defs>
         <path ref={flap} fill="url(#curl-shine)" />

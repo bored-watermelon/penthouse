@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Matter from 'matter-js'
 import { footerCat, socials } from '../lib/footerAssets'
+import { isTouchDevice, toScreen } from '../lib/motion'
 
 const { Engine, Events, Bodies, Body, Composite, Constraint } = Matter
 // matter 0.20 takes a third `updateVelocity` argument that its type definitions haven't caught up with
@@ -33,6 +34,14 @@ const JELLY = { stiffness: 420, damping: 12, perSpeed: 0.03, max: 0.32 }
 const MIN_SQUEEZE = 0.5
 const CAT = 0x0002 // the cat's collision category, so a pinned icon can stop colliding with it
 const CAT_RATIO = 856 / 1206 // until the picture has loaded and reports its own size
+/**
+ * A phone gets no cat: the icons simply lie at the bottom, and the phone itself moves them. Shaking throws them
+ * about as hard as you shake, and tilting swings gravity that way so they slide and pile towards the low side.
+ */
+const LOOSE = '(max-width: 640px)'
+const SHAKE = 0.55 // how much of the phone's own acceleration the icons feel
+const SHAKE_FLOOR = 1.5 // m/s²; below this it's just a hand not being steady
+const TILT_MAX = 55 // degrees of roll before gravity stops leaning any further
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
 /**
@@ -48,7 +57,15 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
   const api = useRef<{ start: () => void; stop: () => void; reveal: () => void; again: () => void; measure: () => void } | null>(null)
   const [status, setStatus] = useState<Status>({ kind: 'off' })
   const [touch] = useState(() => matchMedia('(hover: none)').matches)
+  const [loose, setLoose] = useState(() => matchMedia(LOOSE).matches)
   const total = socials.length
+
+  useEffect(() => {
+    const m = matchMedia(LOOSE)
+    const on = () => setLoose(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
 
   useEffect(() => {
     const host = box.current!
@@ -180,7 +197,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       if (old && old !== size) bodies.forEach((b) => Body.scale(b, size / old, size / old))
       buildWalls()
       buildSolids()
-      buildCat()
+      if (!loose) buildCat()
       bodies.forEach((b, i) => {
         if (phase[i] === 'in') Body.setPosition(b, { x: clamp(b.position.x, size / 2, W - size / 2), y: Math.min(H - size / 2, b.position.y) })
       })
@@ -468,7 +485,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     }
 
     const paint = () => {
-      const c = catEl.current
+      const c = loose ? null : catEl.current
       if (c) c.style.transform = `translate(${cat.x}px, ${-cat.y}px) rotate(${waddle()}deg)`
       bodies.forEach((b, i) => {
         if (phase[i] === 'waiting') return
@@ -485,7 +502,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
           `scale(${1 - q}, ${1 + q * 0.5}) rotate(${b.angle}rad)`
       })
       // the speech bubble sits beside the cat, on whichever side has room
-      const bb = bubble.current
+      const bb = loose ? null : bubble.current
       if (bb) {
         const room = { right: W - (cat.x + catW * 0.93) - 24, left: cat.x + catW * 0.03 - 24 }
         const side = bubbleW <= room.right || room.right >= room.left ? 'right' : 'left'
@@ -498,14 +515,71 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       }
     }
 
+    // ----- a phone moving: shake and tilt -----
+    // A shake arrives as the phone's own acceleration; each icon gets that as a kick, its own weight deciding how
+    // much. Tilting swings gravity towards the low side, so they slide and settle there like loose change.
+    const kick = { x: 0, y: 0 }
+    const heft = socials.map(() => 0.75 + Math.random() * 0.5)
+    const grav = { x: 0, y: 0, set: false }
+    let lastShake = 0
+    const onMotion = (e: DeviceMotionEvent) => {
+      const now = performance.now()
+      const dt = lastShake ? Math.min(0.1, (now - lastShake) / 1000) : 0.016
+      lastShake = now
+      let ax: number
+      let ay: number
+      const a = e.acceleration
+      if (a && a.x != null && a.y != null) [ax, ay] = [a.x, a.y]
+      else {
+        // some phones only report acceleration with gravity in it: gravity is the slow part, the shake is the rest
+        const w = e.accelerationIncludingGravity
+        if (!w || w.x == null || w.y == null) return
+        if (!grav.set) Object.assign(grav, { x: w.x, y: w.y, set: true })
+        grav.x += (w.x - grav.x) * 0.08
+        grav.y += (w.y - grav.y) * 0.08
+        ;[ax, ay] = [w.x - grav.x, w.y - grav.y]
+      }
+      if (Math.hypot(ax, ay) < SHAKE_FLOOR) return
+      const s = toScreen(ax, ay)
+      const scale = size * 3 * SHAKE // px per metre, at the icons' size on screen
+      kick.x += s.x * scale * dt
+      kick.y += s.y * scale * dt
+    }
+    const onTilt = (e: DeviceOrientationEvent) => {
+      if (e.gamma == null) return
+      const roll = (clamp(e.gamma, -TILT_MAX, TILT_MAX) * Math.PI) / 180
+      const g = toScreen(Math.sin(roll), -Math.cos(roll))
+      engine.gravity.x = g.x
+      engine.gravity.y = Math.max(0.25, g.y) // always some pull downwards, however it's held
+    }
+    /** Hands the shake gathered since the last frame to the icons, and wakes any that had gone to sleep. */
+    const shove = () => {
+      if (!kick.x && !kick.y) return
+      bodies.forEach((b, i) => {
+        if (phase[i] !== 'in' || grab?.i === i) return
+        Body.setVelocity(b, { x: b.velocity.x + (kick.x * heft[i]) / 60, y: b.velocity.y + (kick.y * heft[i]) / 60 })
+        Body.setAngularVelocity(b, b.angularVelocity + (Math.random() - 0.5) * 0.08 * heft[i])
+      })
+      kick.x = kick.y = 0
+    }
+    if (loose && isTouchDevice()) {
+      window.addEventListener('devicemotion', onMotion)
+      window.addEventListener('deviceorientation', onTilt)
+    }
+
     const tick = (now: number) => {
       if (!running) return
       const dt = Math.min(now - last, 32)
       last = now
-      moveCat(dt)
-      Engine.update(engine, dt)
-      pinch(dt)
-      referee()
+      if (!loose) {
+        moveCat(dt)
+        Engine.update(engine, dt)
+        pinch(dt)
+        referee()
+      } else {
+        shove() // the phone's own shaking, since the last frame
+        Engine.update(engine, dt)
+      }
       paint()
       raf = requestAnimationFrame(tick)
     }
@@ -611,7 +685,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
         if (revealedOnce) return
         revealedOnce = true
         measure()
-        if (reduced) lay()
+        if (reduced || loose) lay() // on a phone they're just lying there, waiting to be shaken
         else drop()
       },
       start: () => {
@@ -632,6 +706,8 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
 
     return () => {
       api.current?.stop()
+      window.removeEventListener('devicemotion', onMotion)
+      window.removeEventListener('deviceorientation', onTilt)
       timers.forEach(clearTimeout)
       ro.disconnect()
       bro.disconnect()
@@ -647,7 +723,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       Composite.clear(world, false)
       Engine.clear(engine)
     }
-  }, [total])
+  }, [total, loose]) // rebuilt when the phone layout starts or stops, since the cat comes and goes with it
 
   useEffect(() => {
     if (active) api.current?.start()
@@ -661,8 +737,8 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
   const again = <button type="button" className="game__again" onClick={() => api.current?.again()}>again{!touch && <kbd>R</kbd>}</button>
 
   return (
-    <div className="game" ref={box}>
-      {footerCat && (
+    <div className={`game${loose ? ' game--loose' : ''}`} ref={box}>
+      {footerCat && !loose && (
         <div ref={catEl} className="game__cat" title={touch ? 'drag me' : 'move me with ← →'}>
           <img src={footerCat} alt="" draggable={false} onLoad={() => api.current?.measure()} />
         </div>
@@ -694,7 +770,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
         </a>
       ))}
 
-      <div className={`game__bubble${status.kind === 'off' ? '' : ' is-on'}`} ref={bubble} data-side="right" role="status" aria-live="polite">
+      <div className={`game__bubble${status.kind === 'off' || loose ? '' : ' is-on'}`} ref={bubble} data-side="right" role="status" aria-live="polite" hidden={loose}>
         {status.kind === 'intro' &&
           (touch ? (
             <>drag me to catch these!</>

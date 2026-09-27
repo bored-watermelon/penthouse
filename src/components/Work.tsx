@@ -15,14 +15,14 @@ type Mode = 'work' | 'play'
 const INTRO = {
   work: (
     <>
-      i’ve worked on a bunch of 0 → 1 products, across{' '}
-      <span className="hl hl--purple">corporate travel, agentic commerce and virtual corporate cards.</span>
+      i’ve worked on a bunch of <span className="hl hl--green">0 → 1 products</span>, across corporate travel, agentic commerce and virtual
+      corporate cards.
     </>
   ),
   play: (
     <>
-      lately, i’ve been deep into <span className="hl hl--pink">advanced prototyping</span> and learning{' '}
-      <span className="hl hl--pink">front-end development</span>. also, i make art sometimes.
+      lately, i’ve been into <span className="hl hl--fuchsia">advanced prototyping</span> and i make{' '}
+      <span className="hl hl--fuchsia">art</span> when i am bored(all the time)
     </>
   ),
 }
@@ -59,7 +59,7 @@ const PLAY_MIXED = (() => {
   }
   return a
 })()
-const PLAY_ALL = 'Everything' // the play row's first pill, like "Selected Works" for work
+const PLAY_ALL = 'All' // the play row's first pill, like "Selected Works" for work
 const PLAY_TAGS = buildFilters(PLAY_ALL, PLAY_ORDER, playItems.flatMap((i) => i.tags)).slice(1)
 
 /**
@@ -185,9 +185,14 @@ export default function Work() {
   }, [mode])
 
   // A project shows if, for every filter with something ticked, it has at least one of the ticked values.
-  const shownProjects = projects.filter((p) => FACETS.every(({ key }) => !facet[key].length || facet[key].some((v) => has(p[key], v))))
+  // In the default view ("Selected Works", no filters) only the projects marked Selected show; once a filter is on,
+  // it searches every project, chosen or not.
+  const anyFilter = FACETS.some(({ key }) => facet[key].length > 0)
+  const shownProjects = projects.filter(
+    (p) => (anyFilter || p.selected) && FACETS.every(({ key }) => !facet[key].length || facet[key].some((v) => has(p[key], v))),
+  )
   const shownPlay = PLAY_MIXED.filter((p) => !playTags.length || playTags.some((t) => has(p.tags, t)))
-  const workFiltered = FACETS.some(({ key }) => facet[key].length > 0)
+  const workFiltered = anyFilter
   const clearWork = () => setFacet({ interfaces: [], distribution: [], domain: [] })
   const togglePlay = (t: string) => setPlayTags((on) => (has(on, t) ? on.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...on, t]))
 

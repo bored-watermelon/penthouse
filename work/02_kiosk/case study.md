@@ -5,24 +5,21 @@ contributors: 2 Product Designers, 1 Product Manager, 1 Program Manager, 2 Devel
 contribution: UI Design
 ---
 
-## Product Context
-*Some Overview*
-
-**Got only 30 seconds? Here's what we did**
+## Summary
+*TL;DR*
 
 We designed an interactive demonstration kiosk for the Visa Payments Forum (VPF) 2026 in Paris, where attendees could experience our Agentic Commerce capabilities and receive free goodies at the end of it :)
 
-[VIDEO: tldr-demo.mp4]
+[VIDEO: kiosk final demo.mp4]
 
-Let's get into the nitty gritty of things!
+## Requirement Context
+*Some Overview*
 
-### Requirement Context
+Juspay and Visa had been working together at the forefront of Agentic Commerce, securing both sides of the transaction: AI agents that make purchases for consumers and merchants, who need to manage their transactions.
 
-Juspay and Visa had been working together at the forefront of Agentic Commerce, securing both sides of the transaction: AI agents that make purchases for consumers and help merchants manage transactions.
+[VIDEO: agentic-commerce.mp4]
 
-[VIDEO: requirement-context-demo.mp4]
-
-### About VPF
+## About VPF
 
 Visa Payments Forum (VPF) 2026 was Visa's flagship gathering focused on the future of payments, commerce, and financial innovation. It was an opportunity to let people experience some of these ideas rather than simply telling them about them.
 
@@ -38,18 +35,16 @@ They intend to **distribute free goodies among the event attendees** so they can
 - **Client Need:** distribute free goodies among the event attendees
 - **Client Goal:** demonstrate their Agentic Commerce Capabilities to the attendees.
 
-## Ideation and Brainstorming
+## Understanding the New Interface
+*Getting to Work*
 
-**Getting to Work**
-
-### Understanding the New Interface
-
-One of the first things I realised was that designing a kiosk wasn't simply a matter of taking a website or mobile experience and making everything bigger.
+One of the first things I realised was that designing a kiosk wasn't simply a matter of taking a website or mobile experience and making it fit the kiosk.
 The interaction model itself was different. A person standing in front of a kiosk doesn't have the same environment as someone using a computer or a phone.
 
-I visited McDonald’s to see how people interact with a kiosk, and to understand the intricacies that come with it.
+I visited a McDonald’s to see how people interact with a kiosk, and to understand the intricacies that come with it.
+[IMAGE: kiosk-interaction.png]
 
-### Aligning the Team
+## Aligning the Team
 *Endless Changing Directions*
 
 Since most of us were relatively new to designing for this kind of physical, event-based experience, there were a lot of opinions about what the kiosk should be.
@@ -76,26 +71,20 @@ The most challenging part in my opinion was finding the right balance between ma
 ## Final Product
 *lessgooo*
 
-### The Final Design
+After some more rounds of experimentation and a lot of trade-offs, this was the final outcome.
+[VIDEO: kiosk final demo.mp4]
 
-[VIDEO: final-design-demo.mp4]
-
-## Thoughts
+## Pausing to Reflect
 *Some Key Moments*
-
-### Pausing to think and reflect
 
 During the course of this project, I had to let go of a few very precious iterations that I was really proud of. But the stakeholders felt differently about them, so we had to discard them. It was frustrating at first, but -
 
-[IMAGE: letting-go.jpg | Irrfan Khan in Life of Pi, saying it better than i could]
+[IMAGE: letting-go.jpg | Irfan Khan, said it better than i could]
 
 Eventually, we were able to arrive at a solution that everyone was on board with and I consider that a win.
 
-<!--
-### What They Said
+
+## What They Said
 *Kind words from the team*
 
-Add the team's testimonials here once you have the quotes handy, then remove this comment's
-opening and closing lines so the section shows up. Until then it stays hidden, rather than
-showing an empty heading.
--->
+[IMAGE: kind-words.png]

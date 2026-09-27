@@ -544,7 +544,7 @@ export default function AboutMe() {
     <section className="me" id="about-me">
       <div className="work__inner">
         <p className="work__intro me__intro" data-reveal>
-          and for the <span className="hl hl--red">things i don’t keep on my resume</span> (to keep up the facade of being a professional, when in reality i still feel like this <Reality />)
+          and for the <span className="hl hl--red">things i don’t keep on my resume</span> to keep up the facade of being a professional, (the professional in question <Reality />)
         </p>
       </div>
 
@@ -553,9 +553,13 @@ export default function AboutMe() {
         <div className="toybox__stage" ref={stage}>
           <div className="toybox__box" ref={boxEl} role="group" aria-label="a box of keepsakes">
             {cardboard && <img className="toybox__cardboard" src={cardboard} alt="" draggable={false} />}
+            {/* the note above the box: handwritten on a laptop, and on a phone the one thing to try there */}
             <p className="toybox__note">
-              rummage through the box to know more about me
-              {collage.arrows.box && <img className="toybox__note-arrow" src={collage.arrows.box} alt="" />}
+              <span className="toybox__note-wide">
+                rummage through the box to know more about me
+                {collage.arrows.box && <img className="toybox__note-arrow" src={collage.arrows.box} alt="" />}
+              </span>
+              <span className="toybox__note-phone">shake it to the max</span>
               <ShakeHint />
             </p>
             {artifacts.map((a, i) => (

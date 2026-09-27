@@ -8,7 +8,7 @@ contribution: Research, End-to-end design and delivery
 ## Product Context
 *Some Overview*
 
-Visa provides a Virtual Account Payment Method system that enables businesses to make and manage payments using virtual cards.
+Visa provides corporates with a Payment Method that enables them to make and manage payments using virtual cards.
 In simple terms, corporates can create virtual cards from their company's primary card and distribute these cards to employees for business-related expenses. This gives companies more control over how their cards are used, while also making expenses easier to manage and reconcile.
 [Learn More about Virtual Cards](https://www.visa.com/en-us/business/cards/virtual-card)
 
@@ -17,7 +17,7 @@ Jusbiz helps businesses create and manage virtual cards while keeping the origin
 
 > Visa provides the underlying virtual card technology. Juspay built the platform that helps banks and businesses use it.
 
-[IMAGE: working-capital-banner.jpg]
+[VIDEO: visa-virtual-cards.mp4]
 
 ## Problem Statement
 
@@ -38,18 +38,17 @@ In line with this, the expectation was to add the ability to proactively resolve
 ### What was the Previous Solution?
 
 I started by speaking to our Support Engineers to understand how they actually handled corporate issues.
-I found that a lot of the troubleshooting happened manually.
+I found that **a lot of the troubleshooting happened manually**.
 When a corporate reported an issue, support engineers would typically look through logs and try to resolve it.
 
-The support engineers also had WhatsApp groups with corporate SPOCs where issues and queries were discussed.
+The support engineers also had **WhatsApp groups with corporate SPOCs** where issues and queries were discussed.
 
-Also, there was already a Corporate/Buyer Management module in Jusbiz.
+Also, there was already a **Corporate/Buyer Management module in Jusbiz**.
 However, it was essentially a list of all registered corporates with very limited functionality.
 There was certainly a lot of opportunity here to add and improve upon.
 
 ## Ideation and Brainstorming
-
-**Getting to Work**
+*Getting to Work*
 
 ### What exactly needs to be fixed?
 
@@ -68,10 +67,9 @@ We finally aligned on the following solution:
 
 Instead of making the existing Buyer module do everything, we could create a separate search-driven experience specifically for troubleshooting.
 
-## Final Product
+## The Final Product
 *lessgooo*
 
-**What we finally made**
 
 ### New Buyer Support Module
 
@@ -83,7 +81,7 @@ The main idea was simple:
 
 There were three main search criteria, which we separated into tabs. Each tab was built around a different troubleshooting need, while keeping the overall interaction consistent.
 
-[VIDEO: new-buyer-support-demo.mp4]
+[VIDEO: admin-panel.mp4]
 
 ### Updated Buyer's List Module
 
@@ -95,22 +93,19 @@ Instead of waiting for the corporate to report an issue, the nudges surface thin
 
 This shifted the module from being a directory of Buyers to being a more action-oriented workspace.
 
-[VIDEO: updated-buyers-list-demo.mp4]
+[VIDEO: buyers-list.mp4]
 
 ## Impact
 *What changed?*
 
-### The Impact
-
 While I could not gather numbers to demonstrate the impact, our changes certainly elevated the experience for the people involved in keeping the Virtual Cards platform running smoothly.
 
 The Support Staff informed us that the number of queries shared in the WhatsApp groups went from a few every day to only a few every month. They also mentioned that troubleshooting specific issues took significantly less time, since they could now search for the relevant transaction, payment or API information directly within Jusbiz.
-While the feature did not completely replace the existing support process, it made the process much more streamlined and reduced a lot of the back-and-forth involved in resolving issues.
+Although the feature did not completely replace the existing support process, it made the process much more streamlined and reduced a lot of the back-and-forth involved in resolving certain issues.
 
-## Thoughts
+
+## Pausing to Reflect
 *Some Key Moments*
-
-### Pausing to think and reflect
 
 This was a project with a very short deadline but also maximum impact. If done well, this feature would single-handedly speed up and streamline a lot of work for our support engineers as well as the banks—which, btw, it actually did.
 I am very grateful that I was entrusted to take this project forward independently and was involved in all the decision making.

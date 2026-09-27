@@ -17,15 +17,16 @@
 }
 
 :root {
-  /* ink, from full strength down to hairline */
-  --ink: #1d1d1b;
-  --ink-2: #57534e;
-  --ink-3: #8b8680;
-  --ink-4: #c7c3bd;
-  --line: #ebe8e3;
-  --line-strong: #d9d5cf;
-  --paper: #ffffff;
-  --paper-2: #fafaf9;
+  /* Everything is on Tailwind's stone scale: dark text is stone/800, secondary text stone/500, surfaces stone/50.
+     These older names now point at that scale, so the whole site uses it. */
+  --ink: #292524; /* stone/800: headings and body text */
+  --ink-2: #79716b; /* stone/500: secondary text */
+  --ink-3: #a6a09b; /* stone/400: faint text, placeholders */
+  --ink-4: #d6d3d1; /* stone/300: the faintest text */
+  --line: #e7e5e4; /* stone/200 */
+  --line-strong: #d6d3d1; /* stone/300 */
+  --paper: #fafaf9; /* stone/50: the page and cards */
+  --paper-2: #f5f5f4; /* stone/100 */
 
   /* The two accents that carry meaning: violet is work, pink is play. Both hold 3:1+ on white at the sizes
      they're used (24px and up), and have a deeper shade for hover. */
@@ -42,7 +43,7 @@
   --blue-ink: #1f6f9f;
   --yellow: #fce68d;
   /* Tailwind's stone scale, as the Figma files name it */
-  --stone-50: #fafaf9; --stone-100: #f5f5f4; --stone-200: #e7e5e4; --stone-400: #a6a09b; --stone-500: #79716b; --stone-600: #57534d; --stone-800: #292524;
+  --stone-50: #fafaf9; --stone-100: #f5f5f4; --stone-200: #e7e5e4; --stone-300: #d6d3d1; --stone-400: #a6a09b; --stone-500: #79716b; --stone-600: #57534d; --stone-800: #292524;
   --purple: var(--violet); /* older name, kept so nothing breaks */
 
   /* the chat borrows messaging-app colours */
@@ -115,7 +116,7 @@ img { -webkit-user-drag: none; }
   display: flow-root; /* contains the floated time without needing an ::after clearfix */
 }
 .bubble--me { background: var(--green); border-top-right-radius: 2px; transform-origin: top right; }
-.bubble--you { background: #fff; border-top-left-radius: 2px; transform-origin: top left; }
+.bubble--you { background: var(--paper); border-top-left-radius: 2px; transform-origin: top left; }
 .bubble--card { padding: 8px 10px; width: 100%; }
 .bubble--card p { margin: 8px 0 0; display: flow-root; }
 
@@ -130,7 +131,7 @@ img { -webkit-user-drag: none; }
 .file__thumb { position: relative; }
 .file__preview {
   display: block; width: 100%; height: 150px; object-fit: cover; object-position: top;
-  border-radius: 10px 10px 0 0; background: #fff;
+  border-radius: 10px 10px 0 0; background: var(--paper);
 }
 .file__meta {
   display: flex; align-items: center; gap: 10px;
@@ -139,13 +140,13 @@ img { -webkit-user-drag: none; }
 .file__dl { flex: none; display: grid; place-items: center; color: var(--ink); }
 .file__info { min-width: 0; flex: 1; }
 .file__info strong { display: block; font-weight: 500; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file__info small { color: #777; font-size: 12px; }
+.file__info small { color: var(--ink-2); font-size: 12px; }
 .file__time { position: absolute; right: 14px; bottom: 6px; }
 
 .bubble--email { padding: 0; }
 .bubble--email p { margin: 0; padding: 8px 10px; }
 .bubble--email button {
-  width: 100%; border: 0; border-top: 1px solid #eee; background: #fff;
+  width: 100%; border: 0; border-top: 1px solid var(--line); background: var(--paper);
   border-radius: 0 0 8px 8px; /* the bubble no longer clips with overflow:hidden (it'd cut off the ::after tail), so round this itself */
   padding: 8px 10px; text-align: left; font: inherit; font-size: 16px;
   color: var(--chat-green-ink); cursor: pointer;
@@ -156,7 +157,7 @@ img { -webkit-user-drag: none; }
 
 .composer {
   display: flex; align-items: center; gap: 8px; margin-top: 16px;
-  background: #fff; border-radius: 999px; padding: 6px 6px 6px 20px;
+  background: var(--paper); border-radius: 999px; padding: 6px 6px 6px 20px;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
 }
 .composer input { flex: 1; border: 0; outline: 0; font: inherit; font-size: 16px; background: transparent; min-width: 0; }
@@ -200,18 +201,18 @@ img { -webkit-user-drag: none; }
 .react-btn, .forward-btn {
   flex: none; width: 28px; height: 28px; border: 0; border-radius: 50%; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  background: rgb(255 255 255 / 0.85); color: #555; cursor: pointer;
+  background: rgb(255 255 255 / 0.85); color: var(--ink); cursor: pointer;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.2); opacity: 0; transform: scale(0.8);
   transition: opacity 0.12s, transform 0.12s, background 0.12s, color 0.12s;
 }
 .msg:hover .react-btn, .msg.is-open .react-btn, .react-btn:focus-visible,
 .msg:hover .forward-btn, .forward-btn:focus-visible { opacity: 1; transform: none; }
-.forward-btn:hover { background: #fff; color: var(--ink); }
+.forward-btn:hover { background: var(--paper); color: var(--ink); }
 @media (hover: none) { .react-btn, .forward-btn { display: none; } }
 
 .reaction {
   position: absolute; bottom: -14px; border: 0; padding: 1px 6px; border-radius: 999px;
-  background: #fff; font-size: 14px; line-height: 20px; cursor: pointer;
+  background: var(--paper); font-size: 14px; line-height: 20px; cursor: pointer;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); animation: pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
 }
 .msg--me .reaction { right: 8px; }
@@ -224,7 +225,7 @@ img { -webkit-user-drag: none; }
 
 .picker {
   position: absolute; left: 50%; bottom: calc(100% + 8px);
-  display: flex; gap: 2px; padding: 4px 6px; border-radius: 999px; background: #fff;
+  display: flex; gap: 2px; padding: 4px 6px; border-radius: 999px; background: var(--paper);
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.12); animation: pop-center 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 .picker--below { bottom: auto; top: calc(100% + 8px); }
@@ -251,7 +252,7 @@ img { -webkit-user-drag: none; }
   transition: background 0.15s, height 0.15s, transform 0.15s;
 }
 .divider:hover .divider__grip, .divider:focus-visible .divider__grip { background: rgb(255 255 255 / 0.9); height: 64px; }
-.divider.is-dragging .divider__grip { background: #fff; height: 72px; transform: scaleX(1.3); }
+.divider.is-dragging .divider__grip { background: var(--paper); height: 72px; transform: scaleX(1.3); }
 
 /* ---------- About card ---------- */
 .about {
@@ -259,7 +260,7 @@ img { -webkit-user-drag: none; }
   border-radius: var(--card-r);
   overflow: hidden;
   display: flex; flex-direction: column;
-  background: #fff;
+  background: var(--paper);
 }
 .about__note {
   position: absolute; top: 20px; right: 28px; margin: 0;
@@ -316,7 +317,7 @@ img { -webkit-user-drag: none; }
 .about__ctas { display: none; flex-wrap: wrap; gap: 10px; }
 .cta {
   display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border: 1px solid var(--line-strong); border-radius: 999px;
-  background: #fff; color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; cursor: pointer;
+  background: var(--paper); color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 .cta:active { transform: scale(0.97); }
@@ -342,18 +343,18 @@ img { -webkit-user-drag: none; }
 }
 
 /* ---------- Work / Play section ---------- */
-.work { min-height: 100vh; min-height: 100svh; background: #fff; padding: 160px 20px 244px; } /* 200px from the hero to the heading, with the header's own padding. Bottom: with the timeline's top padding: 320px from the last card to the timeline heading */
+.work { min-height: 100vh; min-height: 100svh; background: var(--paper); padding: 160px 20px 244px; } /* 200px from the hero to the heading, with the header's own padding. Bottom: with the timeline's top padding: 320px from the last card to the timeline heading */
 .work__inner { max-width: 1296px; margin: 0 auto; }
 /* Pinned while the section scrolls, on solid white. Once content scrolls up behind it (.is-scrolled, see
    useScrolledUnder in Work.tsx), a band fades in under it: white melting to clear, with a light blur, so the
    tiles dissolve into the header instead of meeting a hard edge (Figma 919:16378). */
 /* the pinned part ends just under the pills, as in Figma; the gap to the first card belongs to the content, so it
    scrolls away instead of staying as a white strip under the filters */
-.work__head { position: sticky; top: 0; z-index: 5; padding: 24px 0 10px; background: #fff; }
+.work__head { position: sticky; top: 0; z-index: 5; padding: 24px 0 10px; background: var(--paper); }
 .stack .work__content { padding-top: clamp(22px, 3vw, 46px); }
 .work__head::after {
-  content: ''; position: absolute; left: -20px; right: -20px; top: 100%; height: clamp(28px, 3vw, 44px); pointer-events: none;
-  background: linear-gradient(#fff, rgb(255 255 255 / 0));
+  content: ''; position: absolute; left: -20px; right: -20px; top: calc(100% - 2px); height: clamp(28px, 3vw, 44px); pointer-events: none; /* 2px up into the header: no seam where they meet */
+  background: linear-gradient(var(--paper), rgb(250 250 249 / 0)); /* stone/50 to clear */
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent);
   opacity: 0; transition: opacity 0.25s ease;
@@ -377,6 +378,9 @@ img { -webkit-user-drag: none; }
 .work__intro { margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; line-height: 1.45; letter-spacing: -0.02em; }
 .hl--purple { color: var(--violet); }
 .hl--pink { color: var(--pink); }
+.hl--green { color: #15803d; } /* green/700: the coloured words in the work intro */
+.hl--fuchsia { color: #c026d3; } /* fuchsia/600: the coloured words in the play intro */
+.hl--yellow { color: #ca8a04; } /* yellow/600: "2002 to now" in the timeline heading */
 .hl--red { color: #e63b21; background-image: linear-gradient(transparent 60%, #fcc6be 60%, #fcc6be 88%, transparent 88%); } /* the about heading, as in Figma */
 
 .modes { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; /* the same size as the intro above it */ letter-spacing: -0.02em; margin-bottom: 28px; }
@@ -401,7 +405,7 @@ img { -webkit-user-drag: none; }
 /* filter row (Figma 919:16952): Geist Pixel pills with a dark outline, lit dark when on */
 .pills { display: flex; align-items: center; gap: clamp(10px, 1.1vw, 20px); flex-wrap: wrap; }
 .pill, .dd__btn, .pills__clear {
-  display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--stone-800); background: #fff; border-radius: 99px; padding: 8px 20px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--stone-800); background: var(--paper); border-radius: 99px; padding: 8px 20px; cursor: pointer;
   font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--stone-800); white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
@@ -413,7 +417,7 @@ img { -webkit-user-drag: none; }
 
 .work__content { animation: fade 0.3s ease both; }
 @keyframes fade { from { opacity: 0; } }
-.empty { color: #999; font-family: var(--mono); padding: 48px 0; }
+.empty { color: var(--ink-2); font-family: var(--mono); padding: 48px 0; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 /* dropdown filters: several options can be ticked; the menu stays open while picking */
@@ -425,11 +429,11 @@ img { -webkit-user-drag: none; }
 .dd__menu {
   position: absolute; z-index: 20; top: calc(100% + 5px); left: 0; width: max-content; min-width: 228px; max-height: 360px; overflow-y: auto; /* its own width, not the pill's, which grows as options are ticked */
   display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px; list-style: none;
-  background: #fff; border: 1px solid var(--stone-800); border-radius: 12px; filter: drop-shadow(2px 2px 3.5px rgb(0 0 0 / 0.13)); animation: rise 0.15s ease both;
+  background: var(--paper); border: 1px solid var(--stone-800); border-radius: 12px; filter: drop-shadow(2px 2px 3.5px rgb(0 0 0 / 0.13)); animation: rise 0.15s ease both;
 }
 .dd__menu button {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; background: none; text-align: left; white-space: nowrap; cursor: pointer;
-  padding: 10px; border-radius: 8px; font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: #000;
+  padding: 10px; border-radius: 8px; font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--ink);
 }
 .dd__menu button:hover { background: var(--stone-100); }
 .dd__menu button.is-picked { background: var(--stone-200); color: var(--stone-800); }
@@ -445,7 +449,7 @@ img { -webkit-user-drag: none; }
 .card__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .card__shade { position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / 0.7) 2%, rgb(0 0 0 / 0) 54%); pointer-events: none; }
 .card__thumb {
-  position: relative; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  position: relative; border-radius: 18px; overflow: hidden; background: var(--paper); box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .card__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
@@ -453,40 +457,68 @@ img { -webkit-user-drag: none; }
 .card__side { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; min-width: 0; }
 .card__clients { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .card__client-group { display: inline-flex; align-items: center; gap: 6px; }
-.card__x { flex: none; color: #000; }
+.card__x { flex: none; color: var(--ink); }
 /* each client's logo on a white pill with a thin dark outline (Figma 919:16816) */
-.client-pill { display: inline-flex; align-items: center; padding: 4px 12px; background: #fff; border: 1px solid var(--stone-800); border-radius: 99px; color: var(--stone-800); font-weight: 600; }
+.client-pill { display: inline-flex; align-items: center; padding: 4px 12px; background: var(--paper); border: 1px solid var(--stone-800); border-radius: 99px; color: var(--stone-800); font-weight: 600; }
 .client-pill img { height: clamp(18px, 1.5vw, 23px); width: auto; display: block; }
 .card__text h3 { margin: 0 0 6px; font-size: clamp(22px, 1.9vw, 28px); font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; }
 .card__text p { margin: 0 0 18px; font-family: var(--pixel); font-size: clamp(14px, 1.1vw, 16px); line-height: 1.35; letter-spacing: -0.01em; color: var(--stone-50); }
 .card__tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.card__tags span { background: #fff; color: var(--stone-800); border: 1px solid var(--stone-800); border-radius: 99px; padding: 4px 12px; font-family: var(--pixel); font-size: 14px; line-height: 1.4; }
+.card__tags span { background: var(--paper); color: var(--stone-800); border: 1px solid var(--stone-800); border-radius: 99px; padding: 4px 12px; font-family: var(--pixel); font-size: 14px; line-height: 1.4; }
 
-/* Phones: the pinned toggle row fits on one line ("all work ⟷ some play"), and the filters sit two to a row,
-   so the header that stays pinned is as short as it can be. */
+/* Phones (from the mobile Figma frames): the intro scrolls away and only "here is all work ⟷ some play" and the
+   filters stay pinned (see useHeadLift). Everything is prefixed .work so it wins over the tablet rules below. */
 @media (max-width: 640px) {
-  .modes { gap: 10px; margin-bottom: 18px; }
-  .modes__lead { display: none; }
-  .pin-switch { width: 74px; margin: -10px 0; }
-  /* the filters: one row that scrolls sideways, so the pinned header stays short */
-  .pills { flex-wrap: nowrap; gap: 8px; overflow-x: auto; margin: 0 -20px; padding: 2px 20px; scrollbar-width: none; overscroll-behavior-x: contain; }
-  .pills::-webkit-scrollbar { display: none; }
-  .pill, .dd__btn, .pills__clear { flex: none; font-size: 13px; padding: 7px 13px; gap: 6px; }
-  .pills__clear { padding: 7px 6px; }
-
-  /* the cards: a row you swipe through, one at a time, with the next one peeking in (see CardRail in Work.tsx) */
-  .work .cards { /* .work: to win over the tablet grid below */
-    display: flex; flex-direction: row; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 20px; overscroll-behavior-x: contain;
-    margin: 0 -20px; padding: 4px 20px 6px; scrollbar-width: none;
+  .work .modes { gap: 10px; margin-bottom: 16px; font-size: 22px; }
+  /* pinned: 4px under the tabs, then the images fade in straight away (no solid band first) */
+  .work .work__head { padding-bottom: 4px; }
+  .work .work__head::after { height: 24px; -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); }
+  .work .stack .work__content { padding-top: 28px; } /* at rest the first image is still 32px under the tabs */
+  .work .modes__lead { margin-right: 0; }
+  .work .pin-switch { width: 58px; margin: -8px 0; }
+  /* the filters wrap onto as many rows as they need */
+  .work .pills { flex-wrap: wrap; gap: 8px; row-gap: 10px; }
+  /* The tags. Default: 12px on stone/100 with a stone/200 border; the filter's name (Interface, Distribution,
+     Domain) in stone/500, what's picked in stone/800. Selected: filled stone/800, no border (a border in the same
+     colour, so selected and default tags stay the same height). */
+  .work .pill, .work .dd__btn {
+    flex: none; gap: 6px; padding: 4px 14px; font-size: 12px; line-height: 1.4;
+    background: var(--stone-100); border: 1px solid var(--stone-200); color: var(--stone-500);
   }
-  .cards::-webkit-scrollbar { display: none; }
-  .work .stack__item { flex: 0 0 min(84%, 360px); scroll-snap-align: start; }
-  .work .cards__dots { display: flex; }
+  .work .dd__btn { color: var(--stone-800); } /* the value and the chevron */
+  .work .dd__label { color: var(--stone-500); }
+  .work .dd__value { color: var(--stone-800); }
+  .work .pill.is-on, .work .dd__btn.is-on { background: var(--stone-800); border-color: var(--stone-800); color: var(--stone-50); }
+  .work .dd__btn.is-on .dd__label, .work .dd__btn.is-on .dd__value { color: var(--stone-50); }
+  .work .pills__clear { flex: none; padding: 4px 6px; font-size: 12px; line-height: 1.4; }
 
-  /* play: two snug columns; the captions show in the viewer instead of crowding small tiles */
-  .masonry { column-gap: 8px; }
-  .tile { margin-bottom: 8px; border-radius: 10px; }
-  .tile figcaption { display: none; }
+  /* Work: a plain list down the page. Each project is its screenshot, then who it was for, the title and a line
+     about it, on the page itself rather than on a dark card. */
+  .work .cards { display: flex; flex-direction: column; gap: 52px; }
+  .work .stack__item { display: block; }
+  .work .card { display: flex; flex-direction: column; gap: 12px; padding: 0; aspect-ratio: auto; border-radius: 0; background: none; color: var(--ink); overflow: visible; }
+  .work .card__bg, .work .card__shade, .work .card__tags, .work .card__cta { display: none; }
+  .work .card__thumb { aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--stone-200); box-shadow: none; background: var(--paper); }
+  .work .card:hover .card__thumb { transform: none; box-shadow: none; }
+  .work .card__side { gap: 10px; }
+  /* just "logo × logo": no pill around the logos, no border, no padding */
+  .work .card__clients { gap: 8px; }
+  .work .card__client-group { gap: 8px; }
+  .work .client-pill { padding: 0; background: none; border: 0; border-radius: 0; }
+  .work .client-pill img { height: 18px; }
+  .work .card__x { width: 14px; height: 14px; color: var(--ink); }
+  .work .card__text h3 { margin: 0 0 8px; font-size: 19px; line-height: 1.3; letter-spacing: -0.01em; color: var(--ink); }
+  .work .card__text p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+
+  /* Play: two snug columns; captions are left to the viewer rather than crowding the tiles */
+  .work .masonry { columns: 2; column-gap: 6px; }
+  .work .tile { margin-bottom: 6px; border: 0; border-radius: 6px; }
+  .work .tile figcaption { display: none; }
+}
+/* the narrowest phones: the toggle row is sized down a touch so it still fits on one line */
+@media (max-width: 380px) {
+  .work .modes { gap: 8px; font-size: 20px; }
+  .work .pin-switch { width: 50px; }
 }
 .cards__dots { display: none; justify-content: center; align-items: center; gap: 2px; margin-top: 10px; }
 .cards__dots button { width: 26px; height: 26px; padding: 0; border: 0; background: none; cursor: pointer; }
@@ -496,7 +528,7 @@ img { -webkit-user-drag: none; }
 /* the phone version of a filter's menu: a sheet up from the bottom, over a dimmed page (see Dropdown.tsx) */
 .dd__sheet {
   position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 70; padding: 6px 8px 10px;
-  background: #fff; border: 1px solid var(--stone-800); border-radius: 20px; box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.35);
+  background: var(--paper); border: 1px solid var(--stone-800); border-radius: 20px; box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.35);
   animation: sheet-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 .dd__sheet .dd__menu { position: static; width: auto; min-width: 0; max-height: 55svh; padding: 0; border: 0; filter: none; animation: none; }
@@ -576,8 +608,8 @@ img { -webkit-user-drag: none; }
   width: auto; height: auto; border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / 0.14); user-select: none; cursor: default;
 }
 .lightbox__figure figcaption { font-family: var(--mono); font-size: 13px; letter-spacing: 0.02em; text-transform: uppercase; text-align: center; }
-.lightbox__caption { color: #111; }
-.lightbox__tags { color: #8d8d8d; }
+.lightbox__caption { color: var(--ink); }
+.lightbox__tags { color: var(--ink-2); }
 /* The photo viewer is a strip of every photo side by side (Lightbox.tsx), slid along to the one on show */
 .lightbox--strip { display: block; padding: 0; overflow: hidden; touch-action: pan-y pinch-zoom; }
 .lb-track { display: flex; height: 100%; will-change: transform; transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1); animation: lb-rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -595,13 +627,13 @@ img { -webkit-user-drag: none; }
 @keyframes lb-sink { to { opacity: 0; scale: 0.97; } }
 
 .lightbox__arrow {
-  position: absolute; border: 0; background: transparent; color: #111; cursor: pointer; font-size: 22px; line-height: 1;
+  position: absolute; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-size: 22px; line-height: 1;
   display: grid; place-items: center; cursor: pointer; width: 44px; height: 44px; border-radius: 50%; transition: background 0.15s, transform 0.15s;
 }
 .lightbox__arrow { top: 50%; margin-top: -22px; background: rgb(255 255 255 / 0.6); font-size: 20px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
 .lightbox__arrow--prev { left: 28px; }
 .lightbox__arrow--next { right: 28px; }
-.lightbox__arrow:hover { background: #fff; transform: scale(1.08); }
+.lightbox__arrow:hover { background: var(--paper); transform: scale(1.08); }
 
 /* the camera from the about box, opened (CameraViewer.tsx) */
 .camview__inner { display: flex; flex-direction: column; align-items: center; gap: 22px; cursor: default; animation: cam-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -686,7 +718,7 @@ img { -webkit-user-drag: none; }
 .ipod__track { position: relative; display: block; height: 0.7em; border: 0.1em solid #1f3a68; border-radius: 99px; overflow: hidden; margin-top: auto; background: rgb(255 255 255 / 0.25); }
 .ipod__track > span { position: absolute; left: 0; top: 0; bottom: 0; background: #1f3a68; }
 .ipod__track.is-scrub { overflow: visible; }
-.ipod__track.is-scrub i { position: absolute; top: 50%; width: 0.7em; height: 0.7em; background: #fff; border: 0.1em solid #1f3a68; translate: -50% -50%; rotate: 45deg; }
+.ipod__track.is-scrub i { position: absolute; top: 50%; width: 0.7em; height: 0.7em; background: var(--paper); border: 0.1em solid #1f3a68; translate: -50% -50%; rotate: 45deg; }
 .ipod__vol { display: flex; align-items: center; gap: 0.45em; margin-top: auto; }
 .ipod__vol svg { flex: none; width: 0.85em; height: 0.85em; }
 .ipod__vol .ipod__track { flex: 1; margin: 0; }
@@ -744,7 +776,7 @@ img { -webkit-user-drag: none; }
 
 /* ---------- Footer (revealed from behind the page) ---------- */
 :root { --fold: clamp(120px, 18svh, 210px); }
-.sheet { position: relative; z-index: 2; background: #fff; padding-bottom: clamp(40px, 7vw, 110px); overflow-x: clip; /* nothing, even a box dragged to the edge, makes the page scroll sideways */ } /* room for the peeled corner. Its outline (clip-path) comes from PageCurl.tsx */
+.sheet { position: relative; z-index: 2; background: var(--paper); padding-bottom: clamp(40px, 7vw, 110px); overflow-x: clip; /* nothing, even a box dragged to the edge, makes the page scroll sideways */ } /* room for the peeled corner. Its outline (clip-path) comes from PageCurl.tsx */
 /* The peeled corner at the bottom of the page (see PageCurl.tsx). Hangs from the sheet's bottom edge: the
    shadow sits under the page, the folded flap over it. */
 .curl { position: relative; height: 0; pointer-events: none; }
@@ -812,7 +844,7 @@ img { -webkit-user-drag: none; }
 .resume-pill.is-dragging .resume-pill__face { transform: rotate(-2.26deg) scale(0.952); filter: none; }
 .eyes { display: inline-flex; flex: none; gap: 0.25em; }
 /* the pupils start off looking left, as in Figma; Footer.tsx then points them at the cursor */
-.eye { --px: -0.66em; --py: 0.14em; position: relative; width: 1.9em; height: 1.9em; border-radius: 50%; background: #fff; }
+.eye { --px: -0.66em; --py: 0.14em; position: relative; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--paper); }
 .eye::after { content: ''; position: absolute; width: 0.66em; height: 0.66em; border-radius: 50%; background: #0049ff; left: 0.62em; top: 0.62em; transform: translate(var(--px), var(--py)); transition: transform 0.08s; }
 
 .foot__rights {
@@ -846,7 +878,7 @@ img { -webkit-user-drag: none; }
 .game__bubble {
   position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none;
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 14px;
-  background: #fff; color: var(--ink); box-shadow: 0 10px 28px rgb(0 0 0 / 0.28);
+  background: var(--paper); color: var(--ink); box-shadow: 0 10px 28px rgb(0 0 0 / 0.28);
   font-family: var(--body); font-size: 14px; font-weight: 500; line-height: 1.3;
   opacity: 0; transition: opacity 0.25s ease;
 }
@@ -855,7 +887,7 @@ img { -webkit-user-drag: none; }
 .game__bubble.is-on { opacity: 1; }
 /* it sits beside the cat, so the tail points sideways at it */
 .game__bubble::after {
-  content: ''; position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 2px; background: #fff;
+  content: ''; position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 2px; background: var(--paper);
   transform: translateY(-50%) rotate(45deg);
 }
 .game__bubble[data-side='right']::after { left: -5px; }
@@ -869,7 +901,7 @@ img { -webkit-user-drag: none; }
   pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; margin-left: 2px; padding: 3px 4px 3px 10px;
   border: 0; border-radius: 99px; background: var(--ink); color: #fff; font: inherit; font-size: 13px; cursor: pointer;
 }
-.game__again:hover { background: #000; }
+.game__again:hover { background: var(--ink); }
 .game__again kbd { min-width: 18px; height: 18px; font-size: 11px; background: rgb(255 255 255 / 0.14); border-color: rgb(255 255 255 / 0.3); color: #fff; }
 
 @media (max-width: 860px) {
@@ -883,6 +915,14 @@ img { -webkit-user-drag: none; }
   .foot__credit { position: static; margin-top: -18px; padding: 0 16px; text-align: center; font-size: 9px; }
   .game__bubble { font-size: 13px; }
 }
+/* Phones: no cat, so the icons lie along the bottom with the copyright pill and the credit under them, and the
+   two go back to the foot of the screen (on a tablet the cat still needs that ground to itself). */
+@media (max-width: 640px) {
+  .game--loose { bottom: 74px; } /* the ground the icons rest on, just above the copyright */
+  .foot__center .foot__rights { position: absolute; left: 50%; bottom: 32px; translate: -50% 0; margin: 0; }
+  .foot__center .foot__credit { position: absolute; left: 16px; right: 16px; bottom: 12px; margin: 0; }
+}
+
 /* Phones: the headline on three centred lines, "i was / created to / create", each word with its stickers. The two
    Figma lines stop being boxes of their own and everything flows as one block, broken where .foot__br says. */
 @media (max-width: 640px) {
@@ -906,7 +946,7 @@ img { -webkit-user-drag: none; }
 .dword.is-dragging { filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.3)); }
 
 /* ---------- About me: a box of keepsakes on a blanket (AboutMe.tsx) ---------- */
-.me { background: #fff; padding: 193px 20px 140px; /* 320px from the timeline's years to this heading, with the timeline's bottom padding */ border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px; }
+.me { background: var(--paper); padding: 193px 20px 140px; /* 320px from the timeline's years to this heading, with the timeline's bottom padding */ border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px; }
 .me__intro { max-width: 1100px; }
 .me > .work__inner { position: relative; z-index: 2; } /* so the enlarged picture in the heading comes up over the blanket */
 
@@ -945,6 +985,7 @@ img { -webkit-user-drag: none; }
 /* the handwritten notes, in the blue pen from Figma */
 .toybox__note, .collage__note { position: absolute; z-index: 6; margin: 0; font-family: var(--hand); font-size: 17px; line-height: 1.4; letter-spacing: 0.02em; color: #4355fb; }
 .toybox__note { bottom: calc(100% + 10px); right: 8%; max-width: 290px; pointer-events: none; } /* on the box, so it moves with it */
+.toybox__note-phone { display: none; }
 .toybox__note-arrow { position: absolute; right: calc(100% + 10px); top: 10px; width: 32px; rotate: -90deg; scale: 1 -1; }
 .collage__note--me { top: 0; left: 58%; width: 62%; }
 .collage__note-arrow { position: absolute; left: 0; top: calc(100% + 4px); width: 30px; }
@@ -1003,7 +1044,7 @@ img { -webkit-user-drag: none; }
 /* shaking the phone to shake the box (see ShakeHint in AboutMe.tsx) */
 .toybox__shake {
   display: block; margin-top: 6px; padding: 5px 12px; pointer-events: auto; cursor: pointer;
-  border: 1px dashed currentColor; border-radius: 99px; background: #fff; color: inherit; font: inherit; font-size: 15px;
+  border: 1px dashed currentColor; border-radius: 99px; background: var(--paper); color: inherit; font: inherit; font-size: 15px;
 }
 .toybox__shake-note { display: block; }
 
@@ -1013,10 +1054,15 @@ img { -webkit-user-drag: none; }
 @media (max-width: 640px) {
   .toybox .collage { display: none; }
   .toybox__stage { padding-top: 64px; }
-  .toybox__box { width: min(76vw, 340px); aspect-ratio: 1840 / 2940; }
+  .toybox__box { width: min(87vw, 380px); aspect-ratio: 1840 / 2940; }
   /* the same picture, turned a quarter clockwise; its shadow is set in the picture's own (turned) frame, so it still falls down */
   .toybox__cardboard { inset: auto; left: 50%; top: 50%; width: calc(100% * 2940 / 1840); height: calc(100% * 1840 / 2940); translate: -50% -50%; rotate: 90deg; filter: drop-shadow(22px 0 26px rgb(16 28 64 / 0.38)); }
-  .toybox__note { right: 2%; max-width: 92%; font-size: 15px; }
+  /* "shake it to the max", centred over the box, in place of the handwritten note */
+  .toybox__note { left: 0; right: 0; bottom: calc(100% + 14px); max-width: none; text-align: center; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; color: var(--stone-500); }
+  .toybox__note-wide { display: none; }
+  .toybox__note-phone { display: block; }
+  .toybox__shake-note { display: none; } /* the note above already says to shake it */
+  .toybox__shake { margin: 8px auto 0; font-family: var(--mono); font-size: 13px; color: var(--stone-500); }
 
   .toybox__me { display: block; position: relative; width: min(84vw, 360px); aspect-ratio: 2.1 / 1; margin: -10px auto 0; }
   .toybox__me-face { position: absolute; z-index: 2; left: 34%; top: 4%; width: 32%; padding: 0; border: 0; background: none; cursor: pointer; }
@@ -1033,7 +1079,7 @@ img { -webkit-user-drag: none; }
 
 /* ---------- Timeline (Figma node 884:15380, see Timeline.tsx) ---------- */
 /* one screen tall, whatever the screen: the heading at the top, the line near the bottom, the photos filling between */
-.tl { display: flex; flex-direction: column; box-sizing: border-box; height: 100vh; height: 100svh; min-height: 560px; background: #fff; padding: 60px 20px 88px; overflow: hidden; } /* the bottom padding keeps the years clear of the floating dock */
+.tl { display: flex; flex-direction: column; box-sizing: border-box; height: 100vh; height: 100svh; min-height: 560px; background: var(--paper); padding: 60px 20px 88px; overflow: hidden; } /* the bottom padding keeps the years clear of the floating dock */
 .tl > .work__inner { width: 100%; }
 /* full bleed: the line runs from edge to edge */
 .tl__board { position: relative; flex: 1 1 auto; min-height: 0; margin: 20px -20px 0; color: var(--ink); touch-action: pan-y; }
@@ -1058,7 +1104,7 @@ img { -webkit-user-drag: none; }
   transition: top 0.5s cubic-bezier(0.3, 1.25, 0.5, 1), left 0.5s cubic-bezier(0.3, 1.1, 0.5, 1), translate 0.5s cubic-bezier(0.3, 1.1, 0.5, 1);
 }
 .tl__head h3 {
-  width: max-content; margin: 0; font-size: 16px; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; white-space: nowrap; color: #000;
+  width: max-content; margin: 0; font-size: 16px; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; white-space: nowrap; color: var(--ink);
   transform-origin: 0 100%; transition: scale 0.4s cubic-bezier(0.3, 1.3, 0.5, 1);
 }
 .tl__head:not(.is-up) h3 { transform-origin: 50% 100%; }
@@ -1083,6 +1129,43 @@ img { -webkit-user-drag: none; }
   position: absolute; left: -26px; top: -26px; z-index: 4; width: 52px; height: 52px; border-radius: 50%;
   touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; will-change: transform;
 }
+/* ----- the phone's timeline, stood on its end (see Column in Timeline.tsx) ----- */
+.tlc { position: relative; flex: 1 1 auto; min-height: 0; margin: 12px -20px 0; color: var(--ink); touch-action: pan-y; }
+.tlc__svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+
+.tlc__years { list-style: none; margin: 0; padding: 0; }
+.tlc__years li {
+  position: absolute; left: 8px; translate: 0 -50%; writing-mode: vertical-rl; rotate: 180deg; /* reading up the edge */
+  font-family: var(--pixel); font-size: 13px; line-height: 1; color: var(--stone-500); pointer-events: none;
+}
+
+.tlc__head { position: absolute; left: 74px; z-index: 3; width: fit-content; max-width: calc(100% - 86px); translate: 0 -50%; pointer-events: none; transition: translate 0.3s ease; }
+.tlc__head button { display: block; padding: 4px 0; border: 0; background: none; text-align: left; cursor: pointer; pointer-events: auto; }
+.tlc__head h3 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
+.tlc__logo { display: block; height: 22px; width: auto; }
+.tlc__head.is-on { translate: 0 0; } /* the chosen one grows downwards from the line, so its words stay put */
+.tlc__head.is-on h3 { font-size: 17px; }
+.tlc__head.is-on .tlc__logo { height: 26px; }
+.tlc__cap { width: fit-content; max-width: min(268px, 78vw); animation: rise 0.3s ease both; }
+.tlc__cap p { margin: 6px 0 0; font-family: var(--pixel); font-size: 13px; line-height: 1.45; letter-spacing: 0.01em; color: var(--stone-600); }
+
+/* the knob rides the line at --knob-x / --knob-y, with a fingertip-sized area the page can't scroll from */
+.tlc__knob {
+  position: absolute; left: var(--knob-x, 52px); top: var(--knob-y, 50%); z-index: 4; display: grid; place-items: center;
+  width: 34px; height: 34px; translate: -50% -50%; border-radius: 11px; background: var(--ink); color: var(--stone-50);
+  touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: grab;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.22);
+}
+.tlc__knob:active { cursor: grabbing; }
+.tlc__knob svg { width: 18px; height: 18px; }
+.tlc__knob::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; } /* a bigger area for a finger */
+.tlc__knob::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; border: 2px solid var(--ink);
+  animation: knob-ping 1.8s ease-out infinite;
+}
+.tlc__knob.is-used::after { animation: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .tlc__knob::after { animation: none; opacity: 0; } .tlc__cap { animation: none; } }
+
 /* the scrubber knob, on touch screens (see Timeline.tsx): a pulsing ring until it's first dragged */
 .tl__knob-ring { fill: none; stroke: var(--violet); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: knob-ping 1.8s ease-out infinite; }
 .tl__knob.is-used .tl__knob-ring { animation: none; opacity: 0; }
@@ -1093,7 +1176,7 @@ img { -webkit-user-drag: none; }
 /* the media, popped into blobs */
 .tl__media { position: absolute; inset: 0; }
 .tl__blob {
-  position: absolute; z-index: 1; translate: -50% -50%; overflow: hidden; pointer-events: none; /* the hover belongs to the chunk underneath */
+  position: absolute; z-index: 1; translate: -50% -50%; overflow: hidden; border-radius: 24px; pointer-events: none; /* the hover belongs to the chunk underneath */
   opacity: 0; scale: 0.7; /* hidden until its picture has loaded (see MediaBlob), then it grows in once */
 }
 .tl__blob.is-loaded { animation: blob-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -1126,7 +1209,7 @@ img { -webkit-user-drag: none; }
   position: fixed; top: 0; left: 0; z-index: 60; pointer-events: none;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   margin: 14px 0 0 14px; padding: 8px 16px; border: 1px solid #292524; border-radius: 99px;
-  background: #fafaf9; color: #292524; font-family: var(--pixel); font-size: 16px; line-height: 1.4; white-space: nowrap;
+  background: var(--stone-50); color: var(--stone-800); font-family: var(--pixel); font-size: 16px; line-height: 1.4; white-space: nowrap;
 }
 @media (hover: none) { .card--soon { cursor: default; } .soon-cursor { display: none; } }
 
@@ -1225,15 +1308,15 @@ img { -webkit-user-drag: none; }
 .cs__end-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .cs__end-btn {
   display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--line-strong);
-  background: #fff; color: var(--stone-800); font: inherit; font-family: var(--mono); font-size: 14px; text-decoration: none; cursor: pointer;
+  background: var(--paper); color: var(--stone-800); font: inherit; font-family: var(--mono); font-size: 14px; text-decoration: none; cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .cs__end-btn:hover { border-color: var(--stone-800); }
 .cs__end-btn--primary { background: var(--stone-800); border-color: var(--stone-800); color: #fff; }
-.cs__end-btn--primary:hover { background: #000; }
+.cs__end-btn--primary:hover { background: var(--ink); }
 .cs__next {
   position: relative; display: grid; grid-template-columns: 1fr 34%; grid-template-rows: auto 1fr; column-gap: 20px; margin-top: 18px;
-  padding: 22px; border-radius: 16px; background: #fff; color: var(--stone-800); text-decoration: none; overflow: hidden;
+  padding: 22px; border-radius: 16px; background: var(--paper); color: var(--stone-800); text-decoration: none; overflow: hidden;
   box-shadow: 0 0 0 1px var(--line); transition: box-shadow 0.25s ease, transform 0.3s var(--ease-out);
 }
 .cs__next:hover { box-shadow: 0 0 0 1px var(--line), 0 18px 40px rgb(0 0 0 / 0.1); transform: translateY(-2px); }

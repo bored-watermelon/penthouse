@@ -37,8 +37,6 @@ function MediaBlob({ m, leaving, style }: { m: PlayItem; leaving: boolean; style
 const DW = 1512
 const CAPTION_W = 261
 
-const ROUND = ['50%', '50%', '31%', '35%', '37%', '42%'] // circles and rounded squares, as in Figma
-
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 /** A small seeded random, so a layout stays the same through a resize. */
 const rng = (seed: number) => () => {
@@ -76,7 +74,7 @@ const raisedLeft = (g: Geo, i: number, width: number, bw: number) =>
   clamp(centerOf(g, i) - (bw < 200 ? bw / 2 : 74 * g.s), 8, Math.max(8, width - 8 - bw))
 
 type Size = { w: number; h: number } // a raised heading with its caption: widest line, and the caption's height
-type Blob = { item: number; x: number; y: number; size: number; rot: number; round: string; delay: number }
+type Blob = { item: number; x: number; y: number; size: number; rot: number; delay: number }
 const layouts = new Map<string, Blob[]>()
 /**
  * Packs a chunk's media into the free space above the line: as large as they can all be while fitting, and spread
@@ -100,7 +98,7 @@ function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: nu
     return d >= g.reach ? g.line : g.line - (g.amp * (1 + Math.cos((Math.PI * d) / g.reach))) / 2
   }
   const floor = (l: number, rr: number) => Math.min(g.line - 70, lineAt(clamp(peak, l, rr)) - 28)
-  const half = (size: number) => size * 0.6 // a rounded square's corner, tilted, reaches about this far
+  const half = (size: number) => size * 0.62 // a tilted square with 24px corners reaches about this far
   type P = { x: number; y: number; size: number }
   const fits = (x: number, y: number, size: number, placed: P[]) => {
     const k = size * 0.72
@@ -169,13 +167,12 @@ function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: nu
       lo = mid
     } else hi = mid
   }
-  const r = rng(seed ^ 0x5bd1e995) // shapes, tilts and order, the same whatever size won
+  const r = rng(seed ^ 0x5bd1e995) // tilts and order, the same whatever size won
   const order = shuffle(c.media.map((_, k) => k), r)
   const out = (found ?? []).map((p, k) => ({
     item: order[k],
     ...p,
     rot: (r() - 0.5) * 28,
-    round: ROUND[Math.floor(r() * ROUND.length)],
     delay: 180 + k * 70 + r() * 60, // after the last heading has settled back down
   }))
   layouts.set(key, out)
@@ -185,7 +182,68 @@ function place(c: Chunk, i: number, g: Geo, width: number, block: Size, seed: nu
 const LAST = chunks.length - 1
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 
+/** Whether a media query matches, kept up to date. */
+function useMedia(query: string) {
+  const [on, setOn] = useState(() => matchMedia(query).matches)
+  useEffect(() => {
+    const m = matchMedia(query)
+    const change = () => setOn(m.matches)
+    m.addEventListener('change', change)
+    return () => m.removeEventListener('change', change)
+  }, [query])
+  return on
+}
+
+/** Fetches every chunk's pictures as the timeline comes near, so choosing a chunk shows them straight away. */
+function useWarm(board: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      chunks.forEach((c) => c.media.forEach((m) => !m.video && warm(m.thumb ?? m.src)))
+      io.disconnect()
+    }, { rootMargin: '1000px 0px' })
+    io.observe(board.current!)
+    return () => io.disconnect()
+  }, [board])
+}
+
+/** The media on show: a new chunk brings a new scatter, and the one it replaces shrinks away. */
+function useSets(active: number) {
+  const [sets, setSets] = useState([{ chunk: LAST, seed: 1, leaving: false }])
+  useEffect(() => {
+    setSets((prev) => {
+      if (prev.some((p) => p.chunk === active && !p.leaving)) return prev
+      return [...prev.filter((p) => !p.leaving).map((p) => ({ ...p, leaving: true })), { chunk: active, seed: Math.floor(Math.random() * 1e9), leaving: false }]
+    })
+    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 100)
+    return () => window.clearTimeout(t)
+  }, [active])
+  return sets
+}
+
+/** A phone gets the line standing up (Column); anything wider has it lying along the screen (Row). */
 export default function Timeline() {
+  const upright = useMedia('(max-width: 700px)')
+  const from = chunks[0]?.from ?? 2002
+  return (
+    <section className="tl" id="timeline">
+      <div className="work__inner">
+        {upright ? (
+          <p className="work__intro" data-reveal>
+            a quick tour, <span className="hl hl--yellow">{from} to now</span>.
+          </p>
+        ) : (
+          <p className="work__intro" data-reveal>
+            so, how did i get here? a quick tour, <span className="hl hl--yellow">{from} to now</span>.
+          </p>
+        )}
+      </div>
+      {upright ? <Column /> : <Row />}
+    </section>
+  )
+}
+
+function Row() {
   const board = useRef<HTMLDivElement>(null)
   const main = useRef<SVGPathElement>(null)
   const dots = useRef<(SVGCircleElement | null)[]>([])
@@ -195,8 +253,6 @@ export default function Timeline() {
   const [height, setHeight] = useState(720)
   const [hover, setHover] = useState<number | null>(null)
   const [sizes, setSizes] = useState<Size[]>([])
-  // the media on show; the set being replaced stays a moment to shrink away
-  const [sets, setSets] = useState([{ chunk: LAST, seed: 1, leaving: false }])
   const cx = useRef<number | null>(null)
   const target = useRef(0)
   const raf = useRef(0)
@@ -204,30 +260,15 @@ export default function Timeline() {
   const grip = useRef<HTMLSpanElement>(null) // the knob's handle: what a finger actually holds
   // Touch screens have no hover, so the line gets a knob to drag instead: the bump follows the finger, and
   // snaps to the chunk it's let go over. The chosen chunk's caption always shows.
-  const [touch, setTouch] = useState(() => matchMedia('(hover: none)').matches)
+  const touch = useMedia('(hover: none)')
   const [scrubbed, setScrubbed] = useState(false) // the "drag" hint goes once it's been used
   const drag = useRef<{ id: number; x0: number; y0: number; x: number; on: boolean } | null>(null)
-  useEffect(() => {
-    const m = matchMedia('(hover: none)')
-    const on = () => setTouch(m.matches)
-    m.addEventListener('change', on)
-    return () => m.removeEventListener('change', on)
-  }, [])
 
   const active = hover ?? LAST // with nothing hovered, the line rests on the present
+  const sets = useSets(active)
   const g = geometry(width, height)
   const sizeOf = (i: number): Size => sizes[i] ?? { w: CAPTION_W, h: 110 }
-
-  // fetch every chunk's pictures as the timeline comes near, so hovering shows them straight away
-  useEffect(() => {
-    const io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return
-      chunks.forEach((c) => c.media.forEach((m) => !m.video && warm(m.thumb ?? m.src)))
-      io.disconnect()
-    }, { rootMargin: '1000px 0px' })
-    io.observe(board.current!)
-    return () => io.disconnect()
-  }, [])
+  useWarm(board)
 
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => {
@@ -312,16 +353,6 @@ export default function Timeline() {
     paint(cx.current)
   }, [width, height]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // a new chunk brings a new scatter; the old one shrinks away
-  useEffect(() => {
-    setSets((prev) => {
-      if (prev.some((p) => p.chunk === active && !p.leaving)) return prev
-      return [...prev.filter((p) => !p.leaving).map((p) => ({ ...p, leaving: true })), { chunk: active, seed: Math.floor(Math.random() * 1e9), leaving: false }]
-    })
-    const t = window.setTimeout(() => setSets((prev) => prev.filter((p) => !p.leaving)), 100)
-    return () => window.clearTimeout(t)
-  }, [active])
-
   // the last chunk hovered stays open, caption and all, until another one is hovered
   const enter = (i: number) => setHover(i)
 
@@ -370,13 +401,7 @@ export default function Timeline() {
   }
 
   return (
-    <section className="tl" id="timeline">
-      <div className="work__inner">
-        <p className="work__intro" data-reveal>
-          so, how did i get here? <span className="hl hl--purple">a quick tour, {chunks[0]?.from ?? 2002} to now.</span>
-        </p>
-      </div>
-
+    <>
       <div
         className="tl__board"
         ref={board}
@@ -398,7 +423,7 @@ export default function Timeline() {
                     key={b.item}
                     m={c.media[b.item]}
                     leaving={set.leaving || set.chunk !== active} // in the same render that starts raising the new heading
-                    style={{ left: b.x, top: b.y, width: b.size, height: b.size, borderRadius: b.round, rotate: `${b.rot}deg`, animationDelay: `${b.delay}ms` }}
+                    style={{ left: b.x, top: b.y, width: b.size, height: b.size, rotate: `${b.rot}deg`, animationDelay: `${b.delay}ms` }}
                   />
                 ))}
               </Fragment>
@@ -481,7 +506,150 @@ export default function Timeline() {
           )
         })}
       </div>
+    </>
+  )
+}
 
-    </section>
+/*
+ * ----- the phone's timeline: the same line, stood on its end -----
+ * The years run down the left with a dot each, the chunks' headings sit beside them, and a knob rides the line:
+ * drag it (or tap a heading) to choose a chunk. The line bows out where the knob is, the way it bumps up on a
+ * laptop. There are no pictures here: on a phone it's just the line, the years and each chunk's words.
+ */
+const COL = { rail: 52, pad: 44, amp: 20, dot: 2.6 } // the line's x, the space above and below it, and its bow
+
+function Column() {
+  const board = useRef<HTMLDivElement>(null)
+  const line = useRef<SVGPathElement>(null)
+  const dots = useRef<(SVGCircleElement | null)[]>([])
+  const [size, setSize] = useState({ w: 360, h: 760 })
+  const [active, setActive] = useState(LAST)
+  const [scrubbed, setScrubbed] = useState(false)
+  const y = useRef<number | null>(null) // where the knob is now, easing towards its chunk
+  const target = useRef(0)
+  const raf = useRef(0)
+  const drag = useRef<{ id: number; y: number } | null>(null)
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }))
+    ro.observe(board.current!)
+    return () => ro.disconnect()
+  }, [])
+
+  // every year gets a dot, spread down the line with each chunk taking an equal share
+  const top = COL.pad
+  const bottom = size.h - COL.pad
+  const ch = (bottom - top) / chunks.length
+  const centerOf = (i: number) => top + (i + 0.5) * ch
+  const edgeOf = (i: number) => top + i * ch
+  const years = chunks.flatMap((c, i) => {
+    const span = Math.max(1, c.to - c.from)
+    return Array.from({ length: span }, (_, k) => edgeOf(i) + (k / span) * ch)
+  })
+  years.push(bottom)
+
+  const reach = ch * 0.62
+  const bow = (at: number, knob: number) => {
+    const d = Math.abs(at - knob)
+    return d >= reach ? COL.rail : COL.rail + (COL.amp * (1 + Math.cos((Math.PI * d) / reach))) / 2
+  }
+  const paint = (knob: number) => {
+    let d = ''
+    for (let p = 0; p <= size.h; p += 3) d += `${p ? 'L' : 'M'}${bow(p, knob).toFixed(1)} ${p}`
+    line.current?.setAttribute('d', d)
+    years.forEach((at, k) => dots.current[k]?.setAttribute('cx', bow(at, knob).toFixed(1)))
+    board.current?.style.setProperty('--knob-y', `${knob.toFixed(1)}px`)
+    board.current?.style.setProperty('--knob-x', `${bow(knob, knob).toFixed(1)}px`)
+  }
+  const run = () => {
+    cancelAnimationFrame(raf.current)
+    let last = performance.now()
+    const step = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.05)
+      last = now
+      y.current! += (target.current - y.current!) * (1 - Math.exp(-dt * 9))
+      const done = Math.abs(target.current - y.current!) < 0.2
+      if (done) y.current = target.current
+      paint(y.current!)
+      if (!done) raf.current = requestAnimationFrame(step)
+    }
+    raf.current = requestAnimationFrame(step)
+  }
+  useEffect(() => {
+    target.current = centerOf(active)
+    if (y.current === null || reducedMotion()) {
+      y.current = target.current
+      paint(y.current)
+    } else run()
+    return () => cancelAnimationFrame(raf.current)
+  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    y.current = centerOf(active)
+    paint(y.current)
+  }, [size]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const chunkAt = (at: number) => Math.min(LAST, Math.max(0, Math.floor((at - top) / ch)))
+  const onGrip = (e: React.PointerEvent) => {
+    e.preventDefault()
+    drag.current = { id: e.pointerId, y: e.clientY }
+    board.current!.setPointerCapture(e.pointerId)
+    setScrubbed(true)
+  }
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    d.y = e.clientY
+    const at = Math.min(bottom, Math.max(top, e.clientY - board.current!.getBoundingClientRect().top))
+    target.current = at
+    run()
+    setActive(chunkAt(at))
+  }
+  const onUp = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    drag.current = null
+    const i = chunkAt(d.y - board.current!.getBoundingClientRect().top)
+    setActive(i)
+    target.current = centerOf(i) // settle on the chunk it was let go over
+    run()
+  }
+
+  return (
+    <div className="tlc" ref={board} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+      <svg className="tlc__svg" width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`} aria-hidden>
+        <path ref={line} fill="none" stroke="currentColor" strokeWidth="1.5" />
+        {years.map((at, k) => (
+          <circle key={k} ref={(el) => { dots.current[k] = el }} cx={COL.rail} cy={at} r={COL.dot} fill="currentColor" />
+        ))}
+      </svg>
+
+      {/* the years, reading up the left edge */}
+      <ol className="tlc__years" aria-hidden>
+        {chunks.map((c, i) => (
+          <li key={c.id} style={{ top: edgeOf(i) }}>{c.from}</li>
+        ))}
+        <li style={{ top: bottom }}>{chunks[LAST]?.to}</li>
+      </ol>
+
+      {/* each chunk's heading beside the line, and the chosen one's caption under it */}
+      {chunks.map((c, i) => (
+        <div key={c.id} className={`tlc__head${i === active ? ' is-on' : ''}`} style={{ top: centerOf(i) }}>
+          <button type="button" onClick={() => setActive(i)} aria-label={`${c.from} to ${c.to}: ${'text' in c.heading ? c.heading.text : c.heading.name}`}>
+            {'logo' in c.heading ? <img className="tlc__logo" src={c.heading.logo} alt={c.heading.name} draggable={false} /> : <h3>{c.heading.text}</h3>}
+          </button>
+          {i === active && (
+            <div className="tlc__cap">
+              <p>{c.caption}</p>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* the knob: drag it up and down the line */}
+      <span className={`tlc__knob${scrubbed ? ' is-used' : ''}`} onPointerDown={onGrip} onContextMenu={(e) => e.preventDefault()} aria-hidden>
+        <svg viewBox="0 0 18 18">
+          <path d="M6 7.2 9 4.2l3 3M6 10.8l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    </div>
   )
 }

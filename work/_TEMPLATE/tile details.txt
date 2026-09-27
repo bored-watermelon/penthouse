@@ -4,6 +4,7 @@ Interface: Desktop
 Distribution: B2B
 Domain: Payments
 Client: Juspay, Visa
+Selected: yes
 
 # Copy this WHOLE FOLDER, rename it and edit what's inside. Folders starting with "_" are ignored.
 #
@@ -17,6 +18,10 @@ Client: Juspay, Visa
 # Nothing here references a file by name: the thumbnail is whatever is called "thumbnail", and so on.
 # The folder name sets both the order and the case study's URL — "01_buyer support" is the first tile and
 # lives at /case-studies/buyer-support. Renumber the folders to reorder the tiles.
+#
+# Selected: yes / no   controls whether the project shows in the default "Selected Works" view. Leave it out or
+#   set "yes" to show it; set "no" to keep it out of that view (a filter still finds it). Handy for hiding older or
+#   in-progress work from the front page without deleting it.
 #
 # Case Study: <url>   is optional, and only for pointing a tile at a write-up hosted somewhere else.
 # Client names must match a file in the logos folder (Juspay, Visa, Thomas Cook, ...).

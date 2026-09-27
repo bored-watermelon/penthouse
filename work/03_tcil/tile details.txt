@@ -5,3 +5,6 @@ Interface: Web
 Distribution: B2B
 Domain: Travel Bookings
 Client: Juspay, Thomas Cook
+
+Selected: no
+
