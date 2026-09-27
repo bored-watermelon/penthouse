@@ -381,7 +381,7 @@ a.pink:hover { color: var(--pink-deep); }
   /* the photo needs headroom above the first line, so the copy starts further down. The copy is sized so the
      intro's first line ("i am sneha, a product designer from") fits on one line. */
   /* top-align the block (no vertical centering) so it starts near the top instead of centering in the tall card */
-  .about__copy { justify-content: flex-start; padding: 120px 24px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
+  .about__copy { justify-content: flex-start; padding: 180px 32px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
   .about__note { display: none; } /* the "DO NOT QUESTION…" note is desktop-only */
   /* the intro stays on two lines: the sentence, then the places — each kept on one line. If the places line is
      still too wide, the past two ("rudrapur → roorkee") shrink first, mumbai staying full size. */
