@@ -1,59 +1,39 @@
 /**
  * The annotated "problem statement": a sentence where the joining words stay grey and the parts that carry
- * the meaning are dark, ringed with a hand-drawn loop and labelled with an arrow.
+ * the meaning are dark, underlined with a hand-drawn bracket and named underneath it.
  *
  *   [STATEMENT]
- *   {Banks and Visa Admins | User | left} are {responsible for handling merchants' issues. | User Role}
+ *   {Banks and Visa Admins | User} are {responsible for handling merchants' issues. | User Role}
  *   They need {a troubleshooting and support aiding tool | User Need}
  *   [/STATEMENT]
  *
- * The loops and arrows are SVGs in /media/annotations. They are stretched to whatever width the phrase ends
- * up being, so there is one small set of them rather than one drawing per sentence.
+ * The bracket is a drawing in /media/annotations. It is stretched to whatever width the phrase ends up being
+ * and painted through a CSS mask rather than drawn as an image, so one drawing serves every phrase and every
+ * colour — including a flat PNG, which could not otherwise be recoloured.
  */
 
-const files = import.meta.glob('../../media/annotations/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+const files = import.meta.glob('../../media/annotations/*.{png,PNG,svg,webp}', { query: '?url', import: 'default', eager: true }) as Record<string, string>
 
-const stem = (path: string) => path.split('/').pop()!.replace(/\.svg$/i, '')
-const assets = Object.fromEntries(Object.entries(files).map(([p, svg]) => [stem(p), svg]))
-
-/**
- * Makes a drawing usable as an annotation whatever its size: it takes the ink colour from CSS rather than
- * the colour it was exported with, keeps its stroke weight when stretched, and fills the box it is given.
- */
-function prepare(svg: string, cls: string) {
-  return svg
-    .replace(/\s(width|height)="[^"]*"/g, '')
-    .replace(/stroke="(?!none)[^"]*"/g, 'stroke="currentColor"')
-    .replace(/fill="(?!none)[^"]*"/g, 'fill="currentColor"')
-    .replace(/<path /g, '<path vector-effect="non-scaling-stroke" ')
-    .replace(/<svg /, `<svg class="${cls}" preserveAspectRatio="none" aria-hidden="true" focusable="false" `)
-    .replace(/\s*\n\s*/g, '')
-}
-
-const circles = Object.keys(assets).filter((k) => k.startsWith('circle')).sort()
-const arrows = Object.keys(assets).filter((k) => k.startsWith('arrow')).sort()
+const stem = (path: string) => path.split('/').pop()!.replace(/\.[^.]+$/, '')
+const entries = Object.entries(files).map(([p, url]) => [stem(p), url] as const)
+const pointer = (entries.find(([name]) => /pointer|brace|underline/i.test(name)) ?? entries[0])?.[1] ?? ''
 
 // the four pens the design uses, in the order they appear down the sentence
 const COLOURS = ['purple', 'blue', 'orange', 'green'] as const
-const KNOWN = new Set([...COLOURS, 'red', 'pink', 'cyan'])
+const KNOWN = new Set<string>([...COLOURS, 'red', 'pink', 'cyan'])
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 const BLOCK_RE = /^\[STATEMENT\][ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*\[\/STATEMENT\][ \t]*$/gim
 const PART_RE = /\{([^|{}]+?)(?:\s*\|\s*([^|{}]*?))?(?:\s*\|\s*([^|{}]*?))?\s*\}/g
 
-/** One ringed phrase: the words, the loop stretched over them, and the arrow pointing off to its label. */
+/** One marked phrase: the words, the bracket stretched under them, and its name under that. */
 function annotate(phrase: string, label: string, mods: string, index: number) {
-  const tokens = mods.toLowerCase().split(/\s+/).filter(Boolean)
-  const colour = tokens.find((t) => KNOWN.has(t as never)) ?? COLOURS[index % COLOURS.length]
-  const side = tokens.includes('left') ? 'left' : 'right'
-  // a different loop for each phrase, so a sentence doesn't look rubber-stamped
-  const circle = circles.length ? prepare(assets[circles[index % circles.length]], 'cs-annot__circle') : ''
-  const arrow = arrows.length ? prepare(assets[arrows[index % arrows.length]], 'cs-annot__arrow') : ''
-  const tag = label.trim()
-    ? `<span class="cs-annot__tag cs-annot__tag--${side}">${arrow}<span class="cs-annot__label">${escapeHtml(label.trim())}</span></span>`
-    : ''
-  return `<span class="cs-annot cs-annot--${colour}"><span class="cs-annot__text">${escapeHtml(phrase.trim())}</span>${circle}${tag}</span>`
+  const wanted = mods.trim().toLowerCase()
+  const colour = KNOWN.has(wanted) ? wanted : COLOURS[index % COLOURS.length]
+  const name = label.trim()
+  const tag = name ? `<span class="cs-annot__label">${escapeHtml(name)}</span>` : ''
+  return `<span class="cs-annot cs-annot--${colour}"><span class="cs-annot__text">${escapeHtml(phrase.trim())}</span><span class="cs-annot__brace" aria-hidden="true"></span>${tag}</span>`
 }
 
 /** Replaces every [STATEMENT] block in the Markdown with its rendered HTML. Runs before Markdown parsing. */
@@ -69,12 +49,13 @@ export function renderStatements(body: string) {
         let last = 0
         PART_RE.lastIndex = 0
         for (let m = PART_RE.exec(line); m; m = PART_RE.exec(line)) {
-          out += escapeHtml(line.slice(last, m.index)) // the grey joining words between the ringed phrases
+          out += escapeHtml(line.slice(last, m.index)) // the grey joining words between the marked phrases
           out += annotate(m[1], m[2] ?? '', m[3] ?? '', n++)
           last = m.index + m[0].length
         }
         return `<span class="cs-statement__line">${out}${escapeHtml(line.slice(last))}</span>`
       })
-    return `<div class="cs-statement">${lines.join('')}</div>`
+    const style = pointer ? ` style="--pointer:url('${pointer}')"` : ''
+    return `<div class="cs-statement"${style}>${lines.join('')}</div>`
   })
 }
