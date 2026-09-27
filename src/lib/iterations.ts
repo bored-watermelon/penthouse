@@ -46,7 +46,7 @@ function card(item: { label: string; status: string; file: string; caption: stri
   const shot = found
     ? found.kind === 'image'
       ? `<img src="${found.src}" alt="${escapeAttr(item.label)}" loading="lazy" />`
-      : `<video src="${found.src}" controls playsInline preload="metadata"></video>`
+      : `<video src="${found.src}" autoplay loop muted playsinline preload="auto"></video>`
     : item.file
       ? `<div class="cs-iter__missing">missing: ${escapeHtml(item.file)}</div>`
       : ''
