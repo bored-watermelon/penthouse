@@ -39,8 +39,9 @@ const CAT_RATIO = 856 / 1206 // until the picture has loaded and reports its own
  * about as hard as you shake, and tilting swings gravity that way so they slide and pile towards the low side.
  */
 const LOOSE = '(max-width: 640px)'
-const SHAKE = 0.55 // how much of the phone's own acceleration the icons feel
+const SHAKE = 9 // how much of the phone's own acceleration the icons feel
 const SHAKE_FLOOR = 1.5 // m/s²; below this it's just a hand not being steady
+const SHAKE_CAP = 26 // px/step: fast enough to fling them the height of the footer, slow enough not to tunnel walls
 const TILT_MAX = 55 // degrees of roll before gravity stops leaning any further
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
@@ -87,6 +88,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     let parts: { body: Matter.Body; x: number; y: number; angle: number }[] = [] // the cat, relative to its feet
     let W = host.clientWidth
     let H = host.clientHeight
+    let floor = H // where the ground sits inside the playfield; on a phone that's above the copyright pill
     let size = 0
     let catW = 300
     let catH = catW * CAT_RATIO
@@ -117,11 +119,27 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     }
     const waddle = () => Math.sin(cat.walk / 26) * Math.min(1, Math.abs(cat.vx) / 300) * 3 // degrees
 
+    /**
+     * Where the icons come to rest. Normally the bottom of the footer, but on a phone the copyright pill and the
+     * credit line sit down there, so the ground is lifted to the top of whichever of them is highest: the icons
+     * pile up ON the pill rather than sliding off it and ending up squashed underneath.
+     */
+    const findFloor = () => {
+      if (!loose) return H
+      const hr = host.getBoundingClientRect()
+      const tops = [...(host.parentElement?.querySelectorAll<HTMLElement>('[data-solid]') ?? [])]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 0 && r.height > 0)
+        .map((r) => r.top - hr.top)
+        .filter((t) => t > H * 0.5) // only what's down at the bottom, not anything up by the headline
+      return tops.length ? Math.max(size * 2, Math.min(...tops) - 8) : H
+    }
+
     const buildWalls = () => {
       walls.forEach((b) => Composite.remove(world, b))
       const t = 200
       walls = [
-        Bodies.rectangle(W / 2, H + t / 2, W * 3, t, { isStatic: true, label: 'ground' }),
+        Bodies.rectangle(W / 2, floor + t / 2, W * 3, t, { isStatic: true, label: 'ground' }),
         Bodies.rectangle(-t / 2, H / 2, t, H * 6, { isStatic: true, label: 'wall' }),
         Bodies.rectangle(W + t / 2, H / 2, t, H * 6, { isStatic: true, label: 'wall' }),
         // well above the screen, so a throw can go up and still come back
@@ -134,6 +152,11 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     // pile up around it instead of hiding it. (On phones those sit under the headline, mid-air, so they aren't.)
     const buildSolids = () => {
       solids.forEach((b) => Composite.remove(world, b))
+      // on a phone they're below the raised floor already, so there's nothing left for them to stop
+      if (loose) {
+        solids = []
+        return
+      }
       const hr = host.getBoundingClientRect()
       const low = [...(host.parentElement?.querySelectorAll<HTMLElement>('[data-solid]') ?? [])].map((el) => el.getBoundingClientRect()).filter((r) => r.width > 0 && r.top - hr.top > H * 0.8) // only what's down at the bottom: on a phone the pill sits under the headline, mid-air
       solids = low.map((r) =>
@@ -189,6 +212,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       W = host.clientWidth
       H = host.clientHeight
       size = Math.round(clamp(W * 0.037, 44, 64))
+      floor = findFloor()
       catW = Math.min(clamp(W * 0.223, 150, 400), Math.max(96, H * 0.42)) // and never too tall for a short screen, like a phone on its side
       const img = catEl.current?.querySelector('img')
       catH = catW * (img?.naturalWidth ? img.naturalHeight / img.naturalWidth : CAT_RATIO)
@@ -199,7 +223,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       buildSolids()
       if (!loose) buildCat()
       bodies.forEach((b, i) => {
-        if (phase[i] === 'in') Body.setPosition(b, { x: clamp(b.position.x, size / 2, W - size / 2), y: Math.min(H - size / 2, b.position.y) })
+        if (phase[i] === 'in') Body.setPosition(b, { x: clamp(b.position.x, size / 2, W - size / 2), y: Math.min(floor - size / 2, b.position.y) })
       })
       els.current.forEach((el) => el && (el.style.width = el.style.height = `${size}px`))
     }
@@ -256,7 +280,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     const lay = () => {
       socials.forEach((_, i) => {
         const b = bodies[i]
-        Body.setPosition(b, { x: W / 2 + (i - (total - 1) / 2) * size * 1.6, y: H - size / 2 - 2 })
+        Body.setPosition(b, { x: W / 2 + (i - (total - 1) / 2) * size * 1.6, y: floor - size / 2 - 2 })
         Composite.add(world, b)
         phase[i] = 'in'
         show(i, true)
@@ -562,7 +586,11 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       if (!kick.x && !kick.y) return
       bodies.forEach((b, i) => {
         if (phase[i] !== 'in' || grab?.i === i) return
-        Body.setVelocity(b, { x: b.velocity.x + (kick.x * heft[i]) / 60, y: b.velocity.y + (kick.y * heft[i]) / 60 })
+        const vx = b.velocity.x + (kick.x * heft[i]) / 60
+        const vy = b.velocity.y + (kick.y * heft[i]) / 60
+        const speed = Math.hypot(vx, vy)
+        const k = speed > SHAKE_CAP ? SHAKE_CAP / speed : 1
+        Body.setVelocity(b, { x: vx * k, y: vy * k })
         Body.setAngularVelocity(b, b.angularVelocity + (Math.random() - 0.5) * 0.08 * heft[i])
       })
       kick.x = kick.y = 0
