@@ -31,10 +31,8 @@ They need {a troubleshooting and support-aiding tool | User Need}
 so they can {improve their merchants' experience with quick error resolution. | Goal}
 [/STATEMENT]
 
-## Previous Solution
+## What was the Previous Solution?
 *Preliminary Research*
-
-### What was the Previous Solution?
 
 I started by speaking to our Support Engineers to understand how they actually handled corporate issues.
 I found that **a lot of the troubleshooting happened manually**.
@@ -48,8 +46,6 @@ There was certainly a lot of opportunity here to add and improve upon.
 
 ## Ideation and Brainstorming
 *Getting to Work*
-
-### What exactly needs to be fixed?
 
 Now, I started looking at the problem as two connected but different needs.
 
