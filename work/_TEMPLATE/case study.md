@@ -34,6 +34,12 @@ WRITING
   [QUOTE: You like to nit pick things, huh?]
                               a big centred aside in blue, for an interjection between sections.
 
+  [BREAK: Let's get into the nitty gritty of things!]
+                              a full-height breathing-room interlude: a tall, near-empty panel with one
+                              centred line, the greeting you meet when you scroll past the summary. Unlike a
+                              "##" heading it does NOT appear in the left index, so it stays a moment rather
+                              than a place in the contents. Put it on its own line between two sections.
+
 ANNOTATED STATEMENT
   The mad-libs sentence: joining words stay grey, and the parts that carry the meaning go dark, get a
   hand-drawn bracket under them, and are named underneath it.

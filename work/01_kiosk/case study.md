@@ -12,6 +12,8 @@ We designed an interactive demonstration kiosk for the Visa Payments Forum (VPF)
 
 [VIDEO: kiosk final demo.mp4]
 
+[BREAK: Let's get into the nitty gritty of things!]
+
 ## Requirement Context
 *Some Overview*
 
@@ -50,19 +52,19 @@ It took a lot of back-and-forth iterations for everyone to get aligned on the fi
 
 The most challenging part in my opinion was finding the right balance between making the kiosk visually interactive, while still being true to the real agentic commerce experience.
 
-[ITERATIONS: The Agent's Thinking Depiction | horizontal]
+[ITERATIONS: The Agent's Thinking Depiction | vertical]
 
-[ITERATION: Iteration 1 | rejected | iteration-1-agent-thinking.png]
+[ITERATION: Iteration 1 | rejected | iteration-1-agent-thinking.mp4]
 The Agent's thinking process was shown outside the chat area. But it failed to grab the attention when the text changed.
 
-[ITERATION: Iteration 2 | accepted | iteration-2-agent-thinking.png]
+[ITERATION: Iteration 2 | accepted | iteration-2-agent-thinking.mp4]
 An in-chat thinking animation, like ChatGPT, Gemini and other chat-based AI tools. This did a better job of getting the user's attention, and communicated what was about to happen next.
 
 [/ITERATIONS]
 
 [ITERATIONS: The Order Receipt | horizontal]
 
-[ITERATION: Iteration 1 | rejected | iteration-1-receipt.png]
+[ITERATION: Iteration 1 | rejected | iteration-1-receipt.mov]
 An animated receipt, depicting the order number, an illustrated map to reach the pickup counter and the order summary
 
 [ITERATION: Iteration 2 | accepted | iteration-2-receipt.png]

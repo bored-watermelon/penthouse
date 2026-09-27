@@ -63,6 +63,9 @@ function splitFrontmatter(raw: string): { meta: Record<string, string>; body: st
 // A block-level "[IMAGE: name]" / "[VIDEO: name | caption]" / "[QUOTE: text]" tag, alone on its own line.
 const TAG_RE = /^\[(IMAGE|VIDEO):\s*([^|\]]+?)\s*(?:\|\s*(.+?))?\s*\]$/gim
 const QUOTE_RE = /^\[QUOTE:\s*(.+?)\s*\]$/gim
+// "[BREAK: text]" — a full-height breathing-room interlude between sections (e.g. after the summary). Unlike
+// a "##" heading it doesn't go in the left index, so it stays a moment rather than a place in the contents.
+const BREAK_RE = /^\[BREAK:\s*(.+?)\s*\]$/gim
 
 function figure(slug: string, kind: 'IMAGE' | 'VIDEO', name: string, caption?: string) {
   const key = name.trim().toLowerCase()
@@ -159,6 +162,7 @@ export const caseStudies: Record<string, CaseStudyDoc> = Object.fromEntries(
       const { meta, body } = splitFrontmatter(raw)
       const withMedia = renderIterations(renderStatements(body), (name) => findMedia(slug, name))
         .replace(TAG_RE, (_m, kind: 'IMAGE' | 'VIDEO', name: string, caption?: string) => figure(slug, kind, name, caption))
+        .replace(BREAK_RE, (_m, text: string) => `<div class="cs-break"><p>${escapeHtml(text)}</p></div>`)
         .replace(QUOTE_RE, (_m, text: string) => `<p class="cs-quote">${escapeHtml(text)}</p>`)
       const rawHtml = marked.parse(withMedia, { gfm: true, async: false }) as string
       const { html, toc } = addHeadingIds(rawHtml)

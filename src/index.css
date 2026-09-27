@@ -1283,7 +1283,7 @@ a.pink:hover { color: var(--pink-deep); }
 .cs {
   --cs-col: 605px;
   --stone-800: #292524; --stone-500: #79716b; --stone-400: #a6a09b; --stone-50: #fafaf9;
-  --amber-600: #e17100; --amber-bg: #fcf9dd; --sky-700: #0069a8;
+  --amber-600: #e17100; --amber-bg: #fcf9dd; --sky-700: #0069a8; --break-blue: #56a7de;
   margin: 0 auto; padding: 120px 88px 160px; min-height: 100vh;
   background: var(--stone-50); color: var(--stone-800);
 }
@@ -1350,6 +1350,18 @@ a.pink:hover { color: var(--pink-deep); }
 .cs-quote {
   margin: 0; padding: 110px 0; text-align: center;
   font-size: 28px; font-weight: 500; line-height: 1.4; color: var(--sky-700);
+}
+
+/* "[BREAK: ...]" — a full-height breathing-room interlude, e.g. the line that greets you when you scroll past
+   the summary. A tall, near-empty panel with one centred line, so it reads as a pause rather than a section. */
+.cs-break {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 62vh; margin: 40px 0; text-align: center;
+}
+.cs-break p {
+  margin: 0; max-width: 18ch;
+  font-size: clamp(26px, 3.4vw, 38px); font-weight: 500; line-height: 1.25; letter-spacing: -0.01em;
+  color: var(--break-blue);
 }
 
 /* "[STATEMENT]" — the annotated sentence: grey joining words, dark key phrases bracketed underneath by a
@@ -1455,6 +1467,7 @@ a.pink:hover { color: var(--pink-deep); }
   .cs__article { gap: 88px; }
   .cs__nav ul { flex-direction: row; flex-wrap: wrap; gap: 8px 20px; padding: 0; }
   .cs-quote { padding: 64px 0; font-size: 24px; }
+  .cs-break { min-height: 52vh; margin: 24px 0; }
   .cs-statement { gap: 40px; }
   .cs-annot__brace { height: 7px; }
   .cs-annot__label { top: calc(100% + 10px); }
