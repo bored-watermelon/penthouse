@@ -1381,6 +1381,32 @@ a.pink:hover { color: var(--pink-deep); }
   color: var(--annot); font-family: var(--hand); font-size: 1.15em; line-height: 1;
 }
 
+/* "[ITERATIONS]" — versions of one screen side by side, each a card: the shot, what it tried, and the verdict.
+   --cols is set per block, so three iterations sit in three columns and "vertical" stacks them in one. */
+.cs-iters { display: flex; flex-direction: column; gap: 22px; }
+.cs-iters__head { font-size: 18px; font-weight: 500; line-height: 1.4; color: var(--stone-500); margin: 0; }
+.cs-iters__grid { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 24px; align-items: start; }
+.cs-iter {
+  display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--stone-200); border-radius: 16px; background: var(--stone-100);
+}
+.cs-iter__shot { background: var(--stone-200); }
+.cs-iter__shot img, .cs-iter__shot video { display: block; width: 100%; height: auto; }
+.cs-iter__missing {
+  display: flex; align-items: center; justify-content: center; height: 180px; padding: 12px; text-align: center;
+  border-bottom: 1px dashed var(--stone-300); color: var(--stone-400); font-family: var(--mono); font-size: 13px;
+}
+.cs-iter__body { display: flex; flex-direction: column; gap: 10px; padding: 22px 24px 26px; }
+.cs-iter__label { margin: 0; font-size: 21px; font-weight: 500; line-height: 1.3; color: var(--ink); }
+.cs-iter__caption { margin: 0; font-family: var(--mono); font-size: 15px; line-height: 1.55; color: var(--stone-500); }
+/* the verdict, spaced out like a stamp. The two colours are taken straight from the design. */
+.cs-iter__status {
+  margin: 8px 0 0; font-family: var(--mono); font-size: 15px; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone-500);
+}
+.cs-iter__status--rejected { color: #ec5a34; }
+.cs-iter__status--accepted { color: #449435; }
+
 .cs-figure { margin: 0; }
 .cs-figure img, .cs-figure video { display: block; width: 100%; border-radius: 10px; background: #f2f2f2; }
 .cs-figure figcaption { margin-top: 8px; font-size: 14px; color: var(--stone-500); }
@@ -1432,6 +1458,10 @@ a.pink:hover { color: var(--pink-deep); }
   .cs-statement { gap: 40px; }
   .cs-annot__brace { height: 7px; }
   .cs-annot__label { top: calc(100% + 10px); }
+  /* no room for columns on a phone, so the iterations always stack and read top to bottom */
+  .cs-iters__grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .cs-iter__body { padding: 18px 20px 22px; }
+  .cs-iter__label { font-size: 19px; }
 }
 /* Phones: no room for the index at all, so it goes away and the back button pins to the top of the viewport
    instead, over a blurred strip that fades out so copy dissolves behind it rather than hitting a hard edge. */

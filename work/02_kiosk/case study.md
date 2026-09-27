@@ -27,13 +27,11 @@ The plan was to set up an interactive kiosk at the event. Attendees could walk u
 
 ## Problem Statement
 
-**Visa's Global Team** is **holding an International Conference Event**.
-They intend to **distribute free goodies among the event attendees** so they can **demonstrate their Agentic Commerce Capabilities to the attendees.**
-
-- **Client:** Visa's Global Team
-- **Distribution Channel:** holding an International Conference Event
-- **Client Need:** distribute free goodies among the event attendees
-- **Client Goal:** demonstrate their Agentic Commerce Capabilities to the attendees.
+[STATEMENT]
+{Visa's Global Team | Client} is {holding an International Conference Event. | Distribution Channel}
+They intend to {distribute free goodies among the event attendees | Client Need}
+so they can {emonstrate their Agentic Commerce Capabilities to the attendees. | Client Goal}
+[/STATEMENT]
 
 ## Understanding the New Interface
 *Getting to Work*
@@ -52,21 +50,25 @@ It took a lot of back-and-forth iterations for everyone to get aligned on the fi
 
 The most challenging part in my opinion was finding the right balance between making the kiosk visually interactive, while still being true to the real agentic commerce experience.
 
-#### The Agent's Thinking Depiction
+[ITERATIONS: The Agent's Thinking Depiction | horizontal]
 
-| Iteration 1 | Iteration 2 |
-| --- | --- |
-| [IMAGE: iteration-1-agent-thinking.png] | [IMAGE: iteration-2-agent-thinking.png] |
-| The Agent's thinking process was shown outside the chat area. But it failed to grab the attention when the text changed. | An in-chat thinking animation, like ChatGPT, Gemini and other chat-based AI tools. This did a better job of getting the user's attention, and communicated what was about to happen next. |
-| **Status:** ❌ Rejected | **Status:** ✅ Accepted |
+[ITERATION: Iteration 1 | rejected | iteration-1-agent-thinking.png]
+The Agent's thinking process was shown outside the chat area. But it failed to grab the attention when the text changed.
 
-#### The Order Receipt
+[ITERATION: Iteration 2 | accepted | iteration-2-agent-thinking.png]
+An in-chat thinking animation, like ChatGPT, Gemini and other chat-based AI tools. This did a better job of getting the user's attention, and communicated what was about to happen next.
 
-| Iteration 1 | Iteration 2 |
-| --- | --- |
-| [IMAGE: iteration-1-receipt.png] | [IMAGE: iteration-2-receipt.png] |
-| An animated receipt, depicting the order number, an illustrated map to reach the pickup counter and the order summary | An in-chat receipt at the end of the order. This mimicked the actual VIC app experience and hence was favoured by the stakeholders. |
-| **Status:** ❌ Rejected | **Status:** ✅ Accepted |
+[/ITERATIONS]
+
+[ITERATIONS: The Order Receipt | horizontal]
+
+[ITERATION: Iteration 1 | rejected | iteration-1-receipt.png]
+An animated receipt, depicting the order number, an illustrated map to reach the pickup counter and the order summary
+
+[ITERATION: Iteration 2 | accepted | iteration-2-receipt.png]
+An in-chat receipt at the end of the order. This mimicked the actual VIC app experience and hence was favoured by the stakeholders.
+
+[/ITERATIONS]
 
 ## Final Product
 *lessgooo*

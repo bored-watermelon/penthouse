@@ -70,6 +70,37 @@ MEDIA
   | --- | --- |
   | [IMAGE: v1.png] | [IMAGE: v2.png] |
 
+COMPARING ITERATIONS
+  Versions of the same screen shown next to each other, each as a card: the shot, what that version
+  tried, and whether it survived review.
+
+  [ITERATIONS: The Order Receipt | horizontal]
+
+  [ITERATION: Iteration 1 | rejected | receipt-v1.png]
+  An animated receipt, depicting the order number, an illustrated map to reach the pickup
+  counter and the order summary
+
+  [ITERATION: Iteration 2 | accepted | receipt-v2.png]
+  An in-chat receipt at the end of the order. This mimicked the actual VIC app experience
+  and was favoured by the stakeholders.
+
+  [/ITERATIONS]
+
+  [ITERATIONS: heading | layout]
+      heading   the title above the group. Leave it out for no title: [ITERATIONS: | vertical]
+      layout    "horizontal" (the default) puts them in a row, one column each.
+                "vertical" stacks them, each one full width.
+
+  [ITERATION: label | status | file]
+      label     the card's heading, e.g. "Iteration 1"
+      status    the verdict under the caption. "rejected" prints in red, "accepted" in green,
+                and anything else prints in grey — so "shelved for now" works too.
+      file      a picture OR a video from this project's media/ folder, same lookup as [IMAGE:].
+
+  The lines UNDER an [ITERATION: …] line are that card's caption, and run until the next
+  [ITERATION: …] or the closing [/ITERATIONS]. Add as many iterations as you like — a row of
+  three gets three columns. On a phone they always stack, whatever the layout says.
+
 Delete everything in this comment once you've got the hang of it. The sections below are a starting
 shape, not a rule — rename them, reorder them, drop the ones that don't apply.
 -->

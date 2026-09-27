@@ -1,6 +1,7 @@
 import { marked } from 'marked'
 import { projectSlug } from './parse'
 import { renderStatements } from './statement'
+import { renderIterations, type Media } from './iterations'
 
 // A case study is a "case study.md" inside its project folder in /work (see work/_TEMPLATE for the format),
 // so a project keeps its tile details, images and write-up in one place. The slug — and so the URL — comes
@@ -80,6 +81,17 @@ function figure(slug: string, kind: 'IMAGE' | 'VIDEO', name: string, caption?: s
   return `<figure class="cs-figure">${media}${figcaption}</figure>`
 }
 
+/** Looks a file up in a project's media folder the same way an [IMAGE:]/[VIDEO:] tag does. */
+function findMedia(slug: string, name: string): Media {
+  const key = name.trim().toLowerCase()
+  const img = imagesBySlug.get(slug)?.get(key)
+  if (img) return { src: img, kind: 'image' }
+  const vid = videosBySlug.get(slug)?.get(key)
+  if (vid) return { src: vid, kind: 'video' }
+  console.warn(`[${slug}] "${name}" not found in that project's work/.../media folder`)
+  return null
+}
+
 const decodeEntities = (s: string) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
 const stripTags = (s: string) => s.replace(/<[^>]+>/g, '')
 /** Must match the rule documented in _TEMPLATE.md, since a hand-written TOC link has to land on the same id. */
@@ -145,7 +157,7 @@ export const caseStudies: Record<string, CaseStudyDoc> = Object.fromEntries(
     .map(([path, raw]) => {
       const slug = projectSlug(folderOf(path))
       const { meta, body } = splitFrontmatter(raw)
-      const withMedia = renderStatements(body)
+      const withMedia = renderIterations(renderStatements(body), (name) => findMedia(slug, name))
         .replace(TAG_RE, (_m, kind: 'IMAGE' | 'VIDEO', name: string, caption?: string) => figure(slug, kind, name, caption))
         .replace(QUOTE_RE, (_m, text: string) => `<p class="cs-quote">${escapeHtml(text)}</p>`)
       const rawHtml = marked.parse(withMedia, { gfm: true, async: false }) as string
