@@ -98,7 +98,7 @@ export default function About() {
           <a className="art-attack" href="https://youtu.be/YDi9-uXXRfc?si=Izbf_ubp6q1wHw8t" target="_blank" rel="noreferrer">
             <img src={heroImage['art-attack']} alt="Art Attack" draggable={false} />
           </a>{' '}
-          and making tops from{' '}
+          and making toys from{' '}
           <a className="lime" href="https://www.arvindguptatoys.com/toys.html" target="_blank" rel="noreferrer">
             arvindguptatoys.com
           </a>
