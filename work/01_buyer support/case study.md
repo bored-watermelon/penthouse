@@ -25,12 +25,11 @@ As part of Juspay and Visa's strategy to reach global benchmarks, Juspay had to 
 
 In line with this, the expectation was to add the ability to proactively resolve potential issues for corporates, and to troubleshoot issues when corporates came in with queries.
 
-**Problem Statement**
-
-- **User:** Banks and Visa Admins
-- **User Role:** responsible for handling merchants' issues.
-- **User Need:** a troubleshooting and support-aiding tool
-- **Goal:** improve their merchants' experience with quick error resolution.
+[STATEMENT]
+{Banks and Visa Admins | User | left} are {responsible for handling merchants' issues. | User Role}
+They need {a troubleshooting and support-aiding tool | User Need}
+so they can {improve their merchants' experience with quick error resolution. | Goal}
+[/STATEMENT]
 
 ## Previous Solution
 *Preliminary Research*

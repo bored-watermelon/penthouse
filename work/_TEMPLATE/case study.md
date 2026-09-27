@@ -34,6 +34,30 @@ WRITING
   [QUOTE: You like to nit pick things, huh?]
                               a big centred aside in blue, for an interjection between sections.
 
+ANNOTATED STATEMENT
+  The mad-libs sentence: joining words stay grey, and the parts that carry the meaning go dark, get
+  ringed with a hand-drawn loop, and are labelled with an arrow.
+
+  [STATEMENT]
+  {Banks and Visa Admins | User | left} are {responsible for handling merchants' issues. | User Role}
+  They need {a troubleshooting and support aiding tool | User Need}
+  so they can {improve their merchants' experience with quick error resolution. | Goal}
+  [/STATEMENT]
+
+  Everything OUTSIDE the braces is the grey joining text. Each line becomes its own line on the page.
+
+  {phrase | label}          ring the phrase, and write "label" beside it on a little arrow
+  {phrase | label | green}  pick the pen: purple, blue, orange, green, red, pink, cyan.
+                            Leave it out and it cycles purple -> blue -> orange -> green down the sentence.
+  {phrase | label | left}   put the label on the LEFT of the phrase instead of the right.
+                            Colour and side can be combined: {phrase | label | purple left}
+  {phrase}                  ring it with no label at all.
+
+  The loops and arrows come from /media/annotations (circle-1.svg, circle-2.svg..., arrow-1.svg...).
+  Each phrase uses the next loop in the folder, so a sentence doesn't look rubber-stamped. They stretch
+  to fit whatever the phrase is, so you never need to redraw one when the words change — to restyle them,
+  drop new SVGs in that folder. Colour is applied from CSS, so draw them in any colour you like.
+
 MEDIA
   [IMAGE: filename.jpg]                     an image, no caption
   [IMAGE: filename.jpg | A short caption]   an image with a caption
@@ -63,7 +87,11 @@ shape, not a rule — rename them, reorder them, drop the ones that don't apply.
 
 ## Problem Statement
 
-{{Who was struggling, with what, and what did they need instead?}}
+[STATEMENT]
+{Who was struggling | User | left} are {what they are responsible for | User Role}
+They need {the thing that was missing | User Need}
+so they can {the outcome they were after | Goal}
+[/STATEMENT]
 
 ## Previous Solution
 

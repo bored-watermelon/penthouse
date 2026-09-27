@@ -1352,6 +1352,37 @@ a.pink:hover { color: var(--pink-deep); }
   font-size: 28px; font-weight: 500; line-height: 1.4; color: var(--sky-700);
 }
 
+/* "[STATEMENT]" — the annotated sentence: grey joining words, dark key phrases ringed by a hand-drawn loop
+   with an arrow off to a handwritten label. The loops stretch to whatever width a phrase ends up, and keep
+   their stroke weight while they do (non-scaling-stroke), so one drawing serves any length of text. */
+.cs-statement { display: flex; flex-direction: column; gap: 30px; color: var(--stone-400); }
+.cs-statement__line { display: block; }
+.cs-annot {
+  --annot: var(--purple-600);
+  position: relative; display: inline-block; max-width: 100%; color: var(--ink);
+}
+.cs-annot--purple { --annot: var(--purple-600); }
+.cs-annot--blue { --annot: #155dfc; }
+.cs-annot--orange { --annot: #f54a00; }
+.cs-annot--green { --annot: #008236; }
+.cs-annot--red { --annot: var(--red-500); }
+.cs-annot--pink { --annot: var(--pink); }
+.cs-annot--cyan { --annot: var(--cyan-600); }
+.cs-annot__text { position: relative; z-index: 1; }
+.cs-annot__circle {
+  position: absolute; left: -12px; top: -8px; width: calc(100% + 24px); height: calc(100% + 16px);
+  color: var(--annot); overflow: visible; pointer-events: none;
+}
+.cs-annot__tag {
+  position: absolute; top: 50%; translate: 0 -40%;
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; pointer-events: none;
+  color: var(--annot); font-family: var(--hand); font-size: 1.15em; line-height: 1;
+}
+.cs-annot__tag--right { left: calc(100% + 16px); }
+.cs-annot__tag--left { right: calc(100% + 16px); flex-direction: row-reverse; }
+.cs-annot__arrow { width: 40px; height: 24px; flex: none; overflow: visible; }
+.cs-annot__tag--left .cs-annot__arrow { scale: -1 1; }
+
 .cs-figure { margin: 0; }
 .cs-figure img, .cs-figure video { display: block; width: 100%; border-radius: 10px; background: #f2f2f2; }
 .cs-figure figcaption { margin-top: 8px; font-size: 14px; color: var(--stone-500); }
@@ -1400,6 +1431,11 @@ a.pink:hover { color: var(--pink-deep); }
   .cs__article { gap: 88px; }
   .cs__nav ul { flex-direction: row; flex-wrap: wrap; gap: 8px 20px; padding: 0; }
   .cs-quote { padding: 64px 0; font-size: 24px; }
+  /* no room beside the sentence for the labels, so each one drops under its phrase and the lines open up */
+  .cs-statement { gap: 58px; }
+  .cs-annot__tag--right, .cs-annot__tag--left { left: 0; right: auto; top: calc(100% + 2px); translate: none; flex-direction: row; }
+  .cs-annot__tag--left .cs-annot__arrow { scale: 1 1; }
+  .cs-annot__arrow { width: 32px; height: 20px; }
 }
 /* Phones: no room for the index at all, so it goes away and the back button pins to the top of the viewport
    instead, over a blurred strip that fades out so copy dissolves behind it rather than hitting a hard edge. */

@@ -1,5 +1,6 @@
 import { marked } from 'marked'
 import { projectSlug } from './parse'
+import { renderStatements } from './statement'
 
 // A case study is a "case study.md" inside its project folder in /work (see work/_TEMPLATE for the format),
 // so a project keeps its tile details, images and write-up in one place. The slug — and so the URL — comes
@@ -144,7 +145,7 @@ export const caseStudies: Record<string, CaseStudyDoc> = Object.fromEntries(
     .map(([path, raw]) => {
       const slug = projectSlug(folderOf(path))
       const { meta, body } = splitFrontmatter(raw)
-      const withMedia = body
+      const withMedia = renderStatements(body)
         .replace(TAG_RE, (_m, kind: 'IMAGE' | 'VIDEO', name: string, caption?: string) => figure(slug, kind, name, caption))
         .replace(QUOTE_RE, (_m, text: string) => `<p class="cs-quote">${escapeHtml(text)}</p>`)
       const rawHtml = marked.parse(withMedia, { gfm: true, async: false }) as string
