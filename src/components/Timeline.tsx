@@ -516,7 +516,7 @@ function Row() {
  * drag it (or tap a heading) to choose a chunk. The line bows out where the knob is, the way it bumps up on a
  * laptop. There are no pictures here: on a phone it's just the line, the years and each chunk's words.
  */
-const COL = { rail: 52, pad: 44, amp: 20, dot: 2.6 } // the line's x, the space above and below it, and its bow
+const COL = { rail: 64, pad: 44, amp: 12, dot: 2.6 } // the line's x, the space above and below it, and its bow
 
 function Column() {
   const board = useRef<HTMLDivElement>(null)
@@ -528,7 +528,7 @@ function Column() {
   const y = useRef<number | null>(null) // where the knob is now, easing towards its chunk
   const target = useRef(0)
   const raf = useRef(0)
-  const drag = useRef<{ id: number; y: number } | null>(null)
+  const drag = useRef<{ id: number; off: number } | null>(null)
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }))
     ro.observe(board.current!)
@@ -554,7 +554,7 @@ function Column() {
   }
   const paint = (knob: number) => {
     let d = ''
-    for (let p = 0; p <= size.h; p += 3) d += `${p ? 'L' : 'M'}${bow(p, knob).toFixed(1)} ${p}`
+    for (let p = top; p <= size.h; p += 3) d += `${p > top ? 'L' : 'M'}${bow(p, knob).toFixed(1)} ${p}`
     line.current?.setAttribute('d', d)
     years.forEach((at, k) => dots.current[k]?.setAttribute('cx', bow(at, knob).toFixed(1)))
     board.current?.style.setProperty('--knob-y', `${knob.toFixed(1)}px`)
@@ -575,6 +575,7 @@ function Column() {
     raf.current = requestAnimationFrame(step)
   }
   useEffect(() => {
+    if (drag.current) return // a finger is steering the knob; don't spring it to the chunk centre under it
     target.current = centerOf(active)
     if (y.current === null || reducedMotion()) {
       y.current = target.current
@@ -587,35 +588,45 @@ function Column() {
     paint(y.current)
   }, [size]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const boardTop = () => board.current!.getBoundingClientRect().top
   const chunkAt = (at: number) => Math.min(LAST, Math.max(0, Math.floor((at - top) / ch)))
+  // The pointer is captured on the knob itself (which has touch-action: none), so the finger's drag never
+  // becomes a page scroll — that scroll was what made the knob seem to run the wrong way. The gap between the
+  // finger and the knob at grab time is remembered, so the knob doesn't jump under the finger.
   const onGrip = (e: React.PointerEvent) => {
     e.preventDefault()
-    drag.current = { id: e.pointerId, y: e.clientY }
-    board.current!.setPointerCapture(e.pointerId)
+    const here = y.current ?? centerOf(active)
+    drag.current = { id: e.pointerId, off: e.clientY - boardTop() - here }
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
     setScrubbed(true)
+    cancelAnimationFrame(raf.current) // no settle animation is allowed to fight the finger
   }
+  // While a finger is down the knob tracks it exactly — painted straight to where the finger is, with no easing,
+  // so it never lags behind. The spring easing (run) is only for letting go, to settle onto the chosen chunk.
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
-    d.y = e.clientY
-    const at = Math.min(bottom, Math.max(top, e.clientY - board.current!.getBoundingClientRect().top))
+    const at = Math.min(bottom, Math.max(top, e.clientY - boardTop() - d.off))
+    y.current = at
     target.current = at
-    run()
+    paint(at)
     setActive(chunkAt(at))
   }
   const onUp = (e: React.PointerEvent) => {
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
     drag.current = null
-    const i = chunkAt(d.y - board.current!.getBoundingClientRect().top)
+    const i = chunkAt(y.current ?? centerOf(active))
     setActive(i)
     target.current = centerOf(i) // settle on the chunk it was let go over
     run()
   }
 
   return (
-    <div className="tlc" ref={board} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+    <div className="tlc" ref={board}>
       <svg className="tlc__svg" width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`} aria-hidden>
+        {/* a dashed lead-in above the first year, as in the design, then the solid line with the years' dots */}
+        <path d={`M${COL.rail} 2V${top}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 5" strokeLinecap="round" />
         <path ref={line} fill="none" stroke="currentColor" strokeWidth="1.5" />
         {years.map((at, k) => (
           <circle key={k} ref={(el) => { dots.current[k] = el }} cx={COL.rail} cy={at} r={COL.dot} fill="currentColor" />
@@ -644,10 +655,18 @@ function Column() {
         </div>
       ))}
 
-      {/* the knob: drag it up and down the line */}
-      <span className={`tlc__knob${scrubbed ? ' is-used' : ''}`} onPointerDown={onGrip} onContextMenu={(e) => e.preventDefault()} aria-hidden>
+      {/* the knob: drag it up and down the line (a rounded pill with a grab handle, as in Figma) */}
+      <span
+        className={`tlc__knob${scrubbed ? ' is-used' : ''}`}
+        onPointerDown={onGrip}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        onContextMenu={(e) => e.preventDefault()}
+        aria-hidden
+      >
         <svg viewBox="0 0 18 18">
-          <path d="M6 7.2 9 4.2l3 3M6 10.8l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4.5 6.5h9M4.5 11.5h9" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
         </svg>
       </span>
     </div>

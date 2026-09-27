@@ -276,37 +276,32 @@ img { -webkit-user-drag: none; }
   text-align: right; text-transform: uppercase; font-family: var(--mono); font-size: 13px; line-height: 1.3; letter-spacing: 0.02em;
 }
 
-/* rudrapur → roorkee → mumbai: each place reveals a small handwritten note */
-.place { position: relative; display: inline-block; cursor: help; outline: 0; }
-.place__note {
-  position: absolute; left: 50%; top: calc(100% + 6px); translate: -50% -6px; white-space: nowrap; pointer-events: none; /* in the paragraph gap below, clear of the line above */
-  font-family: var(--hand); font-size: 17px; line-height: 1; letter-spacing: 0; font-weight: 400; color: var(--violet);
-  opacity: 0; transition: opacity 0.2s ease, translate 0.25s var(--ease-spring);
-}
-.place:hover .place__note, .place:focus-visible .place__note { opacity: 1; translate: -50% 0; }
-.place:focus-visible { border-radius: 8px; box-shadow: 0 0 0 2px var(--violet); }
+/* rudrapur → roorkee → mumbai: the past two struck through, no interaction of their own */
+.place { display: inline-block; }
 
 .chip { display: inline-block; transition: rotate 0.3s var(--ease-spring), background 0.2s; }
-.selfie:hover .chip { rotate: -4deg; background: var(--cyan-100); }
+.selfie:hover .chip, .selfie.is-lit .chip { rotate: -4deg; background: var(--cyan-100); }
 
 /* the photo over the highlighted name, with two stars behind it that only show on hover or a tap */
 .selfie { position: relative; display: inline-block; }
+/* the photo is centred over the "sneha," chip and rests on its top edge, overlapping it a touch (Figma 7207:7093);
+   its box keeps me.png's own aspect so nothing is cropped */
 .selfie__art {
-  position: absolute; left: -24px; bottom: calc(100% - 6px);
-  width: 108px; height: 142px;
+  position: absolute; left: 50%; bottom: calc(100% - 9px); translate: -50% 0;
+  width: 112px; aspect-ratio: 899 / 825;
   pointer-events: none; /* only the photo itself is hoverable, so the empty corners don't swallow the line above */
 }
 .selfie__photo {
   position: relative; z-index: 1; pointer-events: auto;
-  width: 100%; height: 100%; object-fit: cover; object-position: 58% 0;
+  width: 100%; height: 100%; object-fit: contain; object-position: bottom;
 }
 .selfie__star {
-  position: absolute; z-index: 0; overflow: visible;
+  position: absolute; z-index: 0; width: auto; height: auto;
   opacity: 0; scale: 0.4;
   transition: opacity 0.25s ease, scale 0.35s var(--ease-spring);
 }
-.selfie__star--red { left: 8px; top: 12px; width: 48px; height: 48px; fill: var(--red-500); }
-.selfie__star--gold { left: 82px; top: 62px; width: 42px; height: 42px; fill: var(--yellow-400); }
+.selfie__star--red { left: -10px; top: -10px; width: 42px; }
+.selfie__star--gold { right: -12px; top: 40%; width: 38px; }
 .selfie:hover .selfie__star, .selfie.is-lit .selfie__star, .selfie:focus-within .selfie__star { opacity: 1; scale: 1; animation: twinkle 3s ease-in-out infinite; }
 .selfie:hover .selfie__star--gold, .selfie.is-lit .selfie__star--gold, .selfie:focus-within .selfie__star--gold { animation-duration: 3.8s; animation-delay: -1.4s; }
 /* barely there on purpose: a slow turn, and a breath in and out */
@@ -332,7 +327,7 @@ img { -webkit-user-drag: none; }
 .purple:hover { color: var(--violet-deep); }
 a.pink:hover { color: var(--pink-deep); }
 .lime:hover { color: var(--lime-700); }
-.inline-logo { height: 0.72em; width: auto; vertical-align: -0.02em; margin-left: 0.1em; }
+.inline-logo { height: 1em; width: auto; vertical-align: -0.14em; margin-left: 0.14em; }
 
 /* the Art Attack logo, standing in for the words. It is taller than the line, so it hangs out of the line box
    rather than pushing the paragraph apart. */
@@ -383,12 +378,17 @@ a.pink:hover { color: var(--pink-deep); }
   .about__ctas { display: flex; }
   .stage { grid-template-columns: 1fr; grid-template-rows: auto; gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; }
   .about { order: -1; --worked-h: 52px; --ball-size: 88px; }
-  /* the photo needs headroom above the first line, so the copy starts further down than the note */
-  .about__copy { padding: 124px 24px 24px; gap: 28px; font-size: clamp(24px, 3.6vw, 30px); }
-  .about__note { position: static; padding: 8px 24px 0; font-size: 12px; text-align: left; }
-  .selfie__art { left: -16px; width: 82px; height: 108px; }
-  .selfie__star--red { left: 6px; top: 9px; width: 36px; height: 36px; }
-  .selfie__star--gold { left: 62px; top: 47px; width: 32px; height: 32px; }
+  /* the photo needs headroom above the first line, so the copy starts further down. The copy is sized so the
+     intro's first line ("i am sneha, a product designer from") fits on one line. */
+  .about__copy { padding: 116px 24px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
+  .about__note { display: none; } /* the "DO NOT QUESTION…" note is desktop-only */
+  /* the intro stays on two lines: the sentence, then the places — each kept on one line. If the places line is
+     still too wide, the past two ("rudrapur → roorkee") shrink first, mumbai staying full size. */
+  .about__geo-l1, .about__geo-l2 { display: inline-block; white-space: nowrap; }
+  .about__geo-from { font-size: 0.9em; }
+  .selfie__art { width: 88px; }
+  .selfie__star--red { left: -8px; top: -8px; width: 34px; }
+  .selfie__star--gold { right: -10px; top: 40%; width: 30px; }
   .worked { padding-left: 20px; gap: 16px; }
   .worked__label { font-size: 20px; }
   .ticker__logo { height: 24px; margin-right: 44px; }
@@ -434,7 +434,7 @@ a.pink:hover { color: var(--pink-deep); }
 .work__intro { margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; line-height: 1.45; letter-spacing: -0.02em; }
 .hl--purple { color: var(--purple-600); } /* the coloured words in the work intro */
 .hl--pink { color: var(--pink); }
-.hl--fuchsia { color: #c026d3; } /* fuchsia/600: the coloured words in the play intro */
+.hl--play { color: var(--red-500); } /* red/500: the coloured words in the play intro */
 .hl--yellow { color: #ca8a04; } /* yellow/600: "2002 to now" in the timeline heading */
 .hl--red { color: #e63b21; background-image: linear-gradient(transparent 60%, #fcc6be 60%, #fcc6be 88%, transparent 88%); } /* the about heading, as in Figma */
 
@@ -927,7 +927,7 @@ a.pink:hover { color: var(--pink-deep); }
 @keyframes cat-land { 35% { scale: 1.07 0.9; } }
 
 .social__icon {
-  position: absolute; left: 0; top: 0; width: 64px; height: 64px; pointer-events: auto; touch-action: none; user-select: none; cursor: grab;
+  position: absolute; left: 0; top: 0; width: 64px; height: 64px; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: grab;
   border-radius: 22%; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35)); will-change: transform;
 }
 .social__icon.is-round { border-radius: 50%; }
@@ -974,10 +974,11 @@ a.pink:hover { color: var(--pink-deep); }
   .foot__credit { position: static; margin-top: -18px; padding: 0 16px; text-align: center; font-size: 9px; }
   .game__bubble { font-size: 13px; }
 }
-/* Phones: no cat, so the icons lie along the bottom with the copyright pill and the credit under them, and the
-   two go back to the foot of the screen (on a tablet the cat still needs that ground to itself). */
+/* Phones: no cat, so the icons move around the whole footer when the phone is shaken and fall to its floor. The
+   copyright pill and the credit line are pinned to the bottom and read as solid, so the icons pile up around
+   them rather than covering them. (On a tablet the cat still needs the ground to itself.) */
 @media (max-width: 640px) {
-  .game--loose { bottom: 74px; } /* the ground the icons rest on, just above the copyright */
+  .game--loose { bottom: 0; } /* the whole footer is the playfield, the floor is the footer's own bottom */
   .foot__center .foot__rights { position: absolute; left: 50%; bottom: 32px; translate: -50% 0; margin: 0; }
   .foot__center .foot__credit { position: absolute; left: 16px; right: 16px; bottom: 12px; margin: 0; }
 }
@@ -1194,15 +1195,17 @@ a.pink:hover { color: var(--pink-deep); }
 
 .tlc__years { list-style: none; margin: 0; padding: 0; }
 .tlc__years li {
-  position: absolute; left: 8px; translate: 0 -50%; writing-mode: vertical-rl; rotate: 180deg; /* reading up the edge */
+  position: absolute; left: 32px; translate: 0 -50%; writing-mode: vertical-rl; rotate: 180deg; /* 32px in from the edge, reading up */
   font-family: var(--pixel); font-size: 13px; line-height: 1; color: var(--stone-500); pointer-events: none;
 }
 
-.tlc__head { position: absolute; left: 74px; z-index: 3; width: fit-content; max-width: calc(100% - 86px); translate: 0 -50%; pointer-events: none; transition: translate 0.3s ease; }
+/* headings sit right of the line (at x = COL.rail = 64px). The chosen one shifts further right so it and its
+   caption clear the knob, which rides the line and bows it out where it rests. */
+.tlc__head { position: absolute; left: 88px; z-index: 3; width: fit-content; max-width: calc(100% - 104px); translate: 0 -50%; pointer-events: none; transition: translate 0.3s ease, left 0.3s ease; }
 .tlc__head button { display: block; padding: 4px 0; border: 0; background: none; text-align: left; cursor: pointer; pointer-events: auto; }
 .tlc__head h3 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
 .tlc__logo { display: block; height: 22px; width: auto; }
-.tlc__head.is-on { translate: 0 0; } /* the chosen one grows downwards from the line, so its words stay put */
+.tlc__head.is-on { left: 110px; translate: 0 0; max-width: calc(100% - 126px); } /* clear of the knob; grows downwards from the line so its words stay put */
 .tlc__head.is-on h3 { font-size: 17px; }
 .tlc__head.is-on .tlc__logo { height: 26px; }
 .tlc__cap { width: fit-content; max-width: min(268px, 78vw); animation: rise 0.3s ease both; }
@@ -1210,8 +1213,8 @@ a.pink:hover { color: var(--pink-deep); }
 
 /* the knob rides the line at --knob-x / --knob-y, with a fingertip-sized area the page can't scroll from */
 .tlc__knob {
-  position: absolute; left: var(--knob-x, 52px); top: var(--knob-y, 50%); z-index: 4; display: grid; place-items: center;
-  width: 34px; height: 34px; translate: -50% -50%; border-radius: 11px; background: var(--ink); color: var(--stone-50);
+  position: absolute; left: var(--knob-x, 64px); top: var(--knob-y, 50%); z-index: 4; display: grid; place-items: center;
+  width: 32px; height: 42px; translate: -50% -50%; border-radius: 13px; background: var(--ink); color: var(--stone-50);
   touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: grab;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.22);
 }
@@ -1416,7 +1419,7 @@ a.pink:hover { color: var(--pink-deep); }
   }
   .cs__head { padding-bottom: 40px; gap: 24px; }
   .cs__head h1 { font-size: 26px; }
-  .cs__stats { justify-content: flex-start; gap: 20px 32px; }
+  .cs__stats { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 20px; }
   .cs__article table, .cs__article tbody, .cs__article thead, .cs__article tr, .cs__article th, .cs__article td { display: block; }
   .cs__next { grid-template-columns: 1fr; }
   .cs__next-thumb { grid-column: 1; grid-row: 3; margin-top: 16px; }

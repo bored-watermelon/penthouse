@@ -491,6 +491,11 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
         if (phase[i] === 'waiting') return
         const el = els.current[i]
         if (!el) return
+        // on a phone the icons don't squish: they just tumble and slide, so a plain move and turn
+        if (loose) {
+          el.style.transform = `translate(${b.position.x - size / 2}px, ${b.position.y - size / 2}px) rotate(${b.angle}rad)`
+          return
+        }
         // squash along the hit, keeping the side that touched in place; then the edge squeeze, keeping its feet down
         const { s, nx, ny } = jelly[i]
         const q = squeeze[i]
@@ -640,10 +645,15 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       return { x: e.clientX - r.left, y: e.clientY - r.top }
     }
     const onDown = (e: PointerEvent) => {
-      const i = els.current.findIndex((el) => el === e.currentTarget)
+      const el = e.currentTarget as HTMLElement
+      const i = els.current.findIndex((x) => x === el)
       if (i < 0 || phase[i] !== 'in') return
       const body = bodies[i]
       e.preventDefault()
+      // Capture the pointer on the icon: on a phone a link would otherwise steal the touch (long-press callout,
+      // implicit capture) and the drag would never start. With capture the icon keeps the pointer, so a fast
+      // throw that outruns it still lets go cleanly.
+      el.setPointerCapture(e.pointerId)
       const p = local(e)
       const c = Constraint.create({
         pointA: p,
@@ -655,7 +665,6 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       })
       Composite.add(world, c)
       grab = { i, c, sx: p.x, sy: p.y, moved: false }
-      // follow the pointer on the window, so a fast throw that outruns the icon still lets go of it
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
       window.addEventListener('pointercancel', onUp)
@@ -685,7 +694,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
         if (revealedOnce) return
         revealedOnce = true
         measure()
-        if (reduced || loose) lay() // on a phone they're just lying there, waiting to be shaken
+        if (reduced || loose) lay() // on a phone they just lie at the bottom, waiting to be shaken around
         else drop()
       },
       start: () => {

@@ -21,8 +21,8 @@ const INTRO = {
   ),
   play: (
     <>
-      lately, i’ve been into <span className="hl hl--fuchsia">advanced prototyping</span> and i make{' '}
-      <span className="hl hl--fuchsia">art</span> when i am bored(all the time)
+      lately, i’ve been into <span className="hl hl--play">advanced prototyping</span> and i make{' '}
+      <span className="hl hl--play">art</span> when i am bored(all the time)
     </>
   ),
 }

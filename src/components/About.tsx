@@ -2,19 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import Ticker from './Ticker'
 import Basketball from './Basketball'
 import { findLogo } from '../lib/logos'
-import { heroImage } from '../lib/heroAssets'
+import { heroImage, heroStar } from '../lib/heroAssets'
 
-/** A place in the "rudrapur → roorkee → mumbai" line, with a small note that appears on hover or focus. */
-function Place({ children, note, past = false }: { children: React.ReactNode; note: string; past?: boolean }) {
+/** A place in the "rudrapur → roorkee → mumbai" line; the past two are struck through. */
+function Place({ children, past = false }: { children: React.ReactNode; past?: boolean }) {
   const Tag = past ? 's' : 'span'
-  return (
-    <span className="place" tabIndex={0} aria-label={note}>
-      <Tag>{children}</Tag>
-      <span className="place__note" aria-hidden>
-        {note}
-      </span>
-    </span>
-  )
+  return <Tag className="place">{children}</Tag>
 }
 
 /**
@@ -33,12 +26,8 @@ function Selfie() {
   return (
     <span className={`selfie${lit ? ' is-lit' : ''}`} onPointerDown={flash}>
       <span className="selfie__art">
-        <svg className="selfie__star selfie__star--red" viewBox="0 0 100 100" aria-hidden>
-          <polygon points="50,0 58.5,35.3 93.3,25 67,50 93.3,75 58.5,64.7 50,100 41.5,64.7 6.7,75 33,50 6.7,25 41.5,35.3" />
-        </svg>
-        <svg className="selfie__star selfie__star--gold" viewBox="0 0 100 100" aria-hidden>
-          <path d="M50 0C54.5 31 69 45.5 100 50 69 54.5 54.5 69 50 100 45.5 69 31 54.5 0 50 31 45.5 45.5 31 50 0Z" />
-        </svg>
+        <img className="selfie__star selfie__star--red" src={heroStar.star1} alt="" aria-hidden draggable={false} />
+        <img className="selfie__star selfie__star--gold" src={heroStar.star2} alt="" aria-hidden draggable={false} />
         <img className="selfie__photo" src={heroImage.me} alt="Sneha in a leopard-print beanie, a cat’s eyes held over her own" />
       </span>
       <span className="chip">sneha,</span>
@@ -94,18 +83,15 @@ export default function About() {
       </p>
 
       <div className="about__copy">
-        <p data-reveal>
-          i am <Selfie /> a product designer from
+        <p className="about__geo" data-reveal>
+          <span className="about__geo-l1">i am <Selfie /> a product designer from</span>
           <br />
-          <Place past note="where it all started">
-            rudrapur 🍼
-          </Place>{' '}
-          →{' '}
-          <Place past note="IIT Roorkee, B.Tech ’23">
-            roorkee 🎓
-          </Place>{' '}
-          →{' '}
-          <Place note="home, for now">mumbai 💼</Place>
+          <span className="about__geo-l2">
+            <span className="about__geo-from">
+              <Place past>rudrapur 🍼</Place> → <Place past>roorkee 🎓</Place>
+            </span>{' '}
+            → <Place>mumbai 💼</Place>
+          </span>
         </p>
         <p data-reveal>
           before i was a designer, i was a kid frantically following along to{' '}
