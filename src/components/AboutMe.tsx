@@ -593,7 +593,7 @@ export default function AboutMe() {
         </div>
       </div>
 
-      {open !== null && <Lightbox items={viewer} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />}
+      {open !== null && <Lightbox single items={viewer} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />}
       {special === 'camera' && <CameraViewer onClose={() => setSpecial(null)} />}
       {special === 'ipod' && <Ipod onClose={() => setSpecial(null)} />}
     </section>

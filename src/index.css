@@ -530,6 +530,8 @@ a.pink:hover { color: var(--pink-deep); }
 /* Phones (from the mobile Figma frames): the intro scrolls away and only "here is all work ⟷ some play" and the
    filters stay pinned (see useHeadLift). Everything is prefixed .work so it wins over the tablet rules below. */
 @media (max-width: 640px) {
+  /* the section headers (work/play, timeline and about-me all use .work__intro) read at 22px on a phone */
+  .work__intro { font-size: 22px; }
   .work .modes { gap: 10px; margin-bottom: 16px; font-size: 22px; }
   /* pinned: 4px under the tabs, then the images fade in straight away (no solid band first) */
   .work .work__head { padding-bottom: 4px; }
@@ -655,9 +657,20 @@ a.pink:hover { color: var(--pink-deep); }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .work__content { animation: none; } }
 
 /* ---------- Lightbox ---------- */
+/* The dim/overlay behind an enlarged image. Tweak these two to taste:
+   --lb-scrim        : the play grid's photo viewer (the swipeable strip)
+   --lb-scrim-single : the "about me" cardboard, where one keepsake grows to the middle
+   Each is a colour with its own alpha; raise the alpha for a darker/denser veil, lower it to see more of the
+   page behind. Set the blur radii to 0 if you want no frosting. */
+:root {
+  --lb-scrim: rgb(255 255 255 / 0.88);
+  --lb-scrim-blur: 6px;
+  --lb-scrim-single: rgb(255 255 255 / 0.92);
+  --lb-scrim-single-blur: 8px;
+}
 .lightbox {
   position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 72px 96px;
-  background: rgb(255 255 255 / 0.88); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  background: var(--lb-scrim); -webkit-backdrop-filter: blur(var(--lb-scrim-blur)); backdrop-filter: blur(var(--lb-scrim-blur));
   animation: lb-fade 0.25s ease both;
   /* a cross cursor anywhere outside the media: clicking closes the viewer */
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M6 6L22 22M22 6L6 22' stroke='%23111' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") 14 14, pointer;
@@ -686,6 +699,17 @@ a.pink:hover { color: var(--pink-deep); }
 .lb-media img.is-sharp { opacity: 1; }
 @keyframes lb-rise { from { opacity: 0; scale: 0.97; } }
 @keyframes lb-sink { to { opacity: 0; scale: 0.97; } }
+
+/* Single-item view (the cardboard): its own scrim, and the picture grows in from small to the middle. No frame,
+   no rounded corners, no drop shadow — just the thing itself. */
+.lightbox--single { background: var(--lb-scrim-single); -webkit-backdrop-filter: blur(var(--lb-scrim-single-blur)); backdrop-filter: blur(var(--lb-scrim-single-blur)); }
+.lightbox--single .lightbox__figure { animation: lb-grow 0.34s var(--ease-spring) both; }
+.lightbox.lightbox--single.is-leaving .lightbox__figure { animation: lb-sink 0.2s ease both; }
+.lightbox--single .lb-single {
+  display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 120px); max-height: calc(100svh - 120px);
+  object-fit: contain; border-radius: 0; box-shadow: none; user-select: none; cursor: default;
+}
+@keyframes lb-grow { from { opacity: 0; scale: 0.72; } to { opacity: 1; scale: 1; } }
 
 .lightbox__arrow {
   position: absolute; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-size: 22px; line-height: 1;
@@ -1529,8 +1553,8 @@ a.pink:hover { color: var(--pink-deep); }
 @media (max-width: 640px) {
   .dock { bottom: 12px; padding: 4px; }
   .dock__pill { top: 4px; bottom: 4px; }
-  .dock__item { height: 34px; padding: 0 11px; font-size: 13px; }
-  .dock__item--wide, .dock__mail-label { display: none; }
+  .dock__item { height: 34px; padding: 0 10px; font-size: 13px; }
+  .dock__mail-label { display: none; }
   .dock__sep { margin: 0 3px; }
 }
 @media (prefers-reduced-motion: reduce) { .dock, .dock__pill { transition: opacity 0.2s ease; } }

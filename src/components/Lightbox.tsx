@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PlayItem } from '../content'
 
-type Props = { items: PlayItem[]; index: number; onIndex: (i: number) => void; onClose: () => void }
+type Props = { items: PlayItem[]; index: number; onIndex: (i: number) => void; onClose: () => void; single?: boolean }
 
 const NEAR = 2 // photos either side of the one on show that are loaded ahead, so flicking never waits
 
@@ -76,7 +76,7 @@ function Slide({ item, near, current, stage }: { item: PlayItem; near: boolean; 
  * The full-size viewer: every photo side by side on one strip, like a phone's photos app. Swipe or drag and the
  * strip follows the finger, then settles on the next one (or springs back); the arrows and ← → keys slide it too.
  */
-export default function Lightbox({ items, index, onIndex, onClose }: Props) {
+export default function Lightbox({ items, index, onIndex, onClose, single = false }: Props) {
   const stage = useStage()
   const [leaving, setLeaving] = useState(false)
   const [dx, setDx] = useState(0) // how far the strip has been dragged off the current photo
@@ -96,6 +96,7 @@ export default function Lightbox({ items, index, onIndex, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close()
+      else if (single) return
       else if (e.key === 'ArrowRight') go(1)
       else if (e.key === 'ArrowLeft') go(-1)
     }
@@ -140,6 +141,43 @@ export default function Lightbox({ items, index, onIndex, onClose }: Props) {
   }
 
   if (!items[index]) return null
+
+  // The cardboard opens one keepsake at a time: no strip, no arrows, no paging — the thing just grows to the
+  // middle of a dimmed screen, and a click anywhere off it closes. (Used by the "about me" box; the play grid
+  // keeps the swipeable strip below.)
+  if (single) {
+    const item = items[index]
+    const small = stage.w <= 860
+    const maxW = Math.min(1100, stage.w - (small ? 32 : 120))
+    const maxH = (small ? stage.h - 120 : stage.h - 140)
+    const ratio = item.width && item.height ? item.width / item.height : 0
+    const size = ratio ? (maxW / maxH > ratio ? { width: maxH * ratio, height: maxH } : { width: maxW, height: maxW / ratio }) : undefined
+    const stop = (e: React.MouseEvent) => e.stopPropagation()
+    return createPortal(
+      <div
+        className={`lightbox lightbox--single${leaving ? ' is-leaving' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={item.caption || 'Preview'}
+        onClick={close}
+      >
+        <figure className="lightbox__figure" onClick={stop}>
+          {item.video ? (
+            <video className="lb-single" src={item.src} muted loop playsInline autoPlay style={size} />
+          ) : (
+            <img className="lb-single" src={item.src} alt={item.caption} draggable={false} style={size} />
+          )}
+          {(item.caption || item.tags.length > 0) && (
+            <figcaption>
+              {item.caption && <span className="lightbox__caption">{item.caption}</span>}
+              {item.tags.length > 0 && <span className="lightbox__tags"> • {item.tags.join(', ')}</span>}
+            </figcaption>
+          )}
+        </figure>
+      </div>,
+      document.body,
+    )
+  }
 
   return createPortal(
     <div

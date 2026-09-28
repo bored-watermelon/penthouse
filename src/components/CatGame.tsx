@@ -35,14 +35,18 @@ const MIN_SQUEEZE = 0.5
 const CAT = 0x0002 // the cat's collision category, so a pinned icon can stop colliding with it
 const CAT_RATIO = 856 / 1206 // until the picture has loaded and reports its own size
 /**
- * A phone gets no cat: the icons simply lie at the bottom, and the phone itself moves them. Shaking throws them
- * about as hard as you shake, and tilting swings gravity that way so they slide and pile towards the low side.
+ * A phone gets no cat: the footer's video is a floor seen from above, and the icons lie loose on it like a couple
+ * of dice. Nothing pulls them to the bottom of the screen; tilting the phone leans the floor so they roll towards
+ * the low side and settle when it's held flat, and shaking scatters them — exactly like the keepsakes in the
+ * cardboard box (see AboutMe.tsx).
  */
 const LOOSE = '(max-width: 640px)'
 const SHAKE = 9 // how much of the phone's own acceleration the icons feel
 const SHAKE_FLOOR = 1.5 // m/s²; below this it's just a hand not being steady
-const SHAKE_CAP = 26 // px/step: fast enough to fling them the height of the footer, slow enough not to tunnel walls
-const TILT_MAX = 55 // degrees of roll before gravity stops leaning any further
+const SHAKE_CAP = 26 // px/step: fast enough to fling them across the floor, slow enough not to tunnel walls
+const TILT = 0.7 // how hard a lean rolls them across the floor
+const TILT_SETTLE = 0.004 // how fast "how the phone is being held" is followed, so any pose settles to still
+const GRIP = 1.1 // the floor's hold: a hand's wobble doesn't beat it, a deliberate lean does
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
 /**
@@ -70,7 +74,8 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
 
   useEffect(() => {
     const host = box.current!
-    const engine = Engine.create({ gravity: { x: 0, y: 1 } })
+    // a phone sees the floor from above, so nothing falls; the cat's world keeps its downward pull
+    const engine = Engine.create({ gravity: loose ? { x: 0, y: 0 } : { x: 0, y: 1 } })
     const world = engine.world
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     const timers: number[] = []
@@ -138,12 +143,15 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     const buildWalls = () => {
       walls.forEach((b) => Composite.remove(world, b))
       const t = 200
+      // On a phone the icons are boxed into the lower part of the footer, so a hard tilt rolls them around the floor
+      // rather than up over the headline; on a laptop the top wall sits well above the screen, so a throw can rise
+      // and still come back.
+      const topY = loose ? Math.max(0, floor - Math.min(floor, H * 0.55)) : -600
       walls = [
         Bodies.rectangle(W / 2, floor + t / 2, W * 3, t, { isStatic: true, label: 'ground' }),
         Bodies.rectangle(-t / 2, H / 2, t, H * 6, { isStatic: true, label: 'wall' }),
         Bodies.rectangle(W + t / 2, H / 2, t, H * 6, { isStatic: true, label: 'wall' }),
-        // well above the screen, so a throw can go up and still come back
-        Bodies.rectangle(W / 2, -600 - t / 2, W * 3, t, { isStatic: true, label: 'wall' }),
+        Bodies.rectangle(W / 2, topY - t / 2, W * 3, t, { isStatic: true, label: 'wall' }),
       ]
       Composite.add(world, walls)
     }
@@ -276,11 +284,24 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       })
     }
 
-    // With reduced motion there's no game: the icons are simply lying on the ground.
+    // No cat game: the icons are just laid out at rest. On a phone they scatter loosely over the floor, each at its
+    // own slight angle, like a couple of dice tipped out of a cup; with reduced motion on a laptop they line up.
     const lay = () => {
+      const topY = Math.max(0, floor - Math.min(floor, H * 0.55))
+      const cols = Math.max(1, Math.round(Math.sqrt(total * (W / Math.max(1, floor - topY)))))
+      const rows = Math.max(1, Math.ceil(total / cols))
       socials.forEach((_, i) => {
         const b = bodies[i]
-        Body.setPosition(b, { x: W / 2 + (i - (total - 1) / 2) * size * 1.6, y: floor - size / 2 - 2 })
+        if (loose) {
+          const c = i % cols
+          const r = Math.floor(i / cols)
+          const x = clamp(((c + 0.5) / cols) * W + (Math.random() - 0.5) * size, size, W - size)
+          const y = clamp(topY + ((r + 0.5) / rows) * (floor - topY) + (Math.random() - 0.5) * size, topY + size / 2, floor - size / 2)
+          Body.setPosition(b, { x, y })
+          Body.setAngle(b, (Math.random() - 0.5) * 0.8)
+        } else {
+          Body.setPosition(b, { x: W / 2 + (i - (total - 1) / 2) * size * 1.6, y: floor - size / 2 - 2 })
+        }
         Composite.add(world, b)
         phase[i] = 'in'
         show(i, true)
@@ -545,10 +566,14 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     }
 
     // ----- a phone moving: shake and tilt -----
-    // A shake arrives as the phone's own acceleration; each icon gets that as a kick, its own weight deciding how
-    // much. Tilting swings gravity towards the low side, so they slide and settle there like loose change.
+    // Seen from above, the floor is level and nothing falls. A shake arrives as the phone's own acceleration and each
+    // icon gets it as a kick, its own weight deciding how much. Tilting leans the floor, so they roll towards the low
+    // side against the floor's grip and settle again when it's held flat — the same feel as the cardboard box.
     const kick = { x: 0, y: 0 }
     const heft = socials.map(() => 0.75 + Math.random() * 0.5)
+    const grips = socials.map(() => 0.35 + Math.random() * 1.3) // each grips the floor differently, so a lean spreads them
+    const tilt = { x: 0, y: 0 } // the pull of the phone's lean along the floor, in screen directions (m/s²-ish)
+    let holdPose: { b: number; g: number } | null = null // how the phone is being held, followed slowly
     const grav = { x: 0, y: 0, set: false }
     let lastShake = 0
     const onMotion = (e: DeviceMotionEvent) => {
@@ -575,11 +600,36 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       kick.y += s.y * scale * dt
     }
     const onTilt = (e: DeviceOrientationEvent) => {
-      if (e.gamma == null) return
-      const roll = (clamp(e.gamma, -TILT_MAX, TILT_MAX) * Math.PI) / 180
-      const g = toScreen(Math.sin(roll), -Math.cos(roll))
-      engine.gravity.x = g.x
-      engine.gravity.y = Math.max(0.25, g.y) // always some pull downwards, however it's held
+      if (e.beta == null || e.gamma == null) return
+      if (!holdPose) holdPose = { b: e.beta, g: e.gamma }
+      holdPose.b += (e.beta - holdPose.b) * TILT_SETTLE
+      holdPose.g += (e.gamma - holdPose.g) * TILT_SETTLE
+      // the first few degrees do nothing, so a hand's natural wobble doesn't send them rolling
+      const rad = (d: number) => (Math.sign(d) * Math.max(0, Math.min(60, Math.abs(d)) - 5) * Math.PI) / 180
+      // the lean along the phone's face, in screen directions: a lower right edge rolls them right, a raised top
+      // edge rolls them towards the bottom
+      const s = toScreen(9.81 * Math.sin(rad(e.gamma - holdPose.g)), -9.81 * Math.sin(rad(e.beta - holdPose.b)))
+      tilt.x = s.x
+      tilt.y = s.y
+    }
+    // The lean rolls the icons across the floor: each keeps its own speed, gains the tilt's pull, then the floor's
+    // grip rubs some off — a gentle lean is wholly resisted (they stay put), a firm one isn't (they slide).
+    const rollFloor = (ms: number) => {
+      if (reduced) return
+      const dt = ms / 1000
+      const L = Math.max(W, H)
+      bodies.forEach((b, i) => {
+        if (phase[i] !== 'in' || grab?.i === i) return
+        const grip = (GRIP * grips[i] * L * dt) / 60
+        let ux = b.velocity.x + (tilt.x * TILT * L * heft[i] * dt) / 60
+        let uy = b.velocity.y + (tilt.y * TILT * L * heft[i] * dt) / 60
+        const u = Math.hypot(ux, uy)
+        const slow = u > grip ? (u - grip) / u : 0
+        ux *= slow
+        uy *= slow
+        Body.setVelocity(b, { x: ux, y: uy })
+        Body.setAngularVelocity(b, b.angularVelocity * (u > grip ? 0.98 : 0.82))
+      })
     }
     /** Hands the shake gathered since the last frame to the icons, and wakes any that had gone to sleep. */
     const shove = () => {
@@ -610,7 +660,8 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
         pinch(dt)
         referee()
       } else {
-        shove() // the phone's own shaking, since the last frame
+        rollFloor(dt) // lean the floor so a tilt rolls them towards the low side
+        shove() // and the phone's own shaking, since the last frame
         Engine.update(engine, dt)
       }
       paint()

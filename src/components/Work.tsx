@@ -168,6 +168,44 @@ export default function Work() {
     window.scrollTo({ top: pinPoint(), behavior })
   }, [mode])
 
+  // Phones only: work and play share one slot, so scrolling to the end of the work list hands over to play (it
+  // swaps in where you are and the dock pill glides work → play); scrolling back up to the top hands back to work.
+  // The two contents swap visibility with the mode, so each trigger stops firing the moment it fires — no ping-pong.
+  useEffect(() => {
+    let raf = 0
+    let lastY = window.scrollY
+    const check = () => {
+      raf = 0
+      const down = window.scrollY > lastY
+      lastY = window.scrollY
+      if (!matchMedia('(max-width: 640px)').matches) return
+      const sec = section.current
+      if (!sec) return
+      if (mode === 'work') {
+        const pane = sec.querySelector<HTMLElement>('.work__content:not([hidden])')
+        if (!pane) return
+        const r = pane.getBoundingClientRect()
+        // the bottom of the work list has scrolled up to the fold, its top already off the top: the end is reached
+        if (down && r.top < 0 && r.bottom > 0 && r.bottom <= innerHeight) {
+          anchor.current = null // swap in place, no scroll jump
+          setPlaySeen(true)
+          setMode('play')
+        }
+      } else if (!down && scrollY <= pinPoint() + 4) {
+        anchor.current = null
+        setMode('work')
+      }
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(check)
+    }
+    addEventListener('scroll', on, { passive: true })
+    return () => {
+      removeEventListener('scroll', on)
+      cancelAnimationFrame(raf)
+    }
+  }, [mode])
+
   useHeadLift(head, controls)
 
   // Changing a filter while scrolled into the list starts the list over: the first matching card sits right
