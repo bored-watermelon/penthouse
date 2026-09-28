@@ -302,8 +302,15 @@ img { -webkit-user-drag: none; }
 }
 .selfie__star--red { left: -10px; top: -10px; width: 42px; }
 .selfie__star--gold { right: -12px; top: 40%; width: 38px; }
-.selfie:hover .selfie__star, .selfie.is-lit .selfie__star, .selfie:focus-within .selfie__star { opacity: 1; scale: 1; animation: twinkle 3s ease-in-out infinite; }
-.selfie:hover .selfie__star--gold, .selfie.is-lit .selfie__star--gold, .selfie:focus-within .selfie__star--gold { animation-duration: 3.8s; animation-delay: -1.4s; }
+.selfie:hover .selfie__star, .selfie.is-lit .selfie__star, .selfie:focus-within .selfie__star,
+.about__portrait:hover .selfie__star, .about__portrait.is-lit .selfie__star, .about__portrait:focus-within .selfie__star { opacity: 1; scale: 1; animation: twinkle 3s ease-in-out infinite; }
+.selfie:hover .selfie__star--gold, .selfie.is-lit .selfie__star--gold, .selfie:focus-within .selfie__star--gold,
+.about__portrait:hover .selfie__star--gold, .about__portrait.is-lit .selfie__star--gold, .about__portrait:focus-within .selfie__star--gold { animation-duration: 3.8s; animation-delay: -1.4s; }
+
+/* the phone-only portrait block: a normal-flow container at the top of .about__copy, so the card's padding-top
+   sits above the photo rather than above the chip. Hidden on the desktop layout where the inline photo is used. */
+.about__portrait { display: none; }
+.selfie__art--block { position: static; translate: none; display: block; pointer-events: auto; }
 /* barely there on purpose: a slow turn, and a breath in and out */
 @keyframes twinkle {
   0%, 100% { transform: rotate(-5deg) scale(0.93); }
@@ -376,17 +383,17 @@ a.pink:hover { color: var(--pink-deep); }
   /* no chat on phones and tablets: the hero is just the card, with the two buttons in it */
   .chat { display: none; }
   .about__ctas { display: flex; }
-  .stage { grid-template-columns: 1fr; grid-template-rows: auto; gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; }
+  /* dvh (dynamic viewport height) grows and shrinks with the mobile browser chrome, so the yellow "worked
+     with" bar always lines up with the actual visible bottom rather than hiding behind the address bar */
+  .stage { grid-template-columns: 1fr; grid-template-rows: auto; gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; min-height: 100dvh; }
   .about { order: -1; --worked-h: 52px; --ball-size: 88px; }
-  /* the photo needs headroom above the first line, so the copy starts further down. The copy is sized so the
-     intro's first line ("i am sneha, a product designer from") fits on one line. */
   /* top-align the block (no vertical centering) so it starts near the top instead of centering in the tall card */
-  .about__copy { justify-content: flex-start; padding: 180px 32px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
+  .about__copy { justify-content: flex-start; padding: 32px 24px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
   .about__note { display: none; } /* the "DO NOT QUESTION…" note is desktop-only */
-  /* the intro stays on two lines: the sentence, then the places — each kept on one line. If the places line is
-     still too wide, the past two ("rudrapur → roorkee") shrink first, mumbai staying full size. */
-  .about__geo-l1, .about__geo-l2 { display: inline-block; white-space: nowrap; }
-  .about__geo-from { font-size: 0.9em; }
+  /* on a phone the photo becomes its own block above the paragraph, and the inline one inside <Selfie> is hidden.
+     This way the card's padding-top sits above the photo, not above the "sneha," chip. */
+  .about__portrait { display: block; }
+  .selfie > .selfie__art:not(.selfie__art--block) { display: none; }
   .selfie__art { width: 88px; }
   .selfie__star--red { left: -8px; top: -8px; width: 34px; }
   .selfie__star--gold { right: -10px; top: 40%; width: 30px; }

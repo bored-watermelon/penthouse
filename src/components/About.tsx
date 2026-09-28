@@ -4,17 +4,32 @@ import Basketball from './Basketball'
 import { findLogo } from '../lib/logos'
 import { heroImage, heroStar } from '../lib/heroAssets'
 
-/** A place in the "rudrapur → roorkee → mumbai" line; the past two are struck through. */
-function Place({ children, past = false }: { children: React.ReactNode; past?: boolean }) {
+/**
+ * A place in the "rudrapur → roorkee → mumbai" line; the past two are struck through. The emoji stays
+ * upright and clear — it's a marker of what happened there, not part of the word that's being crossed out.
+ */
+function Place({ name, emoji, past = false }: { name: string; emoji?: string; past?: boolean }) {
   const Tag = past ? 's' : 'span'
-  return <Tag className="place">{children}</Tag>
+  return (
+    <span className="place">
+      <Tag>{name}</Tag>
+      {emoji && (
+        <>
+          {' '}
+          <span className="place__emoji">{emoji}</span>
+        </>
+      )}
+    </span>
+  )
 }
 
 /**
- * The photo over the highlighted name. The two stars behind it stay hidden until the photo or the name is
- * hovered — or tapped, since a phone has no hover — and then twinkle: a slow, slight turn and breathe.
+ * The photo-and-name pair. On desktop the photo hangs above the "sneha," chip inline in the sentence; on a
+ * phone the photo is lifted out into its own block at the top of the card (see .about__portrait) so it counts
+ * as part of the padded content — you can then space it from the top of the card by adjusting one padding.
+ * Both the chip and the two portraits share the "lit" state, so hovering or tapping either lights up both.
  */
-function Selfie() {
+function useLit() {
   const [lit, setLit] = useState(false)
   const timer = useRef(0)
   useEffect(() => () => window.clearTimeout(timer.current), [])
@@ -23,13 +38,24 @@ function Selfie() {
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => setLit(false), 2600)
   }
+  return { lit, flash }
+}
+
+function SelfieArt({ variant }: { variant?: 'inline' | 'block' }) {
   return (
-    <span className={`selfie${lit ? ' is-lit' : ''}`} onPointerDown={flash}>
-      <span className="selfie__art">
-        <img className="selfie__star selfie__star--red" src={heroStar.star1} alt="" aria-hidden draggable={false} />
-        <img className="selfie__star selfie__star--gold" src={heroStar.star2} alt="" aria-hidden draggable={false} />
-        <img className="selfie__photo" src={heroImage.me} alt="Sneha in a leopard-print beanie, a cat’s eyes held over her own" />
-      </span>
+    <span className={`selfie__art${variant === 'block' ? ' selfie__art--block' : ''}`}>
+      <img className="selfie__star selfie__star--red" src={heroStar.star1} alt="" aria-hidden draggable={false} />
+      <img className="selfie__star selfie__star--gold" src={heroStar.star2} alt="" aria-hidden draggable={false} />
+      <img className="selfie__photo" src={heroImage.me} alt="Sneha in a leopard-print beanie, a cat’s eyes held over her own" />
+    </span>
+  )
+}
+
+function Selfie({ lit, onFlash }: { lit: boolean; onFlash: () => void }) {
+  return (
+    <span className={`selfie${lit ? ' is-lit' : ''}`} onPointerDown={onFlash}>
+      {/* on desktop this is the photo that hangs above the chip; on mobile it's hidden and .about__portrait shows instead */}
+      <SelfieArt />
       <span className="chip">sneha,</span>
     </span>
   )
@@ -75,6 +101,7 @@ function HeroActions() {
 
 export default function About() {
   const juspay = findLogo('Juspay')
+  const { lit, flash } = useLit()
   return (
     <section className="about">
       <p className="about__note">
@@ -83,15 +110,13 @@ export default function About() {
       </p>
 
       <div className="about__copy">
+        {/* the phone-only portrait: a normal-flow block at the top of the card, so the card's own padding-top
+            spaces the photo from the top edge. On desktop it's hidden and the inline photo hangs above the chip. */}
+        <div className={`about__portrait${lit ? ' is-lit' : ''}`} onPointerDown={flash} aria-hidden>
+          <SelfieArt variant="block" />
+        </div>
         <p className="about__geo" data-reveal>
-          <span className="about__geo-l1">i am <Selfie /> a product designer from</span>
-          <br />
-          <span className="about__geo-l2">
-            <span className="about__geo-from">
-              <Place past>rudrapur 🍼</Place> → <Place past>roorkee 🎓</Place>
-            </span>{' '}
-            → <Place>mumbai 💼</Place>
-          </span>
+          i am <Selfie lit={lit} onFlash={flash} /> a product designer from <Place past name="rudrapur" emoji="🍼" /> → <Place past name="roorkee" emoji="🎓" /> → <Place name="mumbai" emoji="💼" />
         </p>
         <p data-reveal>
           before i was a designer, i was a kid frantically following along to{' '}
