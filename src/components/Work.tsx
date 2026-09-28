@@ -154,6 +154,7 @@ export default function Work() {
       if (next !== 'work' && next !== 'play') return
       if (next === 'play') setPlaySeen(true)
       anchor.current = 'smooth'
+      if (next !== mode) playFlip() // the dock's pills clack the lever too, but only on an actual switch
       setMode(next)
       if (next === mode) window.scrollTo({ top: pinPoint(), behavior: 'smooth' }) // no re-render coming, so go now
     }
@@ -188,11 +189,13 @@ export default function Work() {
         // the bottom of the work list has scrolled up to the fold, its top already off the top: the end is reached
         if (down && r.top < 0 && r.bottom > 0 && r.bottom <= innerHeight) {
           anchor.current = null // swap in place, no scroll jump
+          playFlip() // the lever clacks whether it's tapped or tripped by the scroll
           setPlaySeen(true)
           setMode('play')
         }
       } else if (!down && scrollY <= pinPoint() + 4) {
         anchor.current = null
+        playFlip()
         setMode('work')
       }
     }

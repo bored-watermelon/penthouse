@@ -1140,7 +1140,8 @@ a.pink:hover { color: var(--pink-deep); }
 @media (max-width: 640px) {
   .toybox .collage { display: none; }
   .toybox__stage { padding-top: 64px; }
-  .toybox__box { width: min(87vw, 380px); aspect-ratio: 1840 / 2940; }
+  /* the box is pinned on a phone (see AboutMe.tsx): no grab, and a touch on it scrolls the page as normal */
+  .toybox__box { width: min(87vw, 380px); aspect-ratio: 1840 / 2940; cursor: default; touch-action: auto; }
   /* the same picture, turned a quarter clockwise; its shadow is set in the picture's own (turned) frame, so it still falls down */
   .toybox__cardboard { inset: auto; left: 50%; top: 50%; width: calc(100% * 2940 / 1840); height: calc(100% * 1840 / 2940); translate: -50% -50%; rotate: 90deg; filter: drop-shadow(22px 0 26px rgb(16 28 64 / 0.38)); }
   /* "shake it to the max", centred over the box, in place of the handwritten note */

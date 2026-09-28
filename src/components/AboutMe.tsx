@@ -141,6 +141,9 @@ export default function AboutMe() {
     const engine = Engine.create({ gravity: { x: 0, y: 0 } }) // seen from above: nothing falls, things only slide
     const world = engine.world
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+    // On a phone the box is pinned in place, neatly under the heading: it can't be dragged and doesn't jig with a
+    // shake, so nothing shifts as you scroll. Only its contents move — slid by a finger or scattered by a shake.
+    const loose = () => matchMedia('(max-width: 640px)').matches
     let W = 0 // the box, in px
     let H = 0
     let L = 0 // its long side: the box is wide on a laptop and tall on a phone, and speeds are measured in this
@@ -242,7 +245,7 @@ export default function AboutMe() {
     Composite.add(world, bodies)
 
     const paint = () => {
-      box.style.transform = `translate(${pos.x + jig.x}px, ${pos.y + jig.y}px)`
+      box.style.transform = loose() ? 'translate(0px, 0px)' : `translate(${pos.x + jig.x}px, ${pos.y + jig.y}px)`
       if (restack) {
         order.forEach((i, rank) => {
           const el = els.current[i]
@@ -414,7 +417,7 @@ export default function AboutMe() {
 
     // ----- dragging the box -----
     const onBoxDown = (e: PointerEvent) => {
-      if (e.button !== 0 || (e.target as HTMLElement).closest('.toybox__item')) return
+      if (e.button !== 0 || loose() || (e.target as HTMLElement).closest('.toybox__item')) return // a phone can't drag the box, only its contents
       measure() // the heading may have slid into place since, so take the limits afresh
       boxDrag = { px: e.clientX, py: e.clientY, ox: pos.x, oy: pos.y, id: e.pointerId }
       box.setPointerCapture(e.pointerId)
