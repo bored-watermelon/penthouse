@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { heroImage } from '../lib/heroAssets'
-import { askMotion, isTouchDevice, toScreen, useMotionAccess } from '../lib/motion'
+import { askMotion, isTouchDevice, useMotionAccess } from '../lib/motion'
 
 const GRAVITY = 2600 // px/s²
 const BOUNCE = 0.56 // how much speed it keeps off the floor — a basketball, not a superball
@@ -11,19 +11,17 @@ const SQUASH_PER_SPEED = 0.00004 // an inflated ball barely gives, so the dent s
 const SQUASH_MAX = 0.1
 const REST = 45 // px/s: slower than this on the floor and it stops bouncing
 const THROW_CAP = 2600
-const SHAKE = 34 // how hard a shake tosses the ball (px/s of velocity per m/s² of the phone's own movement)
-const SHAKE_FLOOR = 1.5 // m/s²; below this it's just a hand not being steady, not a shake
 
 /**
  * The ball resting on the "worked with" bar. It can be picked up and thrown like the footer stickers, and
- * then falls and bounces around the white part of the card. On a phone there is nothing to throw it with, so
- * the tilt of the phone leans gravity and it rolls and bounces around on its own.
+ * then falls and bounces around the white part of the card. On a phone the tilt of the phone leans gravity
+ * so it rolls along the floor towards the low side; shaking the phone does NOT lift it into the air — only
+ * a finger drag can toss it up, otherwise it stays grounded like a real ball would.
  */
 export default function Basketball() {
   const field = useRef<HTMLDivElement>(null)
   const ball = useRef<HTMLDivElement>(null)
   const gravity = useRef({ x: 0, y: 1 }) // unit-ish "down", in screen directions
-  const kick = useRef({ x: 0, y: 0 }) // velocity from a shake, gathered between frames
   const motion = useMotionAccess()
   const [touch] = useState(isTouchDevice)
 
@@ -45,34 +43,6 @@ export default function Basketball() {
     }
     window.addEventListener('deviceorientation', on)
     return () => window.removeEventListener('deviceorientation', on)
-  }, [touch, motion.allowed])
-
-  // Shaking the phone tosses the ball, the harder you shake the further it flies, so it bounces around the whole
-  // white area rather than just rolling along the bar. Same reading the footer's icons use.
-  useEffect(() => {
-    if (!touch || !motion.allowed) return
-    const grav = { x: 0, y: 0, set: false }
-    const on = (e: DeviceMotionEvent) => {
-      let ax: number
-      let ay: number
-      const a = e.acceleration
-      if (a && a.x != null && a.y != null) [ax, ay] = [a.x, a.y]
-      else {
-        // some phones only report acceleration with gravity in it: gravity is the slow part, the shake is the rest
-        const w = e.accelerationIncludingGravity
-        if (!w || w.x == null || w.y == null) return
-        if (!grav.set) Object.assign(grav, { x: w.x, y: w.y, set: true })
-        grav.x += (w.x - grav.x) * 0.08
-        grav.y += (w.y - grav.y) * 0.08
-        ;[ax, ay] = [w.x - grav.x, w.y - grav.y]
-      }
-      if (Math.hypot(ax, ay) < SHAKE_FLOOR) return
-      const s = toScreen(ax, ay)
-      kick.current.x += s.x * SHAKE
-      kick.current.y += s.y * SHAKE
-    }
-    window.addEventListener('devicemotion', on)
-    return () => window.removeEventListener('devicemotion', on)
   }, [touch, motion.allowed])
 
   useEffect(() => {
@@ -180,17 +150,6 @@ export default function Basketball() {
       last = now
 
       if (!dragging && !reduced && W > 0) {
-        // a shake since the last frame throws the ball; capped so a violent one can't fling it off-screen
-        if (kick.current.x || kick.current.y) {
-          vx += kick.current.x
-          vy += kick.current.y
-          kick.current.x = kick.current.y = 0
-          const m = Math.hypot(vx, vy)
-          if (m > THROW_CAP) {
-            vx = (vx / m) * THROW_CAP
-            vy = (vy / m) * THROW_CAP
-          }
-        }
         const g = gravity.current
         vx += g.x * GRAVITY * dt
         vy += g.y * GRAVITY * dt
