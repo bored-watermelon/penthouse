@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { heroImage } from '../lib/heroAssets'
 import { askMotion, isTouchDevice, useMotionAccess } from '../lib/motion'
 
-const GRAVITY = 2600 // px/s²
-const BOUNCE = 0.56 // how much speed it keeps off the floor — a basketball, not a superball
-const WALL_BOUNCE = 0.62
+const GRAVITY = 3300 // px/s²: a heavier ball, quicker to fall and settle
+const BOUNCE = 0.46 // how much speed it keeps off the floor — a hefty basketball, not a superball
+const WALL_BOUNCE = 0.5
 const ROLL_DRAG = 1.1 // per second, speed shed while it is touching the floor
 const AIR_DRAG = 0.1
-const SQUASH_PER_SPEED = 0.00004 // an inflated ball barely gives, so the dent stays tiny
-const SQUASH_MAX = 0.1
+const SQUASH_PER_SPEED = 0.000018 // a firm, inflated ball barely gives, so the dent stays very small
+const SQUASH_MAX = 0.05
 const REST = 45 // px/s: slower than this on the floor and it stops bouncing
 const THROW_CAP = 2600
 

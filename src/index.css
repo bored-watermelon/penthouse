@@ -282,16 +282,18 @@ img { -webkit-user-drag: none; }
 .chip { display: inline-block; transition: rotate 0.3s var(--ease-spring), background 0.2s; }
 .selfie:hover .chip, .selfie.is-lit .chip { rotate: -4deg; background: var(--cyan-100); }
 
-/* The photo-and-chip pair, stacked as an inline-flex column: the photo sits directly on top of the "sneha,"
-   chip and overlaps it a touch (Figma 7207:7093). Because both children take real space, the paragraph's line
-   box grows to include the photo — so the card's padding-top spaces the photo, not the chip below it. */
+/* The photo-and-chip pair. The inline-block reserves the photo's height as top padding and the photo sits in
+   that space, its bottom resting on the chip's top edge (Figma 7240:7206). The chip stays on the text line
+   (an inline-block's baseline is its last line), and the line box grows to include the photo, so the card's
+   padding-top spaces the photo rather than the chip. */
 .selfie {
-  display: inline-flex; flex-direction: column; align-items: center;
-  vertical-align: baseline; /* the flex column's baseline is the chip's, so the sentence still lines up */
+  --selfie-w: 112px;
+  position: relative; display: inline-block;
+  padding-top: calc(var(--selfie-w) * 825 / 899);
 }
 .selfie__art {
-  position: relative;
-  width: 112px; aspect-ratio: 899 / 825; margin-bottom: -9px; /* rest on the chip's top edge */
+  position: absolute; top: 0; left: 50%; translate: -50% 0;
+  width: var(--selfie-w); aspect-ratio: 899 / 825;
   pointer-events: none; /* only the photo itself is hoverable, so the empty corners don't swallow anything beside it */
 }
 .selfie__photo {
@@ -386,7 +388,7 @@ a.pink:hover { color: var(--pink-deep); }
   /* top-align the block (no vertical centering) so it starts near the top instead of centering in the tall card */
   .about__copy { justify-content: flex-start; padding: 32px 24px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
   .about__note { display: none; } /* the "DO NOT QUESTION…" note is desktop-only */
-  .selfie__art { width: 88px; }
+  .selfie { --selfie-w: 88px; }
   .selfie__star--red { left: -8px; top: -8px; width: 34px; }
   .selfie__star--gold { right: -10px; top: 40%; width: 30px; }
   .worked { padding-left: 20px; gap: 16px; }
