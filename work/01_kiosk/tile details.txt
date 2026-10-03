@@ -5,3 +5,5 @@ Interface: Kiosk
 Distribution: B2B2C
 Domain: Agentic Commerce
 Client: Juspay, Visa
+
+Featured: yes

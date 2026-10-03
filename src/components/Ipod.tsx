@@ -100,6 +100,7 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
   const [now, setNow] = useState(() => new Date())
   const [leaving, setLeaving] = useState(false)
   const idle = useRef(0)
+  const broken = useRef(0) // songs in a row whose file wouldn't play, so a bad one is stepped over but a whole bad list still stops
   const song = queue[at]
   const top = nav.current[nav.current.length - 1]
 
@@ -156,6 +157,18 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
       a.currentTime = 0
       setPlaying(false)
     }
+  }
+  // A file that won't play (an empty or half-copied one) is stepped over rather than leaving the iPod stuck on a
+  // silent track. If every song in the queue has failed in turn, it stops instead of racing round the list.
+  const onBroken = () => {
+    if (!song) return
+    if (broken.current >= queue.length - 1) {
+      setPlaying(false)
+      return
+    }
+    broken.current++
+    if (at + 1 < queue.length) load(queue, at + 1)
+    else load(queue, 0)
   }
   const prev = () => {
     const a = audio.current!
@@ -411,7 +424,11 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
         <audio
           ref={audio}
           preload="auto"
-          onPlay={() => setPlaying(true)}
+          onPlay={() => {
+            broken.current = 0 // something played, so the run of bad files is over
+            setPlaying(true)
+          }}
+          onError={onBroken}
           onPause={() => setPlaying(false)}
           onEnded={() => next(true)}
           onTimeUpdate={(e) => setClock({ cur: e.currentTarget.currentTime, dur: e.currentTarget.duration })}

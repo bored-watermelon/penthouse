@@ -5,3 +5,5 @@ Interface: Web
 Distribution: B2B
 Domain: Dashboard Design
 Client: Juspay, Visa
+
+Featured: yes

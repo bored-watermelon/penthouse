@@ -1,0 +1,39 @@
+<svg width="37.1106" height="21.6914" viewBox="0 0 37.1106 21.6914" fill="none" xmlns="http://www.w3.org/2000/svg">
+<title>A virtual corporate card</title>
+<defs><clipPath id="card-face"><rect width="37.1106" height="21.6914" rx="3.13611"/></clipPath></defs>
+<rect width="37.1106" height="21.6914" rx="3.13611" fill="#145DFB"/>
+<g clip-path="url(#card-face)">
+<g id="Group 1618874262">
+<path id="Vector 6801" d="M2.61713 4.59331e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6802" d="M6.79104 4.01124e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6809" d="M37.1106 0.78913L-3.53553e-07 0.789129" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6803" d="M10.9747 3.42734e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6810" d="M37.1106 4.96304L-3.53553e-07 4.96304" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6804" d="M15.1584 2.84381e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6811" d="M37.1106 9.14674L-3.53553e-07 9.14674" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6805" d="M19.3389 2.26064e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6812" d="M37.1106 13.3304L-3.53553e-07 13.3304" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6806" d="M23.5128 1.6782e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6813" d="M37.1106 17.5141L-3.53553e-07 17.5141" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6807" d="M27.6965 1.09467e-08V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6815" d="M31.6128 5.48243e-09V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6816" d="M35.5421 0V21.6914" stroke="#5E91FF" stroke-width="0.130671"/>
+<path id="Vector 6814" d="M37.1106 21.6848L-3.53553e-07 21.6848" stroke="#5E91FF" stroke-width="0.130671"/>
+</g>
+</g>
+<g transform="translate(4.17 12.28)">
+<g id="Group 1618874266">
+<rect id="Rectangle 161124969" x="0.000751612" y="2.79397e-09" width="7.57892" height="4.6811" rx="0.668729" fill="#FFB900"/>
+<path id="Vector 6817" d="M2.00619 0V4.6811" stroke="#FFFBEB" stroke-width="0.111455"/>
+<path id="Vector 6818" d="M5.35836 2.00543L5.35836 4.68035" stroke="#FFFBEB" stroke-width="0.111455"/>
+<path id="Vector 6819" d="M7.57901 2.06087L5.34992 2.06087" stroke="#FFFBEB" stroke-width="0.111455"/>
+<path id="Vector 6820" d="M7.57901 3.39456L5.34992 3.39456" stroke="#FFFBEB" stroke-width="0.111455"/>
+<path id="Vector 6821" d="M2.00619 1.62391L-7.34581e-08 1.62391" stroke="#FFFBEB" stroke-width="0.111455"/>
+<path id="Vector 6822" d="M2.00619 2.94456L-7.34581e-08 2.94456" stroke="#FFFBEB" stroke-width="0.111455"/>
+</g>
+</g>
+<g fill="#FEE685">
+<rect x="-1.568" y="-1.568" width="3.136" height="3.136" transform="translate(26.5075 5.3575) rotate(45)"/>
+<rect x="-1.568" y="-1.568" width="3.136" height="3.136" transform="translate(31.0875 5.3575) rotate(45)"/>
+</g>
+</svg>

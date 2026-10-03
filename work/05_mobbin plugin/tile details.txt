@@ -5,5 +5,5 @@ Interface: Figma Plugin
 Distribution: B2C
 Client: Juspay, Mobbin
 Domain: Design Tools
-
+Featured: yes
 Selected: no

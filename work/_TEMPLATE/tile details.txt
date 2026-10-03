@@ -28,3 +28,6 @@ Selected: yes
 # Interface, Distribution and Domain feed the three dropdown filters (and show as tags on the card). Use any values you like, e.g.
 #   Interface: Web / Kiosk / Mobile / Plugin    Distribution: B2B / B2C    Domain: Corporate Travel / Agentic Commerce
 # A project can have several values, separated by commas. The dropdown options are built from whatever values your files use.
+# Featured: yes   gives the project a wide row of its own at the top of the section.
+#   Without it the project takes a place in the grid underneath the featured ones.
+# Selected: no     keeps it out of the default view entirely (a filter still finds it).

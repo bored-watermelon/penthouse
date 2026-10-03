@@ -547,7 +547,8 @@ export default function AboutMe() {
     <section className="me" id="about-me">
       <div className="work__inner">
         <p className="work__intro me__intro" data-reveal>
-          and for the <span className="hl hl--red">things i don’t keep on my resume</span> to keep up the facade of being a professional, (the professional in question <Reality />)
+          and for the <span className="hl--red">things i don’t keep on my resume</span> to keep up the facade of being a professional.{' '}
+          <span className="me__aside">(the professional in question <Reality />)</span>
         </p>
       </div>
 

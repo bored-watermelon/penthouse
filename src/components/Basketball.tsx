@@ -11,6 +11,7 @@ const SQUASH_PER_SPEED = 0.000018 // a firm, inflated ball barely gives, so the 
 const SQUASH_MAX = 0.05
 const REST = 45 // px/s: slower than this on the floor and it stops bouncing
 const THROW_CAP = 2600
+const SMEAR_AT = 2200 // px/s at which the shadow is smeared and faded as far as it goes
 
 /**
  * The ball resting on the "worked with" bar. It can be picked up and thrown like the footer stickers, and
@@ -21,6 +22,7 @@ const THROW_CAP = 2600
 export default function Basketball() {
   const field = useRef<HTMLDivElement>(null)
   const ball = useRef<HTMLDivElement>(null)
+  const shade = useRef<HTMLDivElement>(null)
   const gravity = useRef({ x: 0, y: 1 }) // unit-ish "down", in screen directions
   const motion = useMotionAccess()
   const [touch] = useState(isTouchDevice)
@@ -48,6 +50,7 @@ export default function Basketball() {
   useEffect(() => {
     const fieldEl = field.current!
     const el = ball.current!
+    const shadeEl = shade.current!
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
 
     let W = 0
@@ -88,6 +91,17 @@ export default function Basketball() {
       const sx = squashAxis === 'y' ? 1 + squash : 1 - squash
       const sy = squashAxis === 'y' ? 1 - squash : 1 + squash
       el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${sx}, ${sy}) rotate(${spin}deg)`
+
+      // The shadow keeps up with the ball across the floor, and reads its height off it: resting on the floor it
+      // is at its biggest and darkest, and the higher the ball goes the smaller and fainter it gets. Speed
+      // stretches it along the floor and takes a little more light out of it, so a hard throw smears past.
+      const floor = Math.max(1, H - D)
+      const lift = Math.max(0, Math.min(1, (floor - y) / floor))
+      const speed = Math.min(1, Math.hypot(vx, vy) / SMEAR_AT)
+      const wide = (1 - 0.4 * lift) * (1 + 0.22 * speed + squash * 2.2)
+      const tall = (1 - 0.52 * lift) * (1 - 0.12 * speed)
+      shadeEl.style.transform = `translate3d(${x}px, 0, 0) scale(${wide.toFixed(3)}, ${tall.toFixed(3)})`
+      shadeEl.style.opacity = (Math.max(0, 1 - 0.78 * lift) * (1 - 0.3 * speed)).toFixed(3)
     }
 
     let dragging = false
@@ -208,6 +222,7 @@ export default function Basketball() {
 
   return (
     <div className="ball-field" ref={field} aria-hidden>
+      <div className="ball-shadow" ref={shade} />
       <div className="ball" ref={ball}>
         <img src={heroImage.basketball} alt="" draggable={false} />
       </div>

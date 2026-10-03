@@ -5,3 +5,4 @@ Interface: Mobile
 Distribution: B2C
 Domain: Credit Cards
 Client: Juspay, Axis Bank
+Featured: yes

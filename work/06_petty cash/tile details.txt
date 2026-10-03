@@ -5,5 +5,5 @@ Interface: Mobile
 Distribution: B2B2C
 Domain: Payments
 Client: Juspay
-
+Featured: yes
 Selected: no

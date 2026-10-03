@@ -28,6 +28,7 @@ export type WorkMeta = {
   clients: string[]
   caseStudy: string
   selected: boolean // whether it shows in the default "Selected Works" view (a filter still finds every project)
+  featured: boolean // whether it gets a big row of its own, rather than a place in the grid underneath
 }
 
 const KEYS: Record<string, keyof WorkMeta> = {
@@ -44,6 +45,7 @@ const KEYS: Record<string, keyof WorkMeta> = {
   'case study': 'caseStudy',
   selected: 'selected',
   'selected works': 'selected',
+  featured: 'featured',
 }
 
 const list = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean)
@@ -51,15 +53,17 @@ const list = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean)
 /** Work files are "Key: value" lines; lines without a key continue the previous value. */
 export function parseWork(text: string): WorkMeta {
   const raw: Partial<Record<keyof WorkMeta, string>> = {}
-  let current: Exclude<keyof WorkMeta, 'selected'> | null = null
+  const FLAGS = ['selected', 'featured'] as const
+  type Flag = (typeof FLAGS)[number]
+  let current: Exclude<keyof WorkMeta, Flag> | null = null
   for (const line of text.replace(/^﻿/, '').split(/\r?\n/)) {
     if (line.trimStart().startsWith('#')) continue // comment
     const m = line.match(/^\s*([A-Za-z ]+?)\s*:\s*(.*)$/)
     const key = m && KEYS[m[1].toLowerCase()]
     if (key) {
       raw[key] = m![2].trim()
-      // 'selected' is a one-liner, never a value that later lines continue
-      current = key === 'selected' ? null : key
+      // the yes/no flags are one-liners, never a value that later lines continue
+      current = (FLAGS as readonly string[]).includes(key) ? null : (key as Exclude<keyof WorkMeta, Flag>)
     } else if (current && line.trim()) {
       raw[current] = `${raw[current]} ${line.trim()}`
     }
@@ -74,6 +78,8 @@ export function parseWork(text: string): WorkMeta {
     caseStudy: raw.caseStudy ?? '',
     // "Selected: no" (or false/0/hide) keeps it out of the default view; anything else, or no line at all, shows it
     selected: !/^(no|false|0|off|hide|hidden)$/i.test((raw.selected ?? '').trim()),
+    // "Featured: yes" gives it a big row; without the line it takes a place in the grid under the featured ones
+    featured: /^(yes|true|1|on|show)$/i.test((raw.featured ?? '').trim()),
   }
 }
 

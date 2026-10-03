@@ -71,7 +71,21 @@ export default function Dock() {
 
   const go = (item: Item) => {
     if (item === 'work' || item === 'play') window.dispatchEvent(new CustomEvent('work:show', { detail: item }))
-    else document.getElementById(item === 'about' ? 'about-me' : 'timeline')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    else {
+      // the journey passes through work, whose scroll hand-over would otherwise read it as the reader reaching
+      // the end of the list, flip to play and jump the scroll — stranding us there (see Work.tsx)
+      window.dispatchEvent(new CustomEvent('nav:scroll'))
+      const el = document.getElementById(item === 'about' ? 'about-me' : 'timeline')
+      if (!el) return
+      // Land the heading the same way down the screen whichever section it is. Going to the section's own top
+      // wouldn't: their top paddings differ (about-me's carries the gap from the timeline above it), so one
+      // heading would sit three times further down than the other. Never scroll past the section's start.
+      // Measured off the section's padding rather than the heading's box, which the reveal animation shifts
+      // while it plays — reading that would land the two sections differently depending on what had revealed.
+      const pad = parseFloat(getComputedStyle(el).paddingTop) || 0
+      const top = el.getBoundingClientRect().top + scrollY + Math.max(0, pad - 60)
+      window.scrollTo({ top, behavior: 'smooth' })
+    }
   }
 
   const copy = async () => {

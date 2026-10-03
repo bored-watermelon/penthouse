@@ -48,6 +48,9 @@
   --lime-600: #5ea500; --lime-700: #497d00;
   --yellow-400: #fdc700;
   --red-500: #fb2c36;
+  --orange-600: #f54900; /* the "min read" link on a work card */
+  --amber-500: #fe9a00; /* "2002 to now" in the timeline heading */
+  --rose-500: #ff2056; /* "things i don't keep on my resume" in the about-me heading */
   --purple-600: #9810fa;
   /* Tailwind's stone scale, as the Figma files name it */
   --stone-50: #fafaf9; --stone-100: #f5f5f4; --stone-200: #e7e5e4; --stone-300: #d6d3d1; --stone-400: #a6a09b; --stone-500: #79716b; --stone-600: #57534d; --stone-800: #292524;
@@ -316,13 +319,20 @@ img { -webkit-user-drag: none; }
 }
 
 .about__copy {
-  flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 44px;
-  padding: 72px clamp(28px, 6vw, 96px) 24px;
-  font-size: 32px; font-weight: 500; line-height: 1.4; letter-spacing: -0.02em;
-  max-width: 900px;
+  flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(18px, 3vh, 44px);
+  /* even top and bottom, so centring the text actually lands it in the middle of the white */
+  padding: clamp(24px, 5vh, 64px) clamp(28px, 6vw, 96px);
+  /* 28px, shrinking only when the card is too short to hold it — the card can't scroll on a desktop */
+  font-size: clamp(19px, min(2.2vw, 3.2vh), 28px); line-height: 1.4; letter-spacing: -0.02em;
+  color: var(--ink-3); font-weight: 400; /* the copy reads grey; only the words that matter are dark */
+  max-width: 900px; margin-inline: auto; translate: var(--copy-x, 0px) 0;
 }
+/* Wide enough that the column no longer fills the card: the spare room is shared out, and the block is nudged
+   a touch left of dead centre, the proportion the design has. Narrower than this the column already spans the
+   card, so a nudge would only eat the left gutter. One number: more negative pushes it further left. */
+@media (min-width: 1360px) { .about__copy { --copy-x: -28px; } }
 .about__copy p { margin: 0; }
-.about s { opacity: 0.55; }
+.about s { opacity: 1; } /* the places she has left are struck through, not faded: same grey as the rest */
 /* a highlighter stripe: cyan/100 let down over the paper so it reads as ink on paper, not a filled tag */
 .chip { background: color-mix(in srgb, var(--cyan-100) 60%, var(--paper)); color: var(--cyan-600); padding: 0 10px; border-radius: 12px; }
 .purple { color: var(--violet); text-decoration: none; }
@@ -333,12 +343,64 @@ img { -webkit-user-drag: none; }
 a.pink:hover { color: var(--pink-deep); }
 .lime:hover { color: var(--lime-700); }
 .inline-logo { height: 1em; width: auto; vertical-align: -0.14em; margin-left: 0.14em; }
+.about__copy strong { font-weight: 500; color: var(--ink); }
+.about__copy .pink, .about__copy .chip { color: var(--pink-deep); font-weight: 500; }
+.about__copy .chip { color: var(--cyan-600); }
+.about__link { color: var(--ink); font-weight: 500; text-decoration: none; transition: color 0.15s; }
+.about__link:hover { color: var(--cyan-600); }
 
-/* the Art Attack logo, standing in for the words. It is taller than the line, so it hangs out of the line box
-   rather than pushing the paragraph apart. */
-.art-attack { display: inline-block; width: 3.4em; vertical-align: middle; margin: -1em -0.1em; }
-.art-attack img { display: block; width: 100%; height: auto; transition: rotate 0.3s var(--ease-spring), scale 0.3s var(--ease-spring); }
-.art-attack:hover img { rotate: -4deg; scale: 1.06; }
+/* ----- the icons that sit in the sentences (Figma 7264:46510) -----
+   Each is a little white card, leaning off the line by its own --tilt. They are taller than the text, so they
+   hang out of the line box (negative block margins) rather than pushing the paragraph apart.
+   Pointing at one — or tapping it on a touch screen, which adds .is-lit — stands it up straight and lifts it,
+   and the art inside makes its own small move on top of that. */
+.icon-row { display: inline-flex; vertical-align: middle; }
+.icon-row .icon-tile { margin-inline: 0; }
+.icon-row .icon-tile + .icon-tile { margin-left: -0.1em; } /* each card tucks slightly under the one after it */
+.icon-tile {
+  --tilt: 0deg; --tile: 1.75em; --tile-h: var(--tile); --lift: 0px;
+  position: relative; z-index: 0;
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  /* a shallow hang: enough that the card sits on the text rather than in a gap of its own, but not so far that
+     it covers the lines above and below, which reflow differently at every width */
+  width: var(--tile); height: var(--tile-h); padding: 0.26em; margin: -0.3em 0.06em; vertical-align: middle;
+  border: 1px solid rgb(0 0 0 / 0.06); border-radius: 0.44em; background: #fff;
+  box-shadow: 0 0.37em 0.69em rgb(28 26 23 / 0.18), 0 1px 2px rgb(0 0 0 / 0.07);
+  rotate: var(--tilt); translate: 0 var(--lift);
+  transition: rotate 0.4s var(--ease-spring), translate 0.4s var(--ease-spring), box-shadow 0.3s ease;
+}
+.icon-tile__art {
+  display: block; width: 100%; height: 100%; object-fit: contain;
+  transition: rotate 0.45s var(--ease-spring), scale 0.45s var(--ease-spring), translate 0.45s var(--ease-spring);
+}
+/* straight, lifted, and casting further — the card has come off the page towards the reader */
+.icon-tile:hover, .icon-tile:focus-visible, .icon-tile.is-lit {
+  --lift: -0.14em;
+  rotate: 0deg; z-index: 1;
+  box-shadow: 0 0.62em 1.1em rgb(28 26 23 / 0.22), 0 1px 2px rgb(0 0 0 / 0.07);
+  outline: none;
+}
+/* Art Attack and the Juspay logo are wider than they are tall, so their cards are too */
+.icon-tile--art { --tile: 2.3em; --tile-h: 1.9em; padding: 0.2em 0.26em; }
+.icon-tile--juspay { --tile: 3.5em; --tile-h: 1.5em; padding: 0.26em 0.38em; border-radius: 0.42em; }
+.icon-tile--travel .icon-tile__art { rotate: -33.7deg; } /* the ticket lies across its card, as in the design */
+
+/* each icon's own small move: the bag bobs, the card leans in, the ticket takes off, the logo gives a nudge */
+.icon-tile--commerce:hover .icon-tile__art, .icon-tile--commerce:focus-visible .icon-tile__art, .icon-tile--commerce.is-lit .icon-tile__art {
+  translate: 0 -0.08em; scale: 1.1;
+}
+.icon-tile--cards:hover .icon-tile__art, .icon-tile--cards:focus-visible .icon-tile__art, .icon-tile--cards.is-lit .icon-tile__art {
+  rotate: -7deg; scale: 1.08;
+}
+.icon-tile--travel:hover .icon-tile__art, .icon-tile--travel:focus-visible .icon-tile__art, .icon-tile--travel.is-lit .icon-tile__art {
+  rotate: -26deg; translate: 0.07em -0.1em; scale: 1.06;
+}
+.icon-tile--art:hover .icon-tile__art, .icon-tile--art:focus-visible .icon-tile__art, .icon-tile--art.is-lit .icon-tile__art {
+  rotate: -4deg; scale: 1.06;
+}
+.icon-tile--juspay:hover .icon-tile__art, .icon-tile--juspay:focus-visible .icon-tile__art, .icon-tile--juspay.is-lit .icon-tile__art {
+  scale: 1.06;
+}
 
 .worked {
   flex: none;
@@ -355,6 +417,18 @@ a.pink:hover { color: var(--pink-deep); }
 .ball { position: absolute; top: 0; left: 0; width: var(--ball-size); height: var(--ball-size); pointer-events: auto; cursor: grab; touch-action: none; will-change: transform; }
 .ball.is-held { cursor: grabbing; }
 .ball img { width: 100%; height: 100%; display: block; }
+/* The ball's shadow on the floor (Figma 7264:46606). A soft ellipse rather than a blurred SVG, so Basketball.tsx
+   can stretch and fade it every frame without the cost of re-blurring: it shrinks and pales as the ball rises,
+   and smears a little along the way when the ball is moving fast. Its centre sits on the floor line. */
+.ball-shadow {
+  /* wider than the ball and centred on the floor line, so it spreads out from where the ball touches down
+     instead of hiding behind it */
+  position: absolute; left: calc(var(--ball-size) * -0.08); bottom: 0;
+  width: calc(var(--ball-size) * 1.16); height: calc(var(--ball-size) * 0.17);
+  margin-bottom: calc(var(--ball-size) * -0.085);
+  background: radial-gradient(closest-side, rgb(111 112 116 / 0.52), rgb(111 112 116 / 0));
+  pointer-events: none; will-change: transform, opacity;
+}
 .ticker {
   flex: 1; min-width: 0; height: 100%; overflow: hidden; cursor: grab; touch-action: pan-y; user-select: none;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
@@ -385,8 +459,9 @@ a.pink:hover { color: var(--pink-deep); }
      with" bar always lines up with the actual visible bottom rather than hiding behind the address bar */
   .stage { grid-template-columns: 1fr; grid-template-rows: auto; gap: 20px; overflow-y: auto; height: auto; min-height: 100svh; min-height: 100dvh; }
   .about { order: -1; --worked-h: 52px; --ball-size: 88px; }
-  /* top-align the block (no vertical centering) so it starts near the top instead of centering in the tall card */
-  .about__copy { justify-content: flex-start; padding: 32px 24px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
+  /* centred in the card, which on a tall tablet would otherwise leave the text stranded at the top. "safe"
+     keeps it top-aligned instead of centring in the rare case the text is taller than the card. */
+  .about__copy { justify-content: safe center; padding: 32px 24px; gap: 26px; font-size: clamp(16px, 4.8vw, 20px); }
   .about__note { display: none; } /* the "DO NOT QUESTION…" note is desktop-only */
   .selfie { --selfie-w: 88px; }
   .selfie__star--red { left: -8px; top: -8px; width: 34px; }
@@ -398,32 +473,26 @@ a.pink:hover { color: var(--pink-deep); }
 @media (prefers-reduced-motion: reduce) {
   .bubble, .reaction, .picker { animation: none; }
   .selfie__star { animation: none !important; }
+  .icon-tile, .icon-tile__art { transition: none; }
 }
 
 /* ---------- Work / Play section ---------- */
-.work { min-height: 100vh; min-height: 100svh; background: var(--paper); padding: 160px 20px 244px; } /* 200px from the hero to the heading, with the header's own padding. Bottom: with the timeline's top padding: 320px from the last card to the timeline heading */
+.work { min-height: 100vh; min-height: 100svh; background: var(--paper); padding: clamp(56px, 7vh, 96px) 20px 244px; } /* 200px from the hero to the heading, with the header's own padding. Bottom: with the timeline's top padding: 320px from the last card to the timeline heading */
 .work__inner { max-width: 1296px; margin: 0 auto; }
-/* Pinned while the section scrolls, on solid white. Once content scrolls up behind it (.is-scrolled, see
-   useScrolledUnder in Work.tsx), a band fades in under it: white melting to clear, with a light blur, so the
-   tiles dissolve into the header instead of meeting a hard edge (Figma 919:16378). */
-/* the pinned part ends just under the pills, as in Figma; the gap to the first card belongs to the content, so it
-   scrolls away instead of staying as a white strip under the filters */
-.work__head { position: sticky; top: 0; z-index: 5; padding: 24px 0 10px; background: var(--paper); }
-.stack .work__content { padding-top: clamp(22px, 3vw, 46px); }
-.work__head::after {
-  content: ''; position: absolute; left: -20px; right: -20px; top: calc(100% - 2px); height: clamp(28px, 3vw, 44px); pointer-events: none; /* 2px up into the header: no seam where they meet */
-  background: linear-gradient(var(--paper), rgb(250 250 249 / 0)); /* stone/50 to clear */
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent);
-  opacity: 0; transition: opacity 0.25s ease;
-}
-.work__head.is-scrolled::after { opacity: 1; }
+/* Pinned while the section scrolls, on solid white. */
+.work__head { position: sticky; top: 0; z-index: 5; padding: 24px 0 0; background: var(--paper); }
+/* room above the first tile at rest; it scrolls up under the header, so nothing sits between the rule and the
+   items once you are moving */
+.stack .work__content { padding-top: clamp(26px, 3vw, 48px); }
 /* The content's end is pulled up by the pinned header's height (flow-root stops that margin collapsing out of
    the pane), which ends the header's sticky range early; the spacer after the pane puts the space back so
    nothing below moves up. */
 .stack__pane { display: flow-root; }
 .stack .work__content { margin-bottom: calc(-1 * var(--head-pinned, 0px)); }
 .stack::after { content: ''; display: block; height: var(--head-pinned, 0px); }
+/* half a screen of room under the last case study, so it can scroll up to the middle of the screen — where the
+   section hands over to play (see Work.tsx) — before any of the timeline below comes into view */
+.stack .work__content--work { padding-bottom: 50vh; padding-bottom: 50svh; }
 
 /* Two alternatives stacked in one grid cell: the cell is always as tall as the taller one, so swapping between
    them never moves anything below. The outgoing one fades out quickly, the incoming one fades in just after,
@@ -432,16 +501,25 @@ a.pink:hover { color: var(--pink-deep); }
 .swap > * { grid-area: 1 / 1; align-self: start; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0s linear 0.15s; }
 .swap > .is-on { opacity: 1; visibility: visible; transition: opacity 0.3s ease 0.1s, visibility 0s; }
 
-.work__intros { margin-bottom: 20px; }
-.work__intro { margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; line-height: 1.45; letter-spacing: -0.02em; }
-.hl--purple { color: var(--purple-600); } /* the coloured words in the work intro */
-.hl--pink { color: var(--pink); }
-.hl--play { color: var(--red-500); } /* red/500: the coloured words in the play intro */
-.hl--yellow { color: #ca8a04; } /* yellow/600: "2002 to now" in the timeline heading */
-.hl--red { color: #e63b21; background-image: linear-gradient(transparent 60%, #fcc6be 60%, #fcc6be 88%, transparent 88%); } /* the about heading, as in Figma */
+.work__intro {
+  margin: 0; font-size: clamp(20px, 1.9vw, 28px); font-weight: 400; line-height: 1.45; letter-spacing: -0.02em;
+  color: var(--ink-3);
+}
+.work__intro strong { font-weight: 500; color: var(--ink); }
+.hl--yellow { color: var(--amber-500); font-weight: 500; } /* amber/500: "2002 to now" in the timeline heading */
+.hl--red { color: var(--rose-500); font-weight: 500; } /* rose/500: the about-me heading */
 
-.modes { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: clamp(24px, 2.6vw, 36px); font-weight: 500; /* the same size as the intro above it */ letter-spacing: -0.02em; margin-bottom: 28px; }
-.modes__lead { margin-right: 4px; }
+/* the toggle and the filters sit on one line, ruled off underneath */
+.work__controls { display: flex; align-items: center; justify-content: space-between; gap: clamp(16px, 2vw, 40px); border-bottom: 0.5px solid var(--stone-600); padding-bottom: 24px; }
+.work__filters { flex: 0 1 auto; min-width: 0; }
+.work__filters .pills { justify-content: flex-end; } /* extra rows of filters stack against the right edge */
+.modes { flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; white-space: nowrap; font-size: clamp(22px, 1.9vw, 32px); font-weight: 500; letter-spacing: -0.03em; }
+/* Too narrow for the toggle and the filters to share a line: the toggle keeps the top line and the filters drop
+   under it, which is how the phone frames have it anyway. */
+@media (max-width: 900px) {
+  .work__controls { flex-direction: column; align-items: stretch; gap: 14px; padding-bottom: 14px; }
+  .work__filters .pills { justify-content: flex-start; }
+}
 .modes__label { border: 0; background: none; padding: 0; font: inherit; color: var(--ink-4); cursor: pointer; transition: color 0.2s; }
 .modes__label.is-on { color: var(--ink); }
 .modes__label--play { font-family: var(--play); font-weight: 400; letter-spacing: 0; }
@@ -464,7 +542,7 @@ a.pink:hover { color: var(--pink-deep); }
 .pills { display: flex; align-items: center; gap: clamp(10px, 1.1vw, 14px); flex-wrap: wrap; }
 .pill, .dd__btn, .pills__clear {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--stone-200); background: var(--stone-100); border-radius: 99px; padding: 6px 18px; cursor: pointer;
-  font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--stone-800); white-space: nowrap;
+  font-family: var(--pixel); font-size: 14px; line-height: 1.4; color: var(--stone-800); white-space: nowrap;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .pill:hover, .dd__btn:hover { background: var(--stone-200); }
@@ -493,7 +571,7 @@ a.pink:hover { color: var(--pink-deep); }
 }
 .dd__menu button {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; background: none; text-align: left; white-space: nowrap; cursor: pointer;
-  padding: 8px; border-radius: 8px; font-family: var(--pixel); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.4; color: var(--ink);
+  padding: 8px; border-radius: 8px; font-family: var(--pixel); font-size: 14px; line-height: 1.4; color: var(--ink);
 }
 .dd__menu button:hover { background: var(--stone-100); }
 /* a ticked option is marked by the check alone, not a fill (Figma 7205:7056) */
@@ -504,39 +582,55 @@ a.pink:hover { color: var(--pink-deep); }
    right over a shade that darkens toward the bottom */
 .cards { display: flex; flex-direction: column; gap: clamp(32px, 4.2vw, 64px); }
 .card {
-  position: relative; display: grid; grid-template-columns: 62.5% 1fr; gap: clamp(20px, 2.1vw, 32px); padding: clamp(20px, 2.1vw, 32px); overflow: hidden;
-  aspect-ratio: 1575 / 604; border-radius: 24px; background: #2b3a55; color: #fff; text-decoration: none;
+  position: relative; display: grid; grid-template-columns: minmax(0, 58fr) minmax(0, 36fr); align-items: center;
+  gap: clamp(24px, 3.5vw, 56px); color: var(--ink); text-decoration: none;
 }
-.card__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.card__shade { position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / 0.7) 2%, rgb(0 0 0 / 0) 54%); pointer-events: none; }
 .card__thumb {
-  position: relative; border-radius: 18px; overflow: hidden; background: var(--paper); box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative; aspect-ratio: 922 / 530; border: 1px solid #e6e0d6; border-radius: 4px; overflow: hidden; background: var(--stone-100);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
-.card__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
-.card:hover .card__thumb { transform: translateY(-4px) scale(1.005); box-shadow: 0 14px 36px rgb(0 0 0 / 0.28); }
-.card__side { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; min-width: 0; }
+.card__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card:hover .card__thumb { transform: translateY(-4px); box-shadow: 0 16px 38px rgb(28 26 23 / 0.16); }
+.card__side { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; min-width: 0; }
 .card__clients { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .card__client-group { display: inline-flex; align-items: center; gap: 6px; }
-.card__x { flex: none; color: var(--ink); }
-/* each client's logo on a white pill with a thin dark outline (Figma 919:16816) */
-.client-pill { display: inline-flex; align-items: center; padding: 4px 12px; background: var(--paper); border: 1px solid var(--stone-800); border-radius: 99px; color: var(--stone-800); font-weight: 600; }
-.client-pill img { height: clamp(18px, 1.5vw, 23px); width: auto; display: block; }
-.card__text h3 { margin: 0 0 6px; font-size: clamp(22px, 1.9vw, 28px); font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; }
-.card__text p { margin: 0 0 18px; font-family: var(--pixel); font-size: clamp(14px, 1.1vw, 16px); line-height: 1.35; letter-spacing: -0.01em; color: var(--stone-50); }
+.card__x { flex: none; color: var(--stone-500); }
+/* the clients' logos read plainly beside each other now, no pill around them (Figma 7267:47651) */
+.client-pill { display: inline-flex; align-items: center; color: var(--stone-800); font-weight: 600; }
+.client-pill img { height: clamp(15px, 1.2vw, 18px); width: auto; display: block; }
+.card__text { display: flex; flex-direction: column; gap: 16px; }
+.card__text h3 { margin: 0; font-size: clamp(20px, 1.8vw, 28px); font-weight: 500; line-height: 1.18; letter-spacing: -0.02em; color: var(--ink); }
+.card__text p { margin: 0; font-family: var(--pixel); font-size: clamp(14px, 1.15vw, 18px); line-height: 1.5; color: var(--stone-500); }
 .card__tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.card__tags span { background: var(--paper); color: var(--stone-800); border: 1px solid var(--stone-800); border-radius: 99px; padding: 4px 12px; font-family: var(--pixel); font-size: 14px; line-height: 1.4; }
+.card__tags span { border: 1px solid var(--stone-200); border-radius: 999px; padding: 6px 14px; font-family: var(--pixel); font-size: 14px; line-height: 1.2; color: #6b645c; }
+/* the way in, under the tags: orange, with the arrow leaning out of the corner on hover */
+.card__read { display: inline-flex; align-items: center; gap: 6px; padding-top: 8px; font-size: clamp(14px, 1vw, 15px); font-weight: 500; color: var(--orange-600); }
+.card__read svg { flex: none; transition: translate 0.25s var(--ease-spring); }
+.card:hover .card__read svg { translate: 2px -2px; }
+.card__read--soon { color: var(--stone-400); }
+
+/* The projects that aren't featured, three to a row under the big ones (Figma 7273:47929): the same card, with
+   the shot stacked over the words instead of beside them. */
+.cards-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 2.6vw, 40px); margin-top: clamp(32px, 4.2vw, 64px); }
+.card--tile { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+.card--tile .card__thumb { aspect-ratio: 16 / 10; }
+.card--tile .card__text h3 { font-size: clamp(17px, 1.25vw, 20px); }
+.card--tile .card__text p { font-size: clamp(13px, 1vw, 15px); }
+.card--tile .card__tags span { padding: 4px 11px; font-size: 13px; }
+.card--tile .card__read { font-size: 14px; }
+
+@media (max-width: 1000px) { .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .work .cards-grid { grid-template-columns: minmax(0, 1fr); gap: 44px; margin-top: 44px; } }
 
 /* Phones (from the mobile Figma frames): the intro scrolls away and only "here is all work ⟷ some play" and the
    filters stay pinned (see useHeadLift). Everything is prefixed .work so it wins over the tablet rules below. */
 @media (max-width: 640px) {
   /* the section headers (work/play, timeline and about-me all use .work__intro) read at 22px on a phone */
   .work__intro { font-size: 22px; }
-  .work .modes { gap: 10px; margin-bottom: 16px; font-size: 22px; }
+  .work .modes { gap: 10px; margin-bottom: 0; font-size: 22px; }
   /* pinned: 4px under the tabs, then the images fade in straight away (no solid band first) */
-  .work .work__head { padding-bottom: 4px; }
-  .work .work__head::after { height: 24px; -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); }
-  .work .stack .work__content { padding-top: 28px; } /* at rest the first image is still 32px under the tabs */
+  .work .work__head { padding-bottom: 0; }
+  .work .stack .work__content { padding-top: 26px; }
   .work .modes__lead { margin-right: 0; }
   .work .pin-switch { width: 58px; margin: -8px 0; }
   /* the filters wrap onto as many rows as they need */
@@ -545,7 +639,7 @@ a.pink:hover { color: var(--pink-deep); }
      Domain) in stone/500, what's picked in stone/800. Selected: filled stone/800, no border (a border in the same
      colour, so selected and default tags stay the same height). */
   .work .pill, .work .dd__btn {
-    flex: none; gap: 6px; padding: 4px 14px; font-size: 12px; line-height: 1.4;
+    flex: none; gap: 6px; padding: 4px 14px; font-size: 14px; line-height: 1.4;
     background: var(--stone-100); border: 1px solid var(--stone-200); color: var(--stone-500);
   }
   .work .dd__btn { color: var(--stone-800); } /* the value and the chevron */
@@ -553,7 +647,7 @@ a.pink:hover { color: var(--pink-deep); }
   .work .dd__value { color: var(--stone-800); }
   .work .pill.is-on, .work .dd__btn.is-on { background: var(--stone-800); border-color: var(--stone-800); color: var(--stone-50); }
   .work .dd__btn.is-on .dd__label, .work .dd__btn.is-on .dd__value { color: var(--stone-50); }
-  .work .pills__clear { flex: none; padding: 4px 6px; font-size: 12px; line-height: 1.4; }
+  .work .pills__clear { flex: none; padding: 4px 6px; font-size: 14px; line-height: 1.4; }
 
   /* Work: a plain list down the page. Each project is its screenshot, then who it was for, the title and a line
      about it, on the page itself rather than on a dark card. */
@@ -595,7 +689,7 @@ a.pink:hover { color: var(--pink-deep); }
   animation: sheet-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 .dd__sheet .dd__menu { position: static; width: auto; min-width: 0; max-height: 55svh; padding: 0; border: 0; filter: none; animation: none; }
-.dd__sheet .dd__menu button { font-size: 16px; padding: 13px 12px; }
+.dd__sheet .dd__menu button { font-size: 14px; padding: 13px 12px; }
 .dd__sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 6px 10px 12px; font-family: var(--pixel); font-size: 15px; color: var(--stone-500); }
 .dd__sheet-head button { border: 0; border-radius: 99px; padding: 7px 16px; background: var(--stone-800); color: #fff; font-family: var(--pixel); font-size: 14px; cursor: pointer; }
 @keyframes sheet-up { from { translate: 0 110%; } }
@@ -1033,7 +1127,9 @@ a.pink:hover { color: var(--pink-deep); }
 
 /* ---------- About me: a box of keepsakes on a blanket (AboutMe.tsx) ---------- */
 .me { background: var(--paper); padding: 193px 20px 140px; /* 320px from the timeline's years to this heading, with the timeline's bottom padding */ border-radius: 0 0 48px 48px; border-bottom-right-radius: 220px 110px; }
-.me__intro { max-width: 1100px; }
+/* the aside stays in one piece, so it drops to the next line whole rather than splitting after "(the" */
+.me__aside { white-space: nowrap; }
+@media (max-width: 640px) { .me__aside { white-space: normal; } }
 .me > .work__inner { position: relative; z-index: 2; } /* so the enlarged picture in the heading comes up over the blanket */
 
 /* the picture in the heading: small and in line with the words; it grows to a proper look on hover and shrinks
@@ -1051,7 +1147,7 @@ a.pink:hover { color: var(--pink-deep); }
 .reality:focus-visible img { outline: 2px solid var(--violet); outline-offset: 1px; }
 
 /* the box sits beside a paper-doll collage of me (Collage.tsx), who's pointing at it */
-.toybox { position: relative; display: flex; align-items: flex-end; gap: clamp(4px, 1.5vw, 24px); max-width: 1560px; margin: 28px auto 0; }
+.toybox { position: relative; z-index: 0; display: flex; align-items: flex-end; gap: clamp(4px, 1.5vw, 24px); max-width: 1560px; margin: 28px auto 0; }
 .toybox__stage { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding-top: 78px; }
 .toybox__box {
   position: relative; width: min(1100px, calc(100% - 48px)); aspect-ratio: 2940 / 1840; /* the 48px is room to shake it */
@@ -1232,7 +1328,9 @@ a.pink:hover { color: var(--pink-deep); }
 .tlc__head button { display: block; padding: 4px 0; border: 0; background: none; text-align: left; cursor: pointer; pointer-events: auto; }
 .tlc__head h3 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
 .tlc__logo { display: block; height: 22px; width: auto; }
-.tlc__head.is-on { left: 110px; translate: 0 0; max-width: calc(100% - 126px); } /* clear of the knob; grows downwards from the line so its words stay put */
+/* clear of the knob; its top lines up with the knob's top (half the knob's 42px, less the button's 4px padding),
+   and it grows downwards from there so its words stay put */
+.tlc__head.is-on { left: 110px; translate: 0 -25px; max-width: calc(100% - 126px); }
 .tlc__head.is-on h3 { font-size: 17px; }
 .tlc__head.is-on .tlc__logo { height: 26px; }
 .tlc__cap { width: fit-content; max-width: min(268px, 78vw); animation: rise 0.3s ease both; }
@@ -1561,12 +1659,7 @@ a.pink:hover { color: var(--pink-deep); }
 @media (prefers-reduced-motion: reduce) { .dock, .dock__pill { transition: opacity 0.2s ease; } }
 
 /* ---------- Reveal on scroll (see lib/reveal.ts) ---------- */
-.js-reveal [data-reveal] { opacity: 0; translate: 0 16px; transition: opacity 0.8s var(--ease-out), translate 0.8s var(--ease-out); }
+/* A fade and a rise, no scaling and no sideways drift: enough to read as an entrance, not so much that reading
+   down the page feels like waiting for things to arrive. See useReveal for the cascade within a group. */
+.js-reveal [data-reveal] { opacity: 0; translate: 0 26px; transition: opacity 0.7s var(--ease-out), translate 0.7s var(--ease-out); }
 .js-reveal [data-reveal].is-in { opacity: 1; translate: 0 0; }
-/* highlighted phrases get a marker stroke that sweeps in just after their line appears */
-.hl {
-  background-image: linear-gradient(transparent 62%, color-mix(in srgb, currentColor 17%, transparent) 62%, color-mix(in srgb, currentColor 17%, transparent) 94%, transparent 94%);
-  background-repeat: no-repeat; background-size: 100% 100%; -webkit-box-decoration-break: clone; box-decoration-break: clone;
-}
-.js-reveal .hl { background-size: 0% 100%; transition: background-size 1.1s var(--ease-out) 0.45s; }
-.js-reveal .is-in .hl { background-size: 100% 100%; }

@@ -12,7 +12,11 @@ let ctx: AudioContext | undefined
 // A short filtered noise burst with a quick pitch drop, like a flipped switch or card.
 function synth() {
   ctx ??= new AudioContext()
-  if (ctx.state === 'suspended') void ctx.resume()
+  // Audio that hasn't been woken by a tap yet would hold the clack and let it out at the next tap — a stray
+  // clack with no switch. So while asleep it only plays inside a tap (which wakes it); otherwise it stays quiet.
+  const awake = ctx.state === 'running'
+  if (!awake) void ctx.resume()
+  if (!awake && !(navigator.userActivation?.isActive ?? true)) return
   const t = ctx.currentTime
   const len = Math.floor(ctx.sampleRate * 0.12)
   const buf = ctx.createBuffer(1, len, ctx.sampleRate)
@@ -30,6 +34,33 @@ function synth() {
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12)
   noise.connect(filter).connect(gain).connect(ctx.destination)
   noise.start(t)
+}
+
+// Browsers only let sound start from a tap, click or key — never from a scroll. So the scroll-tripped lever (see
+// Work.tsx) can only be heard once something on the page has been tapped. Every tap wakes the audio if it's
+// asleep (a silent blip, which is what iOS wants), including after the phone has put it back to sleep.
+function wake() {
+  try {
+    if (src) {
+      if (!audio) {
+        audio = new Audio(src)
+        audio.load()
+      }
+      return
+    }
+    ctx ??= new AudioContext()
+    if (ctx.state === 'running') return
+    const blip = ctx.createBufferSource()
+    blip.buffer = ctx.createBuffer(1, 1, ctx.sampleRate)
+    blip.connect(ctx.destination)
+    blip.start()
+    void ctx.resume()
+  } catch {
+    // sound is a nicety
+  }
+}
+if (typeof window !== 'undefined') {
+  for (const t of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown']) addEventListener(t, wake, { capture: true, passive: true })
 }
 
 export function playFlip() {

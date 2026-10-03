@@ -2,14 +2,51 @@ import { useEffect, useRef, useState } from 'react'
 import Ticker from './Ticker'
 import Basketball from './Basketball'
 import { findLogo } from '../lib/logos'
-import { heroImage, heroStar } from '../lib/heroAssets'
+import { heroIcon, heroImage, heroStar } from '../lib/heroAssets'
+
+/**
+ * Hover is the cue on a desktop, but a touch screen has none, so a tap lights the same thing up for a moment
+ * instead. Returns the class to add and the handler that lights it.
+ */
+function useFlash(ms = 2600) {
+  const [lit, setLit] = useState(false)
+  const timer = useRef(0)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const flash = () => {
+    setLit(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setLit(false), ms)
+  }
+  return [lit, flash] as const
+}
+
+/**
+ * An icon sitting in the middle of a sentence, on a little white card tilted off the line (Figma 7264:46510).
+ * At rest it leans; pointing at it (or tapping it, on a touch screen) stands it straight and lifts it off the
+ * page, and the art inside makes its own small move — see .icon-tile in the CSS.
+ */
+function IconTile({ kind, src, alt, tilt, href }: { kind: string; src: string; alt: string; tilt: number; href?: string }) {
+  const [lit, flash] = useFlash(1400)
+  const Tag = href ? 'a' : 'span'
+  const link = href ? { href, target: '_blank', rel: 'noreferrer' } : {}
+  return (
+    <Tag
+      className={`icon-tile icon-tile--${kind}${lit ? ' is-lit' : ''}`}
+      style={{ '--tilt': `${tilt}deg` } as React.CSSProperties}
+      onPointerDown={flash}
+      {...link}
+    >
+      <img className="icon-tile__art" src={src} alt={alt} draggable={false} />
+    </Tag>
+  )
+}
 
 /**
  * A place in the "rudrapur → roorkee → mumbai" line; the past two are struck through. The emoji stays
  * upright and clear — it's a marker of what happened there, not part of the word that's being crossed out.
  */
 function Place({ name, emoji, past = false }: { name: string; emoji?: string; past?: boolean }) {
-  const Tag = past ? 's' : 'span'
+  const Tag = past ? 's' : 'strong'
   return (
     <span className="place">
       <Tag>{name}</Tag>
@@ -29,14 +66,7 @@ function Place({ name, emoji, past = false }: { name: string; emoji?: string; pa
  * means the card's padding-top spaces the photo from the top, not the chip. Tapping either lights the stars.
  */
 function Selfie() {
-  const [lit, setLit] = useState(false)
-  const timer = useRef(0)
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-  const flash = () => {
-    setLit(true)
-    window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setLit(false), 2600)
-  }
+  const [lit, flash] = useFlash()
   return (
     <span className={`selfie${lit ? ' is-lit' : ''}`} onPointerDown={flash}>
       <span className="selfie__art">
@@ -98,21 +128,25 @@ export default function About() {
 
       <div className="about__copy">
         <p className="about__geo" data-reveal>
-          i am <Selfie /> a product designer from <Place past name="rudrapur" emoji="🍼" /> → <Place past name="roorkee" emoji="🎓" /> → <Place name="mumbai" emoji="💼" />
+          i am <Selfie /> a <strong>product designer</strong> from <Place past name="rudrapur" emoji="🍼" /> → <Place past name="roorkee" emoji="🎓" /> → <Place name="mumbai" emoji="💼" />
         </p>
         <p data-reveal>
           before i was a designer, i was a kid frantically following along to{' '}
-          <a className="art-attack" href="https://youtu.be/YDi9-uXXRfc?si=Izbf_ubp6q1wHw8t" target="_blank" rel="noreferrer">
-            <img src={heroImage['art-attack']} alt="Art Attack" draggable={false} />
-          </a>{' '}
+          <IconTile kind="art" src={heroImage['art-attack']} alt="Art Attack" tilt={-2.19} href="https://youtu.be/YDi9-uXXRfc?si=Izbf_ubp6q1wHw8t" />{' '}
           and making toys from{' '}
-          <a className="lime" href="https://www.arvindguptatoys.com/toys.html" target="_blank" rel="noreferrer">
+          <a className="about__link" href="https://www.arvindguptatoys.com/toys.html" target="_blank" rel="noreferrer">
             arvindguptatoys.com
           </a>
         </p>
         <p data-reveal>
-          these days, i’m getting my hands dirty in the world of payments at{' '}
-          {juspay ? <img className="inline-logo" src={juspay.src} alt="Juspay" /> : 'Juspay'}
+          these days, i’m getting my hands dirty in the world of <strong>payments</strong> at{' '}
+          {juspay ? <IconTile kind="juspay" src={juspay.src} alt="Juspay" tilt={-2.24} /> : 'Juspay'} and have worked on a bunch of 0 → 1
+          products, across <strong>corporate travel, agentic commerce and virtual corporate cards</strong>{' '}
+          <span className="icon-row">
+            <IconTile kind="commerce" src={heroIcon.commerce} alt="Agentic commerce" tilt={-9.53} />
+            <IconTile kind="cards" src={heroIcon.cards} alt="Virtual corporate cards" tilt={10.96} />
+            <IconTile kind="travel" src={heroIcon.travel} alt="Corporate travel" tilt={-14.14} />
+          </span>
         </p>
         <p data-reveal>
           i may not have 8 years of experience, but given a weekend and an ominous deadline,{' '}

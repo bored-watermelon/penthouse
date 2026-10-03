@@ -130,7 +130,7 @@ export default function CaseStudy({ slug }: { slug: string }) {
           )}
         </div>
         <div className="cs__main">
-          <header className="cs__head">
+          <header className="cs__head" data-reveal>
             <p className="cs__kicker">
               case study · {doc.minutes} min read
             </p>
@@ -150,10 +150,11 @@ export default function CaseStudy({ slug }: { slug: string }) {
           </header>
           {/* doc.html comes from case-studies/*.md, content Sneha writes herself — not visitor input — so
               rendering it as raw HTML (rather than sanitizing/escaping) is safe here. */}
-          <article className="cs__article" ref={article} dangerouslySetInnerHTML={{ __html: doc.html }} />
+          {/* the write-up arrives as one block of HTML, so its parts are marked by the group (see useReveal) */}
+          <article className="cs__article" ref={article} data-reveal-children dangerouslySetInnerHTML={{ __html: doc.html }} />
 
           {/* the end of the page says what to do next: another case study, or getting in touch */}
-          <footer className="cs__end">
+          <footer className="cs__end" data-reveal>
             <p className="cs__thanks">thanks for reading ✿</p>
             <div className="cs__end-actions">
               <button type="button" className="cs__end-btn cs__end-btn--primary" onClick={copyEmail}>

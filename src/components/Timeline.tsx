@@ -230,11 +230,12 @@ export default function Timeline() {
       <div className="work__inner">
         {upright ? (
           <p className="work__intro" data-reveal>
-            a quick tour, <span className="hl hl--yellow">{from} to now</span>.
+            a quick tour, <span className="hl--yellow">{from} to now</span>.
           </p>
         ) : (
           <p className="work__intro" data-reveal>
-            so, how did i get here? a quick tour, <span className="hl hl--yellow">{from} to now</span>.
+            here’s my success story, jk, lol(my friends tell me i am v funny). a quick tour,{' '}
+            <span className="hl--yellow">{from} to now</span>.
           </p>
         )}
       </div>
