@@ -38,12 +38,17 @@ function openGmail(body: string, subject: string = SUBJECT) {
   }
 }
 
-// Downloads the resume (so it's on hand to attach) and opens Gmail with a forward-style draft that links to it.
-function forwardResume() {
+/** Downloads the resume, from a button (a link would look different from the rows round it). */
+function downloadResume() {
   const a = document.createElement('a')
   a.href = RESUME_PATH
   a.download = 'Sneha Jain Resume.pdf'
   a.click()
+}
+
+// Downloads the resume (so it's on hand to attach) and opens Gmail with a forward-style draft that links to it.
+function forwardResume() {
+  downloadResume()
   openGmail(forwardBody(), FORWARD_SUBJECT)
 }
 
@@ -292,6 +297,13 @@ export default function Chat() {
               {q.question}
             </button>
           ))}
+          {/* and, last, the resume: it works from every set of questions, old ones too */}
+          <button type="button" onClick={downloadResume}>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+              <path d="M12 4v12m0 0-5-5m5 5 5-5M5 20.5h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            download resume
+          </button>
         </>
       )
     if (m.kind === 'resume')
