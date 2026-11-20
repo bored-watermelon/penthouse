@@ -27,8 +27,8 @@ const bg = Object.values(landing)[0]
 
 // Agentation's feedback toolbar, while developing only: click anything on the page to leave a note on it, and the
 // notes go to the Agentation MCP server (`npx agentation-mcp server`, see .mcp.json) for a coding agent to read.
-// Loaded on its own, so the live site never downloads it.
-const Agentation = import.meta.env.DEV ? lazy(() => import('agentation').then((m) => ({ default: m.Agentation }))) : null
+// Loaded on its own, so the live site never downloads it. Switched off for now (the `&& false`).
+const Agentation = import.meta.env.DEV && false ? lazy(() => import('agentation').then((m) => ({ default: m.Agentation }))) : null
 
 /** On a wide screen at the top of the page, it's the hero's hand-over to work (Slides.tsx); otherwise a jump there. */
 function skipToWork(e: React.MouseEvent) {
