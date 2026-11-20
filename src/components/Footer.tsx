@@ -4,6 +4,7 @@ import DragWord from './DragWord'
 import { useDrag } from '../lib/useDrag'
 import { doodle, footerVideo, sticker } from '../lib/footerAssets'
 import { isTouchDevice, useMotionAccess } from '../lib/motion'
+import { watchOnScreen } from '../lib/onScreen'
 
 /**
  * The headline is laid out on the Figma frame (1728 wide, "was" set at 106px), so every size below is in
@@ -128,6 +129,23 @@ export default function Footer() {
     else v.pause()
   }, [active])
 
+  // The video waits to download until the reader reaches about, the section before the footer, so it's ready by
+  // the time the footer shows without costing anything to someone who never gets that far.
+  useEffect(() => {
+    const v = video.current
+    const about = document.querySelector('.me')
+    if (!v || !about) return
+    const stop = watchOnScreen(about, (seen) => {
+      if (!seen) return
+      if (v.readyState === 0) {
+        v.preload = 'auto'
+        v.load()
+      }
+      stop()
+    })
+    return stop
+  }, [])
+
   // the googly eyes on the resume sticker look at the cursor
   useEffect(() => {
     if (!active) return
@@ -178,7 +196,7 @@ export default function Footer() {
   return (
     <>
       <footer className={`foot${active ? ' is-active' : ''}`} aria-label="Contact">
-        {footerVideo && <video ref={video} className="foot__video" src={footerVideo} muted loop playsInline preload="auto" />}
+        {footerVideo && <video ref={video} className="foot__video" src={footerVideo} muted loop playsInline preload="none" />}
 
         <div className="foot__center">
           <div className="foot__text">

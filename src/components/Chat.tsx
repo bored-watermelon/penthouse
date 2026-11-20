@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useIntroDone } from '../lib/intro'
 import { createPortal } from 'react-dom'
 import resumePreview from '../assets/resume-preview.png'
+import { prompt, questions, type Question } from '../lib/chatQuestions'
 
 const EMAIL = 'heyiamsnehajain@gmail.com'
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
@@ -49,6 +51,7 @@ type Msg =
   | { id: number; time: string; from: 'me' | 'you'; kind: 'text'; text: string }
   | { id: number; time: string; from: 'you'; kind: 'resume' }
   | { id: number; time: string; from: 'you'; kind: 'email' }
+  | { id: number; time: string; from: 'you'; kind: 'menu' } // the questions, as buttons under a message (chatQuestions.ts)
 
 // Scripted opening. `delay` is ms after the previous message.
 type Draft = Msg extends infer M ? (M extends Msg ? Omit<M, 'id' | 'time'> : never) : never
@@ -59,6 +62,7 @@ const SCRIPT: (Draft & { delay: number })[] = [
   { from: 'me', kind: 'text', text: 'wow!\ni could use someone like that.', delay: 1100 },
   { from: 'you', kind: 'resume', delay: 1000 },
   { from: 'you', kind: 'email', delay: 900 },
+  ...(questions.length ? [{ from: 'you' as const, kind: 'menu' as const, delay: 1400 }] : []),
 ]
 
 function CopyIcon() {
@@ -104,7 +108,10 @@ export default function Chat() {
 
   const push = (m: Draft) => setMsgs((prev) => [...prev, { ...m, id: nextId.current++, time: clock() } as Msg])
 
+  // the opening plays once the landing screen has handed over, so it starts where someone can see it
+  const introDone = useIntroDone()
   useEffect(() => {
+    if (!introDone) return
     const timers: number[] = []
     let t = 0
     SCRIPT.forEach(({ delay, ...m }) => {
@@ -119,7 +126,7 @@ export default function Chat() {
       )
     })
     return () => timers.forEach(clearTimeout)
-  }, [])
+  }, [introDone])
 
   // Scroll the message list itself rather than calling scrollIntoView on the end marker: scrollIntoView walks
   // up and scrolls every ancestor, so each scripted message that landed while the chat was still playing out
@@ -195,6 +202,33 @@ export default function Chat() {
   }
   const cancelPress = () => window.clearTimeout(pressTimer.current)
 
+  // A question picked: it goes as the visitor's message, she types each part of the answer in turn, and then the
+  // questions come again, for whichever's next. Only the latest set of buttons answers; the older ones have had theirs.
+  const [asking, setAsking] = useState(false)
+  const ask = (q: Question) => {
+    if (asking) return
+    setAsking(true)
+    push({ from: 'me', kind: 'text', text: q.question })
+    let t = 500
+    q.answer.forEach((part) => {
+      const typing = Math.min(1600, 500 + part.length * 14) // longer answers take a little longer to type
+      window.setTimeout(() => setTyping(true), t)
+      t += typing
+      window.setTimeout(() => {
+        setTyping(false)
+        push({ from: 'you', kind: 'text', text: part })
+      }, t)
+      t += 350
+    })
+    window.setTimeout(() => setTyping(true), t)
+    window.setTimeout(() => {
+      setTyping(false)
+      push({ from: 'you', kind: 'menu' })
+      setAsking(false)
+    }, t + 700)
+  }
+  const lastMenu = msgs.reduce((last, m) => (m.kind === 'menu' ? m.id : last), -1)
+
   const reply = (text: string) => {
     setTyping(true)
     window.setTimeout(() => {
@@ -242,6 +276,24 @@ export default function Chat() {
           </time>
         </>
       )
+    // the questions: laid out like the copy-email card, a row for each under the message
+    if (m.kind === 'menu')
+      return (
+        <>
+          <p>
+            {prompt}
+            <time className="time time--inline">{m.time}</time>
+          </p>
+          {questions.map((q) => (
+            <button key={q.question} type="button" disabled={m.id !== lastMenu || asking} onClick={() => ask(q)}>
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+                <path d="M6.5 3.5 2.5 7.5l4 4M2.8 7.5h6.7a4 4 0 0 1 4 4v1" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {q.question}
+            </button>
+          ))}
+        </>
+      )
     if (m.kind === 'resume')
       return (
         <>
@@ -283,10 +335,11 @@ export default function Chat() {
 
   return (
     <aside className="chat" aria-label="Chat with Sneha" ref={setChatRef}>
-      <div className="chat__scroll" ref={scroller}>
+      {/* a log: each message that arrives is read out, as it would be in a chat app */}
+      <div className="chat__scroll" ref={scroller} role="log" aria-live="polite" aria-label="Messages">
         {msgs.map((m, i) => {
           const card = m.kind !== 'text'
-          const cls = `bubble bubble--${m.from}${card ? ' bubble--card' : ''}${m.kind === 'email' ? ' bubble--email' : ''}`
+          const cls = `bubble bubble--${m.from}${card ? ' bubble--card' : ''}${m.kind === 'email' || m.kind === 'menu' ? ' bubble--email' : ''}`
           const open = picker?.id === m.id
           return (
             <div key={m.id} className={`msg msg--${m.from}${reactions[m.id] ? ' has-reaction' : ''}${open ? ' is-open' : ''}`}>
@@ -333,7 +386,7 @@ export default function Chat() {
           )
         })}
         {typing && (
-          <div className="msg msg--you" aria-live="polite">
+          <div className="msg msg--you">
             <div className="msg__wrap">
               <div className="bubble bubble--you bubble--typing" aria-label="Sneha is typing">
                 <span />

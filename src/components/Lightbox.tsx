@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PlayItem } from '../content'
+import CloseButton from './CloseButton'
+import { useDialogFocus } from '../lib/dialogFocus'
 
 type Props = { items: PlayItem[]; index: number; onIndex: (i: number) => void; onClose: () => void; single?: boolean }
 
@@ -92,6 +94,8 @@ export default function Lightbox({ items, index, onIndex, onClose, single = fals
     setLeaving(true)
     window.setTimeout(onClose, 220)
   }
+  const dialog = useRef<HTMLDivElement>(null)
+  useDialogFocus(dialog)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -155,6 +159,8 @@ export default function Lightbox({ items, index, onIndex, onClose, single = fals
     const stop = (e: React.MouseEvent) => e.stopPropagation()
     return createPortal(
       <div
+        ref={dialog}
+        tabIndex={-1}
         className={`lightbox lightbox--single${leaving ? ' is-leaving' : ''}`}
         role="dialog"
         aria-modal="true"
@@ -174,6 +180,7 @@ export default function Lightbox({ items, index, onIndex, onClose, single = fals
             </figcaption>
           )}
         </figure>
+        <CloseButton onClose={close} />
       </div>,
       document.body,
     )
@@ -181,6 +188,8 @@ export default function Lightbox({ items, index, onIndex, onClose, single = fals
 
   return createPortal(
     <div
+      ref={dialog}
+      tabIndex={-1}
       className={`lightbox lightbox--strip${leaving ? ' is-leaving' : ''}`}
       role="dialog"
       aria-modal="true"
@@ -207,6 +216,7 @@ export default function Lightbox({ items, index, onIndex, onClose, single = fals
           →
         </button>
       )}
+      <CloseButton onClose={close} />
     </div>,
     document.body,
   )

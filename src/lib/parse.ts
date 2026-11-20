@@ -1,95 +1,110 @@
-export type PlayMeta = { tags: string[]; caption: string }
+// How a tile in the control center describes itself: through the name of its media file (see
+// "control center/README.txt"). For example
+//
+//   01_Logo-[Juspay, Visa];Heading-[Designing an Interactive Kiosk];Subtitle-[A demo kiosk for VPF];Bg-[fde7d4];Tag-[kiosk].png
+//
+// is a tile with the Juspay and Visa logos, that heading and subtitle, a peach background and a "kiosk" chip,
+// placed first. Add "Edge-[no]" to sit the media inside the tile on its background instead of filling the tile's
+// width ("Edge-[20, 8]" sets that margin: 20% of the tile's width left and right, 8% top and bottom), and
+// "Shadow-[yes]" for a soft shadow under it, and "Radius-[16]" to round its corners by that many pixels. Every part is optional and they can come in any order,
+// separated by ";". "Key-[value]", "Key-value" and "Key: value" all read the same, and a yes/no key on its own
+// ("Shadow") means yes. The older play names ("Tags-[Art];Text-caption") still work:
+// Tags is Tag, and Text is Heading.
 
-/**
- * Play files are named:  Tags-[Tag1, Tag2, Tag3];Text-caption.ext
- * "-", ":" and "/" are all accepted after "Tags" / "Text", and the caption may optionally be quoted.
- * Tags can be one bracket with commas, or several brackets: [Tag1],[Tag2].
- */
-export function parsePlayName(base: string): PlayMeta {
-  const m = base.match(/^\s*tags\s*[-:/]\s*(.*?)\s*;\s*text\s*[-:/]\s*(.*?)\s*$/i)
-  if (!m) return { tags: [], caption: '' }
-  const bracketed = [...m[1].matchAll(/\[([^\]]*)\]/g)].flatMap((x) => x[1].split(','))
-  const tags = (bracketed.length ? bracketed : m[1].split(',')).map((t) => t.trim()).filter(Boolean)
-  const caption = m[2]
-    .replace(/^\[\s*/, '')
-    .replace(/\s*\]$/, '')
-    .replace(/^["“”]\s*/, '')
-    .replace(/\s*["“”]$/, '')
-    .trim()
-  return { tags, caption }
+export type TileMeta = {
+  logos: string[] // names of files in /logos (Juspay, Visa, Thomas Cook…)
+  heading: string
+  subtitle: string
+  bg?: string // a CSS colour for the tile's background
+  tags: string[] // the chip on the tile, and the filters above the grid
+  edge: boolean // the media fills the tile's width (the default), or sits inside it on the background
+  inset?: { x: number; y?: number } // that margin, in % of the tile's width: left and right, and top and bottom
+  shadow: boolean // a soft shadow under the media
+  radius?: number // how round the media's corners are, in px (an edge-to-edge tile's own corners)
 }
 
-export type WorkMeta = {
-  title: string
-  description: string
-  interfaces: string[]
-  distribution: string[]
-  domain: string[]
-  clients: string[]
-  caseStudy: string
-  selected: boolean // whether it shows in the default "Selected Works" view (a filter still finds every project)
-  featured: boolean // whether it gets a big row of its own, rather than a place in the grid underneath
+const FIELDS: Record<string, keyof TileMeta> = {
+  logo: 'logos',
+  logos: 'logos',
+  client: 'logos',
+  clients: 'logos',
+  heading: 'heading',
+  title: 'heading',
+  text: 'heading',
+  subtitle: 'subtitle',
+  sub: 'subtitle',
+  description: 'subtitle',
+  bg: 'bg',
+  background: 'bg',
+  tag: 'tags',
+  tags: 'tags',
+  edge: 'edge',
+  bleed: 'edge',
+  shadow: 'shadow',
+  radius: 'radius',
+  corner: 'radius',
+  corners: 'radius',
 }
 
-const KEYS: Record<string, keyof WorkMeta> = {
-  'project title': 'title',
-  title: 'title',
-  'project description': 'description',
-  description: 'description',
-  interface: 'interfaces',
-  interfaces: 'interfaces',
-  distribution: 'distribution',
-  domain: 'domain',
-  client: 'clients',
-  clients: 'clients',
-  'case study': 'caseStudy',
-  selected: 'selected',
-  'selected works': 'selected',
-  featured: 'featured',
-}
-
+const yes = (v: string) => !/^(no|false|0|off|none)$/i.test(v.trim())
 const list = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean)
+const unquote = (v: string) => v.replace(/^["“”']\s*/, '').replace(/\s*["“”']$/, '').trim()
 
-/** Work files are "Key: value" lines; lines without a key continue the previous value. */
-export function parseWork(text: string): WorkMeta {
-  const raw: Partial<Record<keyof WorkMeta, string>> = {}
-  const FLAGS = ['selected', 'featured'] as const
-  type Flag = (typeof FLAGS)[number]
-  let current: Exclude<keyof WorkMeta, Flag> | null = null
-  for (const line of text.replace(/^﻿/, '').split(/\r?\n/)) {
-    if (line.trimStart().startsWith('#')) continue // comment
-    const m = line.match(/^\s*([A-Za-z ]+?)\s*:\s*(.*)$/)
-    const key = m && KEYS[m[1].toLowerCase()]
-    if (key) {
-      raw[key] = m![2].trim()
-      // the yes/no flags are one-liners, never a value that later lines continue
-      current = (FLAGS as readonly string[]).includes(key) ? null : (key as Exclude<keyof WorkMeta, Flag>)
-    } else if (current && line.trim()) {
-      raw[current] = `${raw[current]} ${line.trim()}`
+/**
+ * A file name can't hold a "#", so a hex colour is written without it ("fde7d4", "fff"). Anything else the
+ * browser knows as a colour works as it is: "lavender", "rgb(250 240 230)".
+ */
+function colour(v: string) {
+  if (/^[0-9a-f]{3}([0-9a-f]{3}([0-9a-f]{2})?)?$/i.test(v)) return `#${v}`
+  if (typeof CSS !== 'undefined' && CSS.supports('color', v)) return v
+  if (v) console.warn(`[control center] "${v}" isn't a colour, so that tile keeps the default background`)
+  return undefined
+}
+
+/** The leading "NN_" on a file or folder only sets its place in the grid. */
+export const withoutOrder = (name: string) => name.replace(/^\s*\d+_\s*/, '')
+
+/** Reads a tile's details from its file name (without the extension). A name with no keys at all is its heading. */
+export function parseTileName(name: string): TileMeta {
+  const rest = withoutOrder(name)
+  const out: TileMeta = { logos: [], heading: '', subtitle: '', tags: [], edge: true, shadow: false }
+  let found = false
+  for (const part of rest.split(';')) {
+    const m = part.match(/^\s*([a-z]+)\s*(?:[-:]\s*(.*?))?\s*$/i)
+    const key = m && FIELDS[m[1].toLowerCase()]
+    // a bare word that isn't a yes/no key ("Logo", or a one-word name like "Background") says nothing
+    if (!key || (m![2] === undefined && key !== 'edge' && key !== 'shadow')) continue
+    found = true
+    // "[a, b]" or "[a],[b]" or a bare value
+    const raw = m![2] ?? ''
+    const bracketed = [...raw.matchAll(/\[([^\]]*)\]/g)].map((x) => x[1])
+    const value = (bracketed.length ? bracketed.join(', ') : raw).trim()
+    if (key === 'edge') {
+      // numbers are the margin around inset media: "20" for the sides, "20, 8" for the sides and top and bottom
+      const nums = value.match(/\d+(\.\d+)?/g)
+      if (nums) out.inset = { x: +nums[0], y: nums[1] === undefined ? undefined : +nums[1] }
+      out.edge = nums ? false : yes(value)
+    } else if (key === 'shadow') out.shadow = yes(value)
+    else if (key === 'radius') {
+      const n = value.match(/\d+(\.\d+)?/)
+      if (n) out.radius = +n[0]
     }
+    else if (key === 'logos' || key === 'tags') out[key] = list(value)
+    else if (key === 'bg') out.bg = colour(value)
+    else out[key as 'heading' | 'subtitle'] = unquote(value)
   }
-  return {
-    title: raw.title ?? '',
-    description: raw.description ?? '',
-    interfaces: list(raw.interfaces ?? ''),
-    distribution: list(raw.distribution ?? ''),
-    domain: list(raw.domain ?? ''),
-    clients: list(raw.clients ?? ''),
-    caseStudy: raw.caseStudy ?? '',
-    // "Selected: no" (or false/0/hide) keeps it out of the default view; anything else, or no line at all, shows it
-    selected: !/^(no|false|0|off|hide|hidden)$/i.test((raw.selected ?? '').trim()),
-    // "Featured: yes" gives it a big row; without the line it takes a place in the grid under the featured ones
-    featured: /^(yes|true|1|on|show)$/i.test((raw.featured ?? '').trim()),
-  }
+  if (!found) out.heading = rest.trim()
+  // a heading that's only a number ("Text-13") is a file kept apart, not something to show
+  if (/^[\d\s.-]*$/.test(out.heading)) out.heading = ''
+  return out
 }
 
 /**
- * A project is a folder in /work, e.g. "01_buyer support". The leading "NN_" only sets the display order,
- * so the slug — which is also the case study's URL — is the rest of the name: "buyer-support".
+ * A case study is a folder, e.g. "01_buyer support". The leading "NN_" only sets the display order, so the
+ * slug — which is also the case study's URL — is the rest of the name: "buyer-support".
  */
 export const projectSlug = (folder: string) =>
-  folder
-    .replace(/^\d+\s*[_-]\s*/, '')
+  withoutOrder(folder)
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')

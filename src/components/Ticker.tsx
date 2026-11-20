@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { logos } from '../lib/logos'
+import { watchOnScreen } from '../lib/onScreen'
 
 const BASE_SPEED = 45 // px/s, the resting scroll speed
 const FRICTION = 2.2 // higher = momentum fades back to BASE_SPEED faster
@@ -20,6 +21,10 @@ export default function Ticker() {
     let last = performance.now()
     let raf = 0
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+    // one copy's width, measured when it changes rather than on every frame
+    let width = tr.scrollWidth / COPIES
+    const ro = new ResizeObserver(() => (width = tr.scrollWidth / COPIES))
+    ro.observe(tr)
 
 
     const frame = (now: number) => {
@@ -31,7 +36,7 @@ export default function Ticker() {
         velocity = target + (velocity - target) * Math.exp(-FRICTION * dt)
         x -= velocity * dt
       }
-      const w = tr.scrollWidth / COPIES
+      const w = width
       if (w > 0) x = ((x % w) - w) % w // keep in (-w, 0] so the loop is seamless
       tr.style.transform = `translate3d(${x}px,0,0)`
       raf = requestAnimationFrame(frame)
@@ -69,9 +74,18 @@ export default function Ticker() {
     vp.addEventListener('pointermove', move)
     vp.addEventListener('pointerup', up)
     vp.addEventListener('pointercancel', up)
-    raf = requestAnimationFrame(frame)
+    // only while it can be seen (see lib/onScreen.ts)
+    const unwatch = watchOnScreen(vp, (seen) => {
+      cancelAnimationFrame(raf)
+      raf = 0
+      if (!seen) return
+      last = performance.now()
+      raf = requestAnimationFrame(frame)
+    })
     return () => {
       cancelAnimationFrame(raf)
+      unwatch()
+      ro.disconnect()
       vp.removeEventListener('pointerdown', down)
       vp.removeEventListener('pointermove', move)
       vp.removeEventListener('pointerup', up)

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Matter from 'matter-js'
-import { artifacts, BOX_CM, camera, cardboard, reality } from '../lib/about'
+import { artifacts, BOX_CM, BOX_PX, cardboard, reality, SKETCHBOOK } from '../lib/about'
 import { collage } from '../lib/collage'
 import type { PlayItem } from '../content'
 import Lightbox from './Lightbox'
 import CameraViewer, { preloadCamera } from './CameraViewer'
-import Ipod from './Ipod'
+import { openIpod } from '../lib/ipod'
+import Sketchbook, { CoverFace } from './Sketchbook'
 import Collage from './Collage'
 import { isTouchDevice, toScreen, useMotionAccess } from '../lib/motion'
+import { usePlayWhenSeen, watchOnScreen } from '../lib/onScreen'
 
 const { Engine, Events, Bodies, Body, Bounds, Composite, Constraint } = Matter
 
@@ -116,15 +118,40 @@ function PhoneMe() {
  * The "about me" box: a cardboard box of keepsakes on a blanket. Drag the box and everything inside slides and
  * knocks about; drag the things themselves to rearrange them, or click one to see it up close.
  */
+/** What each thing in the box is, said aloud: its file name says it for the eye, not always for the ear. */
+const SPOKEN: Record<string, string> = {
+  billu: 'billu, my cat',
+  inshot: 'a clip of me',
+  'design process': 'my design process, on paper',
+  'the kind worth killing': 'the book The Kind Worth Killing',
+  camera: 'my camera',
+  ipod: 'my iPod',
+  [SKETCHBOOK]: 'my sketchbook',
+}
+function spoken(id: string) {
+  const name = id.replace(/[-_]+/g, ' ').trim()
+  const key = name.toLowerCase()
+  if (SPOKEN[key]) return SPOKEN[key]
+  if (/^polaroid\s*\d*$/.test(key)) return 'a polaroid'
+  return /^(the|a|an|my) /.test(key) ? name : `the ${name}`
+}
+
+/** A clip in the box plays on its own while the box can be seen, silent and looping. */
+function BoxClip({ src }: { src: string }) {
+  const video = useRef<HTMLVideoElement>(null)
+  usePlayWhenSeen(video)
+  return <video ref={video} src={src} muted loop playsInline preload="metadata" draggable={false} />
+}
+
 export default function AboutMe() {
   const stage = useRef<HTMLDivElement>(null)
   const boxEl = useRef<HTMLDivElement>(null)
   const els = useRef<(HTMLButtonElement | null)[]>([])
   const [open, setOpen] = useState<number | null>(null)
   const [special, setSpecial] = useState<string | null>(null) // a thing that opens into its own viewer, like the camera
-  const viewer: PlayItem[] = useMemo(() => artifacts.map((a) => ({ id: a.id, src: a.src, thumb: a.thumb, width: a.width, height: a.height, video: false, tags: [], caption: '' })), [])
+  const viewer: PlayItem[] = useMemo(() => artifacts.map((a) => ({ id: a.id, src: a.src, thumb: a.video ? undefined : a.thumb, width: a.width, height: a.height, video: !!a.video, tags: [], caption: '' })), [])
 
-  // fetch the opened-camera art as the box comes near, so the camera viewer opens complete
+  // fetch the camera's first photos as the box comes near, so the camera opens with them ready
   useEffect(() => {
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return
@@ -143,7 +170,8 @@ export default function AboutMe() {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     // On a phone the box is pinned in place, neatly under the heading: it can't be dragged and doesn't jig with a
     // shake, so nothing shifts as you scroll. Only its contents move — slid by a finger or scattered by a shake.
-    const loose = () => matchMedia('(max-width: 640px)').matches
+    const phone = matchMedia('(max-width: 640px)') // read every frame, so asked once
+    const loose = () => phone.matches
     let W = 0 // the box, in px
     let H = 0
     let L = 0 // its long side: the box is wide on a laptop and tall on a phone, and speeds are measured in this
@@ -399,14 +427,14 @@ export default function AboutMe() {
       raf = visible ? requestAnimationFrame(tick) : 0
     }
 
-    const io = new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting
+    // only while the box can be seen (see lib/onScreen.ts)
+    const unwatch = watchOnScreen(host, (seen) => {
+      visible = seen
       if (visible && !raf) {
         last = performance.now()
         raf = requestAnimationFrame(tick)
       }
     })
-    io.observe(host)
     const ro = new ResizeObserver(() => {
       measure()
       paint()
@@ -525,9 +553,24 @@ export default function AboutMe() {
     }
     els.current.forEach((el) => el?.addEventListener('pointerdown', onItemDown))
 
+    // The box being set down (lib/slideMotion.ts): everything inside it gives a little hop on the landing, each its
+    // own small way, and settles where it lands.
+    const onThump = () => {
+      if (reduced) return
+      bodies.forEach((b, i) => {
+        if (grab?.i === i) return
+        const a = Math.random() * Math.PI * 2
+        const s = (0.4 + Math.random() * 0.6) * L * 0.0015
+        Body.setVelocity(b, { x: b.velocity.x + Math.cos(a) * s, y: b.velocity.y + Math.sin(a) * s })
+        Body.setAngularVelocity(b, b.angularVelocity + (Math.random() - 0.5) * 0.03)
+      })
+    }
+    window.addEventListener('toybox:thump', onThump)
+
     return () => {
       cancelAnimationFrame(raf)
-      io.disconnect()
+      unwatch()
+      window.removeEventListener('toybox:thump', onThump)
       ro.disconnect()
       onItemUp()
       window.removeEventListener('devicemotion', onMotion)
@@ -546,9 +589,11 @@ export default function AboutMe() {
   return (
     <section className="me" id="about-me">
       <div className="work__inner">
-        <p className="work__intro me__intro" data-reveal>
+        <p className="work__intro me__intro" data-reveal data-slide-head>
           and for the <span className="hl--red">things i don’t keep on my resume</span> to keep up the facade of being a professional.{' '}
-          <span className="me__aside">(the professional in question <Reality />)</span>
+          <span className="me__aside">
+            (the professional in <span className="me__aside-end">question <Reality />)</span>
+          </span>
         </p>
       </div>
 
@@ -575,8 +620,13 @@ export default function AboutMe() {
                 }}
                 className="toybox__item"
                 // sized here, as a share of the box, so it's right from the first paint
-                style={{ width: `calc(var(--cm, calc(100% / ${BOX_CM})) * ${DIMS[i].w})`, aspectRatio: `${a.width} / ${a.height}` }}
-                aria-label={`look at the ${a.id.replace(/[-_]+/g, ' ')}`}
+                style={{
+                  width: `calc(var(--cm, calc(100% / ${BOX_CM})) * ${DIMS[i].w})`,
+                  aspectRatio: `${a.width} / ${a.height}`,
+                  // "(radius 12)" in the file name: 12px at the box's full size, scaling with it (see .toybox__item img)
+                  ...(a.radius !== undefined && { '--item-r': `calc(var(--cm, ${BOX_PX / BOX_CM}px) * ${(a.radius * BOX_CM) / BOX_PX})` }),
+                } as React.CSSProperties}
+                aria-label={`look at ${spoken(a.id)}`}
                 onClick={(e) => {
                   const el = e.currentTarget
                   if (el.dataset.dragged) {
@@ -584,12 +634,19 @@ export default function AboutMe() {
                     return
                   }
                   // some things open into something of their own; everything else opens full size
-                  if (a.id === 'camera' && camera.body && camera.photos.length) setSpecial('camera')
-                  else if (a.id.toLowerCase() === 'ipod') setSpecial('ipod')
+                  if (a.id === 'camera') setSpecial('camera')
+                  else if (a.id.toLowerCase() === 'ipod') openIpod()
+                  else if (a.id === SKETCHBOOK) setSpecial(SKETCHBOOK)
                   else setOpen(i)
                 }}
               >
-                <img src={a.thumb} alt="" draggable={false} />
+                {a.id === SKETCHBOOK ? (
+                  <CoverFace />
+                ) : a.video ? (
+                  <BoxClip src={a.src} />
+                ) : (
+                  <img src={a.thumb} alt="" draggable={false} />
+                )}
               </button>
             ))}
           </div>
@@ -599,7 +656,7 @@ export default function AboutMe() {
 
       {open !== null && <Lightbox single items={viewer} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />}
       {special === 'camera' && <CameraViewer onClose={() => setSpecial(null)} />}
-      {special === 'ipod' && <Ipod onClose={() => setSpecial(null)} />}
+      {special === SKETCHBOOK && <Sketchbook onClose={() => setSpecial(null)} />}
     </section>
   )
 }

@@ -224,20 +224,12 @@ function useSets(active: number) {
 /** A phone gets the line standing up (Column); anything wider has it lying along the screen (Row). */
 export default function Timeline() {
   const upright = useMedia('(max-width: 700px)')
-  const from = chunks[0]?.from ?? 2002
   return (
     <section className="tl" id="timeline">
       <div className="work__inner">
-        {upright ? (
-          <p className="work__intro" data-reveal>
-            a quick tour, <span className="hl--yellow">{from} to now</span>.
-          </p>
-        ) : (
-          <p className="work__intro" data-reveal>
-            here’s my success story, jk, lol(my friends tell me i am v funny). a quick tour,{' '}
-            <span className="hl--yellow">{from} to now</span>.
-          </p>
-        )}
+        <p className="work__intro" data-reveal data-slide-head>
+          <span className="hl--orange">a history lesson</span> on my success story, jk, lol (my friends tell me i am v funny).
+        </p>
       </div>
       {upright ? <Column /> : <Row />}
     </section>

@@ -3,26 +3,32 @@ import { projectSlug } from './parse'
 import { renderStatements } from './statement'
 import { renderIterations, type Media } from './iterations'
 
-// A case study is a "case study.md" inside its project folder in /work (see work/_TEMPLATE for the format),
-// so a project keeps its tile details, images and write-up in one place. The slug — and so the URL — comes
-// from the folder name, not the file name. This module turns the Markdown into rendered HTML plus a left-nav
-// table of contents (one entry per "##" section), so CaseStudy.tsx just has to display it.
-const mdFiles = import.meta.glob(['../../work/*/*.md', '!../../work/*/_*.md', '!../../work/_*/*.md'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+// A case study is a folder in a section of the control center (control center/work/01_kiosk), holding its
+// write-up as a Markdown file (see "control center/_case study template.md" for the format), the picture or clip
+// for its tile, and a media/ folder for everything the write-up shows. The slug — and so the URL — comes from the
+// folder name, not the file name. A write-up whose name starts with "_" is a draft: it isn't built, and its tile
+// says "soon". This module turns the Markdown into rendered HTML plus a left-nav table of contents (one entry per
+// "##" section), so CaseStudy.tsx just has to display it.
+const mdFiles = import.meta.glob(['../../control center/*/*/*.md', '!../../control center/*/*/_*.md', '!../../control center/*/_*/**', '!../../control center/_*/**', '!../../control center/about box/**'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
 
-// [IMAGE: name] / [VIDEO: name | caption] tags reference files in the project's own media folder. Images and
+// [IMAGE: name] / [VIDEO: name | caption] tags reference files in the case study's own media folder. Images and
 // videos get their own globs (only images go through vite-imagetools' resize/webp pipeline).
-const imgFiles = import.meta.glob('../../work/*/media/**/*.{png,PNG,jpg,JPG,jpeg,JPEG,webp,avif,gif,GIF}', {
+const imgFiles = import.meta.glob(['../../control center/*/*/media/**/*.{png,PNG,jpg,JPG,jpeg,JPEG,webp,avif,gif,GIF}', '!../../control center/about box/**'], {
   query: { w: 2000, format: 'webp', quality: 84 },
   import: 'default',
   eager: true,
 }) as Record<string, string>
-const vidFiles = import.meta.glob('../../work/*/media/**/*.{mp4,MP4,webm,WEBM,mov,MOV}', { query: '?url', import: 'default', eager: true }) as Record<string, string>
+const vidFiles = import.meta.glob(['../../control center/*/*/media/**/*.{mp4,MP4,webm,WEBM,mov,MOV}', '!../../control center/about box/**'], { query: '?url', import: 'default', eager: true }) as Record<string, string>
 
 const base = (path: string) => path.split('/').pop()!
 const stem = (name: string) => name.replace(/\.[^.]+$/, '')
 
-/** The /work subfolder a file sits in, e.g. ".../work/01_buyer support/media/x.png" -> "01_buyer support". */
-const folderOf = (path: string) => path.split('/work/')[1]!.split('/')[0]
+/** The case study folder a file sits in, e.g. ".../control center/work/01_kiosk/media/x.png" -> "01_kiosk". */
+const folderOf = (path: string) => path.split('/control center/')[1]!.split('/')[1]
 
 /**
  * { slug -> { "name.ext" | "name" | "sub/name.ext" -> url } }, so a tag can reference a file with or without
@@ -48,7 +54,7 @@ const videosBySlug = indexBySlug(vidFiles)
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const escapeAttr = (s: string) => escapeHtml(s).replace(/"/g, '&quot;')
 
-/** Frontmatter is flat "key: value" lines between a leading pair of "---" lines, same spirit as parseWork. */
+/** Frontmatter is flat "key: value" lines between a leading pair of "---" lines, the same spirit as the control center's file names. */
 function splitFrontmatter(raw: string): { meta: Record<string, string>; body: string } {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
   if (!m) return { meta: {}, body: raw }
@@ -75,7 +81,7 @@ function figure(slug: string, kind: 'IMAGE' | 'VIDEO', name: string, caption?: s
   const cap = caption?.trim()
   const figcaption = cap ? `<figcaption>${escapeHtml(cap)}</figcaption>` : ''
   if (!src) {
-    console.warn(`[${slug}] ${kind.toLowerCase()} "${name}" not found in that project's work/.../media folder`)
+    console.warn(`[${slug}] ${kind.toLowerCase()} "${name}" not found in that case study's media folder`)
     // The dashed "missing" box is a note to self while writing; visitors never see it.
     if (!import.meta.env.DEV) return ''
     return `<figure class="cs-figure cs-figure--missing"><div class="cs-figure__missing">missing ${kind.toLowerCase()}: ${escapeHtml(name.trim())}</div>${figcaption}</figure>`
@@ -91,7 +97,7 @@ function findMedia(slug: string, name: string): Media {
   if (img) return { src: img, kind: 'image' }
   const vid = videosBySlug.get(slug)?.get(key)
   if (vid) return { src: vid, kind: 'video' }
-  console.warn(`[${slug}] "${name}" not found in that project's work/.../media folder`)
+  console.warn(`[${slug}] "${name}" not found in that case study's media folder`)
   return null
 }
 
@@ -154,8 +160,7 @@ export type CaseStudyDoc = {
 
 export const caseStudies: Record<string, CaseStudyDoc> = Object.fromEntries(
   Object.entries(mdFiles)
-    // work/_TEMPLATE isn't a real project, and a "_case study.md" is a write-up that isn't ready yet — its
-    // tile shows the Coming Soon cursor until the underscore is dropped from the file name
+    // a "_case study.md" is a write-up that isn't ready yet (the glob leaves those out; this is belt and braces)
     .filter(([path]) => !folderOf(path).startsWith('_') && !base(path).startsWith('_'))
     .map(([path, raw]) => {
       const slug = projectSlug(folderOf(path))

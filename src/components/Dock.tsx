@@ -1,29 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const EMAIL = 'heyiamsnehajain@gmail.com'
-type Item = 'work' | 'play' | 'timeline' | 'about'
 
 /**
- * A small floating dock: the sections, plus the two things a recruiter is actually after (the resume and a way
- * to reach her), one tap away from anywhere. It stays out of the way on the hero, where the chat already offers
- * both, and over the footer, which has its own.
+ * A small floating pill, centred along the bottom, with the two things a recruiter is actually after: the resume,
+ * and a way to reach her, one tap away from anywhere. It stays out of the way on the hero, where the chat already
+ * offers both, and over the footer, which has its own.
  */
 export default function Dock() {
   const [shown, setShown] = useState(false)
-  const [active, setActive] = useState<Item | null>(null)
-  const [mode, setMode] = useState<'work' | 'play'>('work')
   const [copied, setCopied] = useState(false)
-  const bar = useRef<HTMLElement>(null)
-  const pill = useRef<HTMLSpanElement>(null)
 
-  // Work tells everyone which tab it's on; the dock lights up "work" or "play" to match.
-  useEffect(() => {
-    const on = (e: Event) => setMode((e as CustomEvent<'work' | 'play'>).detail)
-    window.addEventListener('work:mode', on)
-    return () => window.removeEventListener('work:mode', on)
-  }, [])
-
-  // Visible between the hero and the footer; the active item is whichever section crosses 40% of the screen.
+  // visible between the hero and the footer
   useEffect(() => {
     let raf = 0
     const update = () => {
@@ -33,12 +21,6 @@ export default function Dock() {
       const pastHero = stage ? stage.getBoundingClientRect().bottom < innerHeight * 0.35 : true
       const beforeFooter = spacer ? spacer.getBoundingClientRect().top > innerHeight * 0.85 : true
       setShown(pastHero && beforeFooter)
-      const line = innerHeight * 0.4
-      const hit = (sel: string) => {
-        const r = document.querySelector(sel)?.getBoundingClientRect()
-        return !!r && r.top <= line && r.bottom > line
-      }
-      setActive(hit('#work') ? 'work' : hit('#timeline') ? 'timeline' : hit('#about-me') ? 'about' : null)
     }
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update)
@@ -53,41 +35,6 @@ export default function Dock() {
     }
   }, [])
 
-  const current: Item | null = active === 'work' ? mode : active
-
-  // the ink pill slides to whichever item is current
-  useLayoutEffect(() => {
-    const el = current && bar.current?.querySelector<HTMLElement>(`[data-item="${current}"]`)
-    const p = pill.current
-    if (!p) return
-    if (!el) {
-      p.style.opacity = '0'
-      return
-    }
-    p.style.opacity = '1'
-    p.style.width = `${el.offsetWidth}px`
-    p.style.transform = `translateX(${el.offsetLeft}px)`
-  }, [current, shown])
-
-  const go = (item: Item) => {
-    if (item === 'work' || item === 'play') window.dispatchEvent(new CustomEvent('work:show', { detail: item }))
-    else {
-      // the journey passes through work, whose scroll hand-over would otherwise read it as the reader reaching
-      // the end of the list, flip to play and jump the scroll — stranding us there (see Work.tsx)
-      window.dispatchEvent(new CustomEvent('nav:scroll'))
-      const el = document.getElementById(item === 'about' ? 'about-me' : 'timeline')
-      if (!el) return
-      // Land the heading the same way down the screen whichever section it is. Going to the section's own top
-      // wouldn't: their top paddings differ (about-me's carries the gap from the timeline above it), so one
-      // heading would sit three times further down than the other. Never scroll past the section's start.
-      // Measured off the section's padding rather than the heading's box, which the reveal animation shifts
-      // while it plays — reading that would land the two sections differently depending on what had revealed.
-      const pad = parseFloat(getComputedStyle(el).paddingTop) || 0
-      const top = el.getBoundingClientRect().top + scrollY + Math.max(0, pad - 60)
-      window.scrollTo({ top, behavior: 'smooth' })
-    }
-  }
-
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(EMAIL)
@@ -98,29 +45,8 @@ export default function Dock() {
     }
   }
 
-  const items: { id: Item; label: string; wide?: boolean }[] = [
-    { id: 'work', label: 'work' },
-    { id: 'play', label: 'play' },
-    { id: 'timeline', label: 'timeline', wide: true },
-    { id: 'about', label: 'about' },
-  ]
-
   return (
-    <nav className={`dock${shown ? ' is-shown' : ''}`} aria-label="Sections" ref={bar} inert={!shown}>
-      <span className="dock__pill" ref={pill} aria-hidden />
-      {items.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          data-item={it.id}
-          className={`dock__item${current === it.id ? ' is-on' : ''}${it.wide ? ' dock__item--wide' : ''}`}
-          aria-current={current === it.id ? 'true' : undefined}
-          onClick={() => go(it.id)}
-        >
-          {it.label}
-        </button>
-      ))}
-      <span className="dock__sep" aria-hidden />
+    <nav className={`dock${shown ? ' is-shown' : ''}`} aria-label="Resume and contact" inert={!shown}>
       <a className="dock__item dock__item--cta" href="/Sneha%20Jain%20Resume.pdf" download="Sneha Jain Resume.pdf">
         resume
         <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>

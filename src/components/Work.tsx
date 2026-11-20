@@ -1,68 +1,49 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { createPortal } from 'react-dom'
-import Lightbox from './Lightbox'
-import Dropdown from './Dropdown'
-import { playItems, projects, type PlayItem, type Project } from '../content'
+import { sections, type Tile } from '../content'
 import { caseStudies } from '../lib/caseStudy'
-import { findLogo } from '../lib/logos'
-import clockIcon from '../assets/clock-countdown.svg'
 import { playFlip } from '../lib/flipSound'
-import { navigate } from '../lib/router'
 import PinSwitchArt from './PinSwitchArt'
+import Logos from './Logos'
+import Showcase from './Showcase'
+import { usePlayWhenSeen } from '../lib/onScreen'
+import { TILES as REVEAL, gsap } from '../lib/slideMotion'
 
 type Mode = 'work' | 'play'
 
-const has = (list: string[], tag: string) => list.some((t) => t.toLowerCase() === tag.toLowerCase())
+const lastPart = (id: string) => id.split('/').pop()!
 
-// The play pills are built from the tags in /play file names. This list only sets their preferred order.
-const PLAY_ORDER = ['Interfaces', 'Motion', 'Visuals', 'Art', 'Mobile']
-
-function buildFilters(first: string, preferred: string[], found: string[]) {
-  const unique = [...new Map(found.map((t) => [t.toLowerCase(), t])).values()]
-  const known = preferred.filter((t) => has(unique, t))
-  const extra = unique.filter((t) => !has(preferred, t)).sort((a, b) => a.localeCompare(b))
-  return [first, ...known, ...extra]
-}
-
-type Facet = 'interfaces' | 'distribution' | 'domain'
-const FACETS: { key: Facet; label: string }[] = [
-  { key: 'interfaces', label: 'Interface' },
-  { key: 'distribution', label: 'Distribution' },
-  { key: 'domain', label: 'Domain' },
-]
-// Dropdown options are whatever values the /work files use, de-duplicated ignoring case.
-const facetOptions = (key: Facet) =>
-  [...new Map(projects.flatMap((p) => p[key]).map((v) => [v.toLowerCase(), v])).values()].sort((a, b) => a.localeCompare(b))
-const FACET_OPTIONS = Object.fromEntries(FACETS.map((f) => [f.key, facetOptions(f.key)])) as Record<Facet, string[]>
-const NO_FACETS: Record<Facet, string[]> = { interfaces: [], distribution: [], domain: [] }
-const matches = (p: Project, key: Facet, picked: string[]) => !picked.length || picked.some((v) => has(p[key], v))
-// Play shows in a new random order on every visit, rather than grouped folder by folder. Shuffled once per page
-// load, so filtering and the viewer's next/previous keep a stable order while you're here.
-const PLAY_MIXED = (() => {
-  const a = [...playItems]
+/**
+ * A section's tiles, in the order of their names in the control center. A section where nothing is numbered
+ * (play, as it stands) is shuffled instead, once per page load, so it doesn't read as one tag after another;
+ * numbering any file there ("01_…") hands the order back to the names.
+ */
+function arrange(tiles: Tile[]) {
+  if (tiles.some((t) => /^\d+_/.test(lastPart(t.id)))) return tiles
+  const a = [...tiles]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
-})()
-const PLAY_ALL = 'All' // the play row's first pill, like "Selected Works" for work
-const PLAY_TAGS = buildFilters(PLAY_ALL, PLAY_ORDER, playItems.flatMap((i) => i.tags)).slice(1)
+}
+const TILES: Record<Mode, Tile[]> = { work: arrange(sections.work ?? []), play: arrange(sections.play ?? []) }
 
 /**
- * On phones the whole header would eat half the screen, so it's allowed to ride up until only the toggle and
- * filters are left showing: its sticky `top` becomes minus the controls' offset. Measured rather than
- * hardcoded, because the intro's height depends on the width and the font.
+ * On phones the whole header would eat half the screen, so it's allowed to ride up until only the toggle is left
+ * showing: its sticky `top` becomes minus the controls' offset. Measured rather than hardcoded, because the
+ * intro's height depends on the width and the font.
  */
 function useHeadLift(head: RefObject<HTMLDivElement | null>, controls: RefObject<HTMLDivElement | null>) {
   useLayoutEffect(() => {
     const h = head.current!
     const c = controls.current!
     const measure = () => {
-      h.style.setProperty('--head-lift', `${12 - c.offsetTop}px`) // controls land 12px from the top
-      // How much of the header stays on screen once pinned. The content gives that much back at its end (see
-      // .work__content in CSS), so the header lets go while the last item is still visible beneath it,
-      // instead of riding over it until it's gone.
+      // on the section, for the header and the words laid over it (.work__ink) both
+      const work = h.closest<HTMLElement>('.work')!
+      work.style.setProperty('--head-lift', `${12 - c.offsetTop}px`) // controls land 12px from the top
+      work.style.setProperty('--head-h', `${h.offsetHeight}px`)
+      // How much of the header stays on screen once pinned: its sticky range ends a screen less this before the
+      // content does (see .work__content in CSS), so the header goes up with the grid once the grid's end shows.
       const pinned = h.offsetHeight + (parseFloat(getComputedStyle(h).top) || 0)
       h.closest<HTMLElement>('.work')?.style.setProperty('--head-pinned', `${pinned}px`)
     }
@@ -77,15 +58,12 @@ function useHeadLift(head: RefObject<HTMLDivElement | null>, controls: RefObject
 export default function Work() {
   const [mode, setMode] = useState<Mode>('work')
   const [playSeen, setPlaySeen] = useState(false) // play stays mounted once visited, so its images don't reload
-  const [open, setOpen] = useState<number | null>(null) // index into the visible play items
-  const [playTags, setPlayTags] = useState<string[]>([]) // none ticked = everything
-  const [facet, setFacet] = useState<Record<Facet, string[]>>(NO_FACETS)
+  const [open, setOpen] = useState<Tile | null>(null) // what's showing in the viewer
   const [visit, setVisit] = useState(0) // bumped on every switch, so the work cards start again from the first
   const section = useRef<HTMLElement>(null)
   const head = useRef<HTMLDivElement>(null)
   const controls = useRef<HTMLDivElement>(null)
-  const anchor = useRef<{ behavior: ScrollBehavior; at: 'start' | 'end' } | null>(null) // how to bring the reader to the new side
-  const quiet = useRef(0) // until when the page is scrolling itself, which the scroll hand-over must not mistake for the reader
+  const anchor = useRef<ScrollBehavior | null>(null) // how to bring the reader to the new side
 
   /** The scroll position at which the header pins — where the reader should be left after a toggle. */
   const pinPoint = () => {
@@ -94,30 +72,16 @@ export default function Work() {
     return section.current!.getBoundingClientRect().top + scrollY + pad - top
   }
 
-  const jump = (top: number, behavior: ScrollBehavior) => {
-    quiet.current = performance.now() + (behavior === 'smooth' ? 1200 : 300)
-    window.scrollTo({ top, behavior })
-  }
+  const jump = (top: number, behavior: ScrollBehavior) => window.scrollTo({ top, behavior })
 
-  /** The bottom of the last tile on the side showing, in page coordinates. */
-  const listEnd = () => {
-    const tiles = section.current?.querySelectorAll<HTMLElement>('.work__content:not([hidden]) .stack__item, .work__content:not([hidden]) .cards-grid > *')
-    const lastTile = tiles?.[tiles.length - 1]
-    return lastTile ? lastTile.getBoundingClientRect().bottom + scrollY : null
-  }
-
-  /** Every switch, however it's asked for (the lever, the dock, the scroll hand-over), goes through here: the lever
-   *  clacks, and the new side starts fresh — no filters on, and the reader at its start, not wherever they'd got to
-   *  on the other side. `at: 'end'` instead leaves them at the foot of the new list, which is what the scroll
-   *  hand-over wants on the way back up, so work and play read as one continuous scroll.
-   *  Returns false when there was nothing to switch. */
-  const flip = (next: Mode, behavior: ScrollBehavior = 'instant', at: 'start' | 'end' = 'start') => {
+  /** Every switch, however it's asked for (the lever, the labels beside it, a "work:show" event), goes through here:
+   *  the lever clacks, and the new side starts fresh, with the reader at its start, not wherever they'd got to on
+   *  the other side. Returns false when there was nothing to switch. */
+  const flip = (next: Mode, behavior: ScrollBehavior = 'instant') => {
     if (next === mode) return false
     playFlip()
-    anchor.current = { behavior, at }
+    anchor.current = behavior
     if (next === 'play') setPlaySeen(true)
-    setFacet(NO_FACETS)
-    setPlayTags([])
     setOpen(null)
     setVisit((v) => v + 1)
     setMode(next)
@@ -125,117 +89,41 @@ export default function Work() {
   }
   const switchMode = (next: Mode) => flip(next)
 
-  // Anything else on the page (the dock, "exhibit a") can ask to see work or play; the section switches and
-  // scrolls itself into view:  window.dispatchEvent(new CustomEvent('work:show', { detail: 'play' }))
+  // Anything else on the page can ask to see work or play; the section switches and scrolls itself into view:
+  //   window.dispatchEvent(new CustomEvent('work:show', { detail: 'play' }))
   useEffect(() => {
     const on = (e: Event) => {
       const next = (e as CustomEvent<Mode>).detail
       if (next !== 'work' && next !== 'play') return
       if (!flip(next, 'smooth')) jump(pinPoint(), 'smooth') // no switch, so no re-render coming: go now
     }
-    // something else on the page is scrolling us somewhere; the hand-over must sit this one out
-    const hush = () => { quiet.current = performance.now() + 1600 }
     window.addEventListener('work:show', on)
-    window.addEventListener('nav:scroll', hush)
-    return () => {
-      window.removeEventListener('work:show', on)
-      window.removeEventListener('nav:scroll', hush)
-    }
+    return () => window.removeEventListener('work:show', on)
   })
-
-  // Work and play share one slot, so scrolling to the end of the work list hands over to play (the dock pill glides
-  // work → play); scrolling back up to the top hands back to work. The two contents swap visibility with the mode,
-  // so each trigger stops firing the moment it fires — no ping-pong.
-  useEffect(() => {
-    let raf = 0
-    let lastY = window.scrollY
-    const check = () => {
-      raf = 0
-      const down = window.scrollY > lastY
-      lastY = window.scrollY
-      if (performance.now() < quiet.current) return // the page moving itself (a switch, a filter), not the reader
-      const sec = section.current
-      if (!sec) return
-      if (mode === 'work') {
-        const cards = sec.querySelectorAll<HTMLElement>('.work__content:not([hidden]) .stack__item')
-        const lastCard = cards[cards.length - 1]
-        if (!lastCard || scrollY <= pinPoint() + 4) return
-        // the last case study has come up to the middle of the screen: the end is reached. The work list has
-        // half a screen of room under it (.work__content--work), so the page can get this far before the timeline shows
-        const r = lastCard.getBoundingClientRect()
-        if (down && (r.top + r.bottom) / 2 <= innerHeight / 2) flip('play')
-      } else if (!down && scrollY <= pinPoint() + 4) flip('work', 'instant', 'end')
-    }
-    const on = () => {
-      if (!raf) raf = requestAnimationFrame(check)
-    }
-    addEventListener('scroll', on, { passive: true })
-    return () => {
-      removeEventListener('scroll', on)
-      cancelAnimationFrame(raf)
-    }
-  }, [mode])
 
   useHeadLift(head, controls)
 
-  // A switch, or a changed filter, while scrolled into the list starts the list over: its first item sits right
-  // under the pinned header, which doesn't move. (Work and play are very different heights, and a shorter list
-  // would otherwise strand the reader somewhere random.) Nothing moves when the list hasn't been scrolled into yet,
-  // except that the dock always brings the section into view. These jumps are marked quiet, so the phone's scroll
-  // hand-over doesn't read them as the reader scrolling back up to the top and flip the lever straight back.
-  const filterKey = `${Object.values(facet).flat().join('|')}/${playTags.join('|')}`
-  const last = useRef({ mode, filterKey })
+  // A switch while scrolled into the list starts the list over: its first item sits right under the pinned header,
+  // which doesn't move. (Work and play are very different heights, and a shorter list would otherwise strand the
+  // reader somewhere random.) Nothing moves when the list hasn't been scrolled into yet, except that a "work:show"
+  // always brings the section into view.
+  const last = useRef(mode)
   useLayoutEffect(() => {
-    const was = last.current
-    last.current = { mode, filterKey }
-    if (was.mode === mode && was.filterKey === filterKey) return
-    const how = (was.mode !== mode && anchor.current) || null
-    const behavior = how?.behavior ?? 'instant'
+    if (last.current === mode) return
+    last.current = mode
+    const behavior = anchor.current ?? 'instant'
     anchor.current = null
-    quiet.current = Math.max(quiet.current, performance.now() + 300) // a shorter list can nudge the scroll by itself
-    if (how?.at === 'end') {
-      // coming back up out of play: land with the foot of the work list at the foot of the screen, so the reader
-      // carries on from where play left off instead of being thrown to the top of the section
-      const end = listEnd()
-      if (end !== null) jump(Math.max(pinPoint(), end - innerHeight), 'instant')
-      return
-    }
     if (behavior === 'smooth' || scrollY > pinPoint() + 1) jump(pinPoint(), behavior)
-  }, [mode, filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('work:mode', { detail: mode }))
-  }, [mode])
-
-  // A project shows if, for every filter with something ticked, it has at least one of the ticked values.
-  // In the default view ("Selected Works", no filters) only the projects marked Selected show; once a filter is on,
-  // it searches every project, chosen or not.
-  const anyFilter = FACETS.some(({ key }) => facet[key].length > 0)
-  const shownProjects = projects.filter((p) => (anyFilter || p.selected) && FACETS.every(({ key }) => matches(p, key, facet[key])))
-  // Each dropdown offers only what's left once the other dropdowns have had their say: pick Interface → Web, and
-  // Domain lists only the domains that have web work. A dropdown with nothing left isn't shown at all. What's
-  // already ticked in it stays listed, so it can always be unticked.
-  const facetLeft = (key: Facet) => {
-    const pool = projects.filter((p) => FACETS.every((f) => f.key === key || matches(p, f.key, facet[f.key])))
-    return FACET_OPTIONS[key].filter((o) => has(facet[key], o) || pool.some((p) => has(p[key], o)))
-  }
-  const featured = shownProjects.filter((p) => p.featured)
-  const rest = shownProjects.filter((p) => !p.featured)
-  const shownPlay = PLAY_MIXED.filter((p) => !playTags.length || playTags.some((t) => has(p.tags, t)))
-  const workFiltered = anyFilter
-  const clearWork = () => setFacet(NO_FACETS)
-  const togglePlay = (t: string) => setPlayTags((on) => (has(on, t) ? on.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...on, t]))
+  }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="work" id="work" ref={section}>
       <div className="work__inner">
         <div className="stack">
           <div className="stack__pane">
-            {/* Pinned while the section scrolls. One row, ruled off underneath (Figma 7264:47526): the work/play
-                toggle on the left, that side's filters on the right. Both filter rows are always rendered, stacked
-                in one grid cell (.swap), so the header keeps the height of its taller version and a toggle
-                crossfades in place instead of reflowing everything below it. */}
+            {/* Pinned while the section scrolls: the work/play toggle (Figma 7264:47526). */}
             <div className="work__head" ref={head}>
-              <div className="work__controls" ref={controls}>
+              <div className="work__controls" ref={controls} data-slide-head data-slide-head-block>
                 <div className="modes" role="group" aria-label="Choose what to see">
                   <button type="button" className={`modes__label${mode === 'work' ? ' is-on' : ''}`} onClick={() => switchMode('work')}>
                     all work
@@ -254,215 +142,334 @@ export default function Work() {
                     some play
                   </button>
                 </div>
-
-                {/* Figma 919:16952: the first pill is "everything", lit while nothing is filtered, and clicking it
-                    clears the filters; the filters after the divider can each take several values. */}
-                <div className="work__filters swap">
-                  <div className={`pills${mode === 'work' ? ' is-on' : ''}`} aria-label="Filter projects" inert={mode !== 'work'}>
-                    <button type="button" className={`pill${workFiltered ? '' : ' is-on'}`} aria-pressed={!workFiltered} onClick={clearWork}>
-                      Selected Works({shownProjects.length})
-                    </button>
-                    <span className="pills__divider" aria-hidden />
-                    {FACETS.map(({ key, label }) => {
-                      const left = facetLeft(key)
-                      return left.length ? (
-                        <Dropdown key={key} label={label} value={facet[key]} options={left} onChange={(v) => setFacet((f) => ({ ...f, [key]: v }))} />
-                      ) : null
-                    })}
-                    {workFiltered && (
-                      <button type="button" className="pills__clear" onClick={clearWork}>
-                        Clear Filters
-                      </button>
-                    )}
-                  </div>
-                  <div className={`pills${mode === 'play' ? ' is-on' : ''}`} aria-label="Filter play" inert={mode !== 'play'}>
-                    <button type="button" className={`pill${playTags.length ? '' : ' is-on'}`} aria-pressed={!playTags.length} onClick={() => setPlayTags([])}>
-                      {PLAY_ALL}({shownPlay.length})
-                    </button>
-                    <span className="pills__divider" aria-hidden />
-                    {PLAY_TAGS.map((t) => (
-                      <button key={t} type="button" aria-pressed={has(playTags, t)} className={`pill${has(playTags, t) ? ' is-on' : ''}`} onClick={() => togglePlay(t)}>
-                        {t}
-                      </button>
-                    ))}
-                    {playTags.length > 0 && (
-                      <button type="button" className="pills__clear" onClick={() => setPlayTags([])}>
-                        Clear Filters
-                      </button>
-                    )}
-                  </div>
+              </div>
+            </div>
+            {/* The toggle's words again, laid exactly over the header's and drawn in "difference" against whatever
+                is under them (see .work__ink), so they always stand out; the header's own are there to be clicked. */}
+            <div className="work__ink" aria-hidden>
+              <div className="work__controls" data-slide-head data-slide-head-block>
+                <div className="modes">
+                  <span className={`modes__label${mode === 'work' ? ' is-on' : ''}`}>all work</span>
+                  <span className="pin-switch" />
+                  <span className={`modes__label modes__label--play${mode === 'play' ? ' is-on' : ''}`}>some play</span>
                 </div>
               </div>
             </div>
 
-            <div className="work__content work__content--work" hidden={mode !== 'work'} key={`work-${visit}-${Object.values(facet).flat().join('|')}`}>
-              {shownProjects.length ? (
-                <>
-                  {/* the ones marked "Featured: yes" get a wide row each, the rest share a grid underneath */}
-                  {featured.length > 0 && (
-                    <CardRail count={featured.length}>
-                      {featured.map((p) => (
-                        <div className="stack__item" key={p.id}>
-                          <ProjectCard p={p} />
-                        </div>
-                      ))}
-                    </CardRail>
-                  )}
-                  {rest.length > 0 && (
-                    <div className="cards-grid" data-reveal-children>
-                      {rest.map((p) => (
-                        <ProjectCard key={p.id} p={p} tile />
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="empty">Nothing here yet.</p>
-              )}
+            <div className="work__content" hidden={mode !== 'work'} key={`work-${visit}`}>
+              <Wall mode="work" tiles={TILES.work} visit={visit} onOpen={setOpen} />
             </div>
             {(mode === 'play' || playSeen) && (
-              <div className="work__content" hidden={mode !== 'play'} key={`play-${playTags.join('|')}`}>
-                {shownPlay.length ? (
-                  <div className="masonry" data-reveal-children>
-                    {shownPlay.map((item, i) => (
-                      <PlayTile key={item.id} item={item} onOpen={() => setOpen(i)} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="empty">Nothing here yet.</p>
-                )}
+              <div className="work__content" hidden={mode !== 'play'}>
+                <Wall mode="play" tiles={TILES.play} visit={visit} onOpen={setOpen} />
               </div>
             )}
           </div>
         </div>
       </div>
-      {open !== null && shownPlay[open] && (
-        <Lightbox items={shownPlay} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />
-      )}
+      {open && <Showcase tile={open} onClose={() => setOpen(null)} />}
     </section>
   )
 }
 
-/**
- * The project cards. On a phone they're a row you swipe through, one card at a time with the next one peeking in,
- * and dots underneath to show where you are (CSS does the rest; see .cards in the phone styles).
- */
-function CardRail({ children, count }: { children: React.ReactNode; count: number }) {
-  const rail = useRef<HTMLDivElement>(null)
-  const [at, setAt] = useState(0)
-  const step = () => {
-    const el = rail.current!
-    const first = el.firstElementChild as HTMLElement | null
-    return first ? first.offsetWidth + (parseFloat(getComputedStyle(el).columnGap) || 0) : el.clientWidth
-  }
+// How many columns the grid has: three on a laptop, two on a tablet, and on a phone one for work, two for play (its
+// pieces are pictures, and read well small).
+const COLUMNS = [
+  { query: '(min-width: 1000px)', n: 3 },
+  { query: '(min-width: 641px)', n: 2 },
+]
+const columnCount = (mode: Mode) => COLUMNS.find((c) => matchMedia(c.query).matches)?.n ?? (mode === 'play' ? 2 : 1)
+function useColumns(mode: Mode) {
+  const [n, setN] = useState(() => columnCount(mode))
   useEffect(() => {
-    const el = rail.current!
-    const on = () => setAt(Math.round(el.scrollLeft / step()))
-    el.addEventListener('scroll', on, { passive: true })
-    return () => el.removeEventListener('scroll', on)
-  }, [])
+    const lists = COLUMNS.map((c) => matchMedia(c.query))
+    const on = () => setN(columnCount(mode))
+    lists.forEach((l) => l.addEventListener('change', on))
+    return () => lists.forEach((l) => l.removeEventListener('change', on))
+  }, [mode])
+  return n
+}
+
+/** The margin round inset media unless its name says otherwise, in % of the tile's width (as in .wall__media). */
+const INSET = { x: 10, y: 11 }
+
+/** A tile's height as a share of its width, for sharing tiles out between the columns before anything has loaded. */
+function tileHeight(t: Tile) {
+  const m = t.media
+  const media = m?.width && m.height ? m.height / m.width : 0.75 // clips and SVGs don't say; most are about 4:3
+  if (t.edge) return media
+  const x = (t.inset?.x ?? INSET.x) / 100
+  const y = (t.inset?.y ?? INSET.y) / 100
+  return media * (1 - 2 * x) + 2 * y // inset media is narrower, with room above and below
+}
+
+/**
+ * The tiles come in one by one as they're reached (see TILES in lib/slideMotion.ts): whatever comes into view
+ * together is put in reading order, row by row from the top and left to right along each, and each follows the one
+ * before. They come in afresh every time the grid is come to: switched to (`visit`), or arrived at from outside the
+ * section (down from the hero, or back up from the timeline), since leaving it altogether puts them all back to wait.
+ * A tile that has come in stays in while the reader is in the section, even when it's moved to another column (made
+ * afresh) as the columns are levelled. With reduced motion they're simply there.
+ */
+function useTileReveal(wall: RefObject<HTMLDivElement | null>, visit: number, deps: unknown[]) {
+  const seen = useRef(new Set<string>())
+  const io = useRef<{ observer: IntersectionObserver; watching: WeakSet<Element> } | null>(null)
+  const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches
+  const watcher = () =>
+    (io.current ??= {
+      watching: new WeakSet(),
+      observer: new IntersectionObserver(
+        (entries) => {
+          // into rows (the columns are staggered, so a row is the tiles whose tops are near the first one's), each
+          // read left to right
+          const rows: { top: number; left: number; el: HTMLElement }[][] = []
+          entries
+            .filter((e) => e.isIntersecting)
+            .map((e) => ({ el: e.target as HTMLElement, top: e.boundingClientRect.top, left: e.boundingClientRect.left }))
+            .sort((a, b) => a.top - b.top)
+            .forEach((t) => {
+              const row = rows[rows.length - 1]
+              if (row && t.top - row[0].top < REVEAL.row) row.push(t)
+              else rows.push([t])
+            })
+          const arriving = rows.flatMap((row) => row.sort((a, b) => a.left - b.left).map((t) => t.el))
+          if (!arriving.length) return
+          arriving.forEach((el) => {
+            io.current?.observer.unobserve(el)
+            io.current?.watching.delete(el)
+            seen.current.add(el.dataset.tile!)
+          })
+          const each = Math.min(REVEAL.stagger, REVEAL.spread / Math.max(1, arriving.length - 1))
+          gsap.to(arriving, { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', duration: REVEAL.duration, ease: REVEAL.ease, stagger: each, clearProps: 'opacity,transform,filter' })
+        },
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.12 },
+      ),
+    })
+  /** Every tile not in yet waits, hidden, for its turn. */
+  const arm = () => {
+    if (!wall.current || still()) return
+    const { observer, watching } = watcher()
+    for (const tile of wall.current.querySelectorAll<HTMLElement>('[data-tile]')) {
+      if (seen.current.has(tile.dataset.tile!) || watching.has(tile)) continue
+      watching.add(tile)
+      gsap.killTweensOf(tile)
+      gsap.set(tile, { opacity: 0, y: REVEAL.y, scale: REVEAL.scale, filter: `blur(${REVEAL.blur}px)` })
+      observer.observe(tile)
+    }
+  }
+  /** All of them back to wait, to come in again. */
+  const rearm = () => {
+    seen.current.clear()
+    if (io.current) {
+      io.current.observer.disconnect()
+      io.current.watching = new WeakSet()
+    }
+    arm()
+  }
+  // set before the first paint, so none shows and then vanishes
+  useLayoutEffect(arm, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  // switched to: they come in again
+  const lastVisit = useRef(visit)
+  useLayoutEffect(() => {
+    if (lastVisit.current === visit) return
+    lastVisit.current = visit
+    rearm()
+  }, [visit]) // eslint-disable-line react-hooks/exhaustive-deps
+  // the section left altogether (up to the hero, down into the timeline): they come in again when it's come back to
+  useEffect(() => {
+    const section = wall.current?.closest('.work')
+    if (!section) return
+    // (a section only touching the screen's edge, as work does under the hero, counts as left)
+    const away = new IntersectionObserver(([e]) => e.intersectionRect.height < 2 && rearm(), { threshold: [0, 0.01] })
+    away.observe(section)
+    return () => {
+      away.disconnect()
+      io.current?.observer.disconnect()
+      io.current = null
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/**
+ * Shares the tiles out between the columns: the top row in the order of the names, then the rest so the columns end
+ * as level as they can, each column reading down in name order. Up to 9 below the top row, every way of sharing them
+ * is tried (3^9 is under 20,000); past that, each goes to whichever column is shortest so far.
+ */
+function share(tiles: Tile[], n: number, tall: (t: Tile) => number) {
+  const top = tiles.slice(0, n)
+  const rest = tiles.slice(n)
+  const heights = top.map(tall).concat(new Array(Math.max(0, n - top.length)).fill(0))
+  let pick: number[]
+  if (n > 1 && rest.length <= 9) {
+    let best = Infinity
+    pick = []
+    const at: number[] = []
+    const h = [...heights]
+    const go = (k: number) => {
+      if (k === rest.length) {
+        const spread = Math.max(...h) - Math.min(...h)
+        if (spread < best - 1e-6) [best, pick] = [spread, [...at]]
+        return
+      }
+      for (let c = 0; c < n; c++) {
+        at[k] = c
+        h[c] += tall(rest[k])
+        go(k + 1)
+        h[c] -= tall(rest[k])
+      }
+    }
+    go(0)
+  } else {
+    const h = [...heights]
+    pick = rest.map((t) => {
+      const c = h.indexOf(Math.min(...h))
+      h[c] += tall(t)
+      return c
+    })
+  }
+  const cols: Tile[][] = top.map((t) => [t]).concat(Array.from({ length: Math.max(0, n - top.length) }, () => []))
+  rest.forEach((t, k) => cols[pick[k]].push(t))
+  return cols
+}
+
+/**
+ * The grid (after zegzulka.com): equal columns, each tile as tall as its media, tiles of the same width stacked
+ * with the same gap all round, shared out by `share`. Until a tile has been measured its height is guessed from its
+ * media (tileHeight).
+ */
+function Wall({ mode, tiles, visit, onOpen }: { mode: Mode; tiles: Tile[]; visit: number; onOpen: (t: Tile) => void }) {
+  const n = useColumns(mode)
+  const wall = useRef<HTMLDivElement>(null)
+  // Each tile's real height as a share of its width, once it's laid out: a clip or an SVG only says how tall it is
+  // once it has loaded, and the labels under the media on a touch screen add to it. The tiles are shared out again
+  // with these, so the columns do end level.
+  const [measured, setMeasured] = useState<Record<string, number>>({})
+  useEffect(() => {
+    const el = wall.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      setMeasured((had) => {
+        let next = had
+        for (const tile of el.querySelectorAll<HTMLElement>('[data-tile]')) {
+          if (!tile.offsetWidth || !tile.offsetHeight) continue
+          const r = tile.offsetHeight / tile.offsetWidth
+          const id = tile.dataset.tile!
+          if (Math.abs((had[id] ?? 0) - r) > 0.01) next = { ...next, [id]: r }
+        }
+        return next
+      })
+    })
+    // looked at again whenever the tiles have been shared out afresh: a tile that changed column is a new element
+    el.querySelectorAll('[data-tile]').forEach((t) => ro.observe(t))
+    return () => ro.disconnect()
+  }, [n, tiles, measured])
+  useTileReveal(wall, visit, [n, tiles, measured])
+  if (!tiles.length) return <p className="empty">Nothing here yet.</p>
+  const cols = share(tiles, n, (t) => (measured[t.id] ?? tileHeight(t)) + 0.02) // the gap, near enough
   return (
-    <>
-      <div className="cards" ref={rail} data-reveal-children>
-        {children}
-      </div>
-      {count > 1 && (
-        <div className="cards__dots">
-          {Array.from({ length: count }, (_, i) => (
-            <button
-              key={i}
-              type="button"
-              className={i === at ? 'is-on' : ''}
-              aria-label={`Project ${i + 1} of ${count}`}
-              aria-current={i === at}
-              onClick={() => rail.current!.scrollTo({ left: i * step(), behavior: 'smooth' })}
-            />
+    <div className={`wall wall--${mode}`} ref={wall} style={{ '--cols': n } as React.CSSProperties}>
+      {cols.map((col, i) => (
+        <div key={i} className="wall__col">
+          {col.map((t) => (
+            <WallTile key={t.id} t={t} onOpen={() => onOpen(t)} />
           ))}
         </div>
+      ))}
+    </div>
+  )
+}
+
+/** A clip in a tile plays on its own while it can be seen, silent and looping, and says how long it is. */
+function TileVideo({ src, onLength }: { src: string; onLength: (s: number) => void }) {
+  const video = useRef<HTMLVideoElement>(null)
+  usePlayWhenSeen(video)
+  return <video ref={video} src={src} muted loop playsInline preload="metadata" onLoadedMetadata={(e) => onLength(e.currentTarget.duration)} />
+}
+
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`
+
+/**
+ * One tile: the media, filling the tile's width (or sitting inside it on its background, with "Edge-[no]"), and
+ * its logos, always in the top-left corner. The rest comes up along its foot when it's pointed at: the heading on the
+ * left, straight on the media, and what kind of thing it is on the right, on a white label (its tag, or the case
+ * study's read). The subtitle waits for the viewer.
+ * Without a pointer to point with, the labels just stay up.
+ */
+function WallTile({ t, onOpen }: { t: Tile; onOpen: () => void }) {
+  const [length, setLength] = useState(0)
+  const m = t.media
+  const isCase = t.kind === 'case'
+  const minutes = isCase && t.written ? caseStudies[t.slug!]?.minutes : undefined
+  // a play piece says what it is with its file name's text, on the white label (and has no heading beside it)
+  const play = t.section === 'play'
+  const about = !!t.heading && !play
+  const kind = isCase ? (
+    <>case study · {t.written ? <>{minutes ?? 5} min <b>read ↗</b></> : 'soon'}</>
+  ) : play ? (
+    t.heading || undefined
+  ) : (
+    t.tags[0]?.toLowerCase()
+  )
+  const back = t.backdrop
+  const inner = (
+    <>
+      {/* a media folder's bg.*, filling the tile behind the media; a clip plays on its own like any other */}
+      {back && (
+        <span className="wall__bg" aria-hidden>
+          {back.video ? <video src={back.src} autoPlay muted loop playsInline preload="metadata" /> : <img src={back.thumb ?? back.src} alt="" loading="lazy" decoding="async" />}
+        </span>
+      )}
+      <span className="wall__media">
+        {m && (m.video ? <TileVideo src={m.src} onLength={setLength} /> : <img src={m.thumb ?? m.src} width={m.width} height={m.height} alt="" loading="lazy" decoding="async" />)}
+      </span>
+      {t.logos.length > 0 && (
+        <span className="wall__logos">
+          <Logos names={t.logos} />
+        </span>
+      )}
+      {m?.video && length > 0 && <span className="wall__label wall__time">▶ {clock(length)}</span>}
+      {(about || kind) && (
+        <span className="wall__labels">
+          {about && (
+            <span className="wall__label wall__about">
+              <span className="wall__heading">{t.heading}</span>
+            </span>
+          )}
+          {kind && <span className="wall__label wall__kind">{kind}</span>}
+        </span>
       )}
     </>
   )
-}
-
-/**
- * A project with no write-up yet swaps the pointer for a "Coming Soon" pill that follows the cursor
- * (Figma node 880:15350). Portalled to <body>, so nothing around the card can clip a position:fixed child.
- */
-function ComingSoonCursor({ at }: { at: { x: number; y: number } }) {
-  return createPortal(
-    <div className="soon-cursor" style={{ transform: `translate3d(${at.x}px, ${at.y}px, 0)` }} aria-hidden>
-      Coming Soon
-      <img src={clockIcon} width={16} height={16} alt="" />
-    </div>,
-    document.body,
-  )
-}
-
-function ProjectCard({ p, tile = false }: { p: Project; tile?: boolean }) {
-  const clients = p.clients.map((c) => ({ name: c, logo: findLogo(c) }))
-  const href = p.caseStudy
-  const read = href?.startsWith('/case-studies/') ? caseStudies[p.slug]?.minutes : undefined
-  const Tag = href ? 'a' : 'div'
-  const [soonAt, setSoonAt] = useState<{ x: number; y: number } | null>(null)
-  // A /case-studies/... link is our own in-site page: navigate client-side instead of a full reload.
-  const linkProps = href
-    ? { href, ...(href.startsWith('/case-studies/') && { onClick: (e: React.MouseEvent) => { e.preventDefault(); navigate(href) } }) }
-    : {
-        onPointerMove: (e: React.PointerEvent) => e.pointerType === 'mouse' && setSoonAt({ x: e.clientX, y: e.clientY }),
-        onPointerLeave: () => setSoonAt(null),
-      }
-  // Figma 7264:47457: the shot on the left at its natural colours, the write-up beside it — no dark card around
-  // it any more, and the "read" line sits under the tags instead of riding on the image.
+  const props = {
+    'data-tile': t.id,
+    className: `wall__tile wall__tile--${t.kind}${t.edge ? ' is-edge' : ''}${t.shadow ? ' has-shadow' : ''}${isCase && !t.written ? ' is-soon' : ''}`,
+    style: {
+      ...(t.bg && { '--tile-bg': t.bg }),
+      ...(t.inset && { '--inset-x': `${t.inset.x}%` }),
+      ...(t.inset?.y !== undefined && { '--inset-y': `${t.inset.y}%` }),
+      ...(t.radius !== undefined && { '--media-r': `${t.radius}px` }),
+    } as React.CSSProperties,
+  }
+  // a written case study is a real link to its page (so it can be opened in a new tab), opening in the viewer here
+  if (isCase && t.written)
+    return (
+      <a
+        {...props}
+        href={`/case-studies/${t.slug}`}
+        aria-label={t.heading || undefined}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey) return
+          e.preventDefault()
+          onOpen()
+        }}
+      >
+        {inner}
+      </a>
+    )
+  // the rest, a case study not written yet among them, open their media in the viewer
   return (
-    <Tag className={`card${tile ? ' card--tile' : ''}${href ? '' : ' card--soon'}`} {...linkProps}>
-      {soonAt && <ComingSoonCursor at={soonAt} />}
-      <div className="card__thumb">{p.thumbnail && <img src={p.thumbnail} alt={p.title} />}</div>
-      <div className="card__side">
-        <div className="card__clients">
-          {clients.map((c, i) => (
-            <span key={c.name} className="card__client-group">
-              {i > 0 && (
-                <svg className="card__x" width="12" height="12" viewBox="0 0 20 20" aria-label="×">
-                  <path d="M15.625 4.375 4.375 15.625M15.625 15.625 4.375 4.375" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-              <span className="client-pill">{c.logo ? <img src={c.logo.src} alt={c.name} /> : c.name}</span>
-            </span>
-          ))}
-        </div>
-        <div className="card__text">
-          <h3>{p.title}</h3>
-          <p>{p.description}</p>
-          <div className="card__tags">
-            {[...p.interfaces, ...p.distribution, ...p.domain].map((t) => (
-              <span key={t}>{t}</span>
-            ))}
-          </div>
-        </div>
-        <span className={`card__read${href ? '' : ' card__read--soon'}`}>
-          {href ? `${read ?? 5} min read` : 'case study soon'}
-          {href && (
-            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
-              <path d="M4 12 12 4M5.5 4H12v6.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </span>
-      </div>
-    </Tag>
-  )
-}
-
-function PlayTile({ item, onOpen }: { item: PlayItem; onOpen: () => void }) {
-  return (
-    <figure className="tile">
-      <button type="button" className="tile__open" onClick={onOpen} aria-label={item.caption ? `Open: ${item.caption}` : 'Open'}>
-        {item.video ? (
-          <video src={item.src} autoPlay muted loop playsInline />
-        ) : (
-          <img src={item.thumb ?? item.src} width={item.width} height={item.height} alt={item.caption} loading="lazy" decoding="async" />
-        )}
-        {item.caption && <figcaption>{item.caption}</figcaption>}
-      </button>
-    </figure>
+    <button type="button" {...props} onClick={onOpen} aria-label={t.heading ? `Open: ${t.heading}` : 'Open'}>
+      {inner}
+    </button>
   )
 }

@@ -9,14 +9,46 @@ const src = Object.values(files)[0]
 let audio: HTMLAudioElement | undefined
 let ctx: AudioContext | undefined
 
-// A short filtered noise burst with a quick pitch drop, like a flipped switch or card.
-function synth() {
+/**
+ * The audio, if it may make a sound right now. Audio that hasn't been woken by a tap yet would hold the sound and
+ * let it out at the next tap, with nothing happening. So while asleep it only plays inside a tap (which wakes it);
+ * otherwise it stays quiet.
+ */
+function live() {
   ctx ??= new AudioContext()
-  // Audio that hasn't been woken by a tap yet would hold the clack and let it out at the next tap — a stray
-  // clack with no switch. So while asleep it only plays inside a tap (which wakes it); otherwise it stays quiet.
   const awake = ctx.state === 'running'
   if (!awake) void ctx.resume()
-  if (!awake && !(navigator.userActivation?.isActive ?? true)) return
+  return awake || (navigator.userActivation?.isActive ?? true) ? ctx : null
+}
+
+/** A burst of noise through a filter, rising over `rise` seconds and dying away over the rest. */
+function rustle({ dur, rise, type, from, to, q, gain }: { dur: number; rise: number; type: BiquadFilterType; from: number; to: number; q: number; gain: number }) {
+  const c = live()
+  if (!c) return
+  const t = c.currentTime
+  const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate)
+  const data = buf.getChannelData(0)
+  // mostly a hiss, with the odd louder grain: paper crackles
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (Math.random() < 0.025 ? 1 : 0.45)
+  const noise = c.createBufferSource()
+  noise.buffer = buf
+  const filter = c.createBiquadFilter()
+  filter.type = type
+  filter.Q.value = q
+  filter.frequency.setValueAtTime(from, t)
+  filter.frequency.exponentialRampToValueAtTime(to, t + dur)
+  const amp = c.createGain()
+  amp.gain.setValueAtTime(0.0001, t)
+  amp.gain.exponentialRampToValueAtTime(gain, t + rise)
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  noise.connect(filter).connect(amp).connect(c.destination)
+  noise.start(t)
+}
+
+// A short filtered noise burst with a quick pitch drop, like a flipped switch or card.
+function synth() {
+  const ctx = live()
+  if (!ctx) return
   const t = ctx.currentTime
   const len = Math.floor(ctx.sampleRate * 0.12)
   const buf = ctx.createBuffer(1, len, ctx.sampleRate)
@@ -73,5 +105,25 @@ export function playFlip() {
     } else synth()
   } catch {
     // sound is a nicety; never break the toggle
+  }
+}
+
+/** A sketchbook page turning over: a soft swish, brightest as the page lifts and dropping as it lands. */
+export function playPage() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  try {
+    rustle({ dur: 0.34, rise: 0.06, type: 'bandpass', from: 3800, to: 1300, q: 0.8, gain: 0.14 })
+  } catch {
+    // a nicety
+  }
+}
+
+/** The sketchbook's hard cover, opening or closing: a dull little thump. */
+export function playCover() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  try {
+    rustle({ dur: 0.16, rise: 0.008, type: 'lowpass', from: 900, to: 240, q: 0.7, gain: 0.32 })
+  } catch {
+    // a nicety
   }
 }

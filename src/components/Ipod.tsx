@@ -1,12 +1,25 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { songs, type Song } from '../lib/about'
+import { ipod } from '../lib/ipod'
+import { useDialogFocus } from '../lib/dialogFocus'
 
 /*
  * The iPod from the about box, opened: a 5th-generation iPod, working the way it did. The click wheel scrolls
  * (drag round it, or use a trackpad, or the arrow keys), MENU goes back, the centre button picks, and the four
- * buttons on the ring play, pause and skip. Its songs are whatever is in about/opened assets/songs.
+ * buttons on the ring play, pause and skip. Its songs are whatever is in control center/about box/songs.
+ *
+ * It can also be tucked into the bottom-left corner of the screen, still playing, while the rest of the site (case
+ * studies too) is used as normal; clicking it there brings it back to the middle. So it isn't part of the about box
+ * but of the whole app (IpodHost, in App.tsx), and the box only asks for it (openIpod, in lib/ipod.ts).
  */
+
+/** Wherever the iPod is: in the middle, in the corner, or (put away) nowhere. It outlives a move between pages. */
+export function IpodHost() {
+  const at = useSyncExternalStore(ipod.watch, ipod.get)
+  if (at === 'away') return null
+  return <Ipod docked={at === 'docked'} onDock={() => ipod.moveTo('docked')} onOpen={() => ipod.moveTo('open')} onClose={() => ipod.moveTo('away')} />
+}
 
 type Screen = 'main' | 'music' | 'songs' | 'artists' | 'artist' | 'extras' | 'settings' | 'about' | 'now' | 'clock'
 type Entry = { id: Screen; sel: number; off: number; artist?: string } // sel: highlighted row, off: first row showing
@@ -49,6 +62,28 @@ function click() {
   }
 }
 
+/**
+ * A tap you feel: a short vibration on Android. iPhones have no vibration API, but flipping a native switch makes
+ * Safari (iOS 18 and up) play its system tap, so a hidden one is flipped instead. Only works inside a touch or click,
+ * which is when the iPod calls it.
+ */
+let haptic: HTMLLabelElement | null = null
+function buzz(ms = 6) {
+  if (navigator.vibrate?.(ms)) return
+  if (!haptic) {
+    haptic = document.createElement('label')
+    haptic.ariaHidden = 'true'
+    haptic.style.cssText = 'position:fixed;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none'
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.setAttribute('switch', '')
+    input.tabIndex = -1
+    haptic.append(input)
+    document.body.append(haptic)
+  }
+  haptic.click()
+}
+
 function Chevron() {
   return (
     <svg className="ipod__more" viewBox="0 0 8 12" aria-hidden>
@@ -78,7 +113,9 @@ function MenuRow({ row, on }: { row: Row; on: boolean }) {
   )
 }
 
-export default function Ipod({ onClose }: { onClose: () => void }) {
+type Props = { docked: boolean; onDock: () => void; onOpen: () => void; onClose: () => void }
+
+function Ipod({ docked, onDock, onOpen, onClose }: Props) {
   const [, render] = useReducer((n: number) => n + 1, 0)
   // where you are: a stack of screens, like the iPod's own menus (kept in a ref so a fast spin never loses a click)
   const nav = useRef<Entry[]>([{ id: 'main', sel: 0, off: 0 }])
@@ -247,10 +284,8 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
       t.sel = sel
       if (sel < t.off) t.off = sel
       if (sel > t.off + ROWS - 1) t.off = sel - ROWS + 1
-      if (clicker) {
-        click()
-        navigator.vibrate?.(2)
-      }
+      if (clicker) click()
+      buzz(4)
       render()
       return
     }
@@ -265,10 +300,12 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
         setDial({ mode: 'volume', until: Date.now() + 1500 })
       }
       if (clicker) click()
+      buzz(4)
     }
   }
   const select = () => {
     wake()
+    buzz(10)
     const t = nav.current[nav.current.length - 1]
     const m = menu(t)
     if (m) {
@@ -278,6 +315,7 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
   }
   const press = (button: 'menu' | 'next' | 'prev' | 'play') => {
     wake()
+    buzz(10)
     if (button === 'menu') back()
     else if (button === 'next') next()
     else if (button === 'prev') prev()
@@ -286,6 +324,11 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
   const close = () => {
     setLeaving(true)
     window.setTimeout(onClose, 220)
+  }
+  // off to the corner, showing what's playing
+  const dock = () => {
+    if (song && top.id !== 'now') push({ id: 'now' })
+    onDock()
   }
   // the handlers below live for the whole visit; they reach the current ones through this
   const api = useRef({ scroll, select, press, close })
@@ -316,19 +359,26 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
         k[e.key]()
       }
     }
+    if (docked) return // in the corner, the keys and the page are the site's again
     window.addEventListener('keydown', on)
     document.documentElement.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', on)
       document.documentElement.style.overflow = ''
     }
-  }, [])
+  }, [docked])
+
+  const dockedRef = useRef(docked)
+  useLayoutEffect(() => {
+    dockedRef.current = docked
+  })
 
   // a trackpad or mouse wheel turns the click wheel too
   useEffect(() => {
     const el = body.current!
     let acc = 0
     const on = (e: WheelEvent) => {
+      if (dockedRef.current) return // in the corner, a scroll over it scrolls the page
       e.preventDefault()
       acc += Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
       while (acc >= 36) {
@@ -412,6 +462,9 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
     if (s.turned < 0.2) api.current.press(s.button) // barely turned: that was a press
   }
 
+  const dialog = useRef<HTMLDivElement>(null)
+  useDialogFocus(dialog, !docked)
+
   // ----- what's on the screen -----
   const m = menu(top)
   const lastBars = Math.max(1, Math.round(battery * 4))
@@ -419,8 +472,32 @@ export default function Ipod({ onClose }: { onClose: () => void }) {
   const progress = clock.dur ? clock.cur / clock.dur : 0
 
   return createPortal(
-    <div className={`lightbox ipodview${leaving ? ' is-leaving' : ''}`} role="dialog" aria-modal="true" aria-label={OWNER} onClick={close}>
+    <div
+      ref={dialog}
+      tabIndex={docked ? undefined : -1}
+      className={`lightbox ipodview${docked ? ' is-docked' : ''}${leaving ? ' is-leaving' : ''}`}
+      role={docked ? undefined : 'dialog'}
+      aria-modal={docked ? undefined : true}
+      aria-label={docked ? undefined : OWNER}
+      onClick={docked ? undefined : dock} // the frosted glass round it sends it to the corner; the × turns it off
+    >
       <div className="ipod" ref={body} onClick={(e) => e.stopPropagation()}>
+        {/* turns it off and puts it away, music and all; it stays on it in the corner too */}
+        <button type="button" className="ipod__close" aria-label={`Turn off ${OWNER}`} title="Turn it off" onClick={close}>
+          <svg viewBox="0 0 20 20" aria-hidden>
+            <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+        {docked ? (
+          // in the corner it's one big button: a click anywhere on it brings it back to the middle
+          <button type="button" className="ipod__undock" aria-label={song ? `${OWNER}: ${song.title}. Bring it back` : `Bring ${OWNER} back`} onClick={onOpen} />
+        ) : (
+          <button type="button" className="ipod__dock" aria-label="Keep it playing in the corner" title="Keep it playing in the corner" onClick={dock}>
+            <svg viewBox="0 0 20 20" aria-hidden>
+              <path d="M15 5 5.5 14.5M5 8.5V15h6.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
         <audio
           ref={audio}
           preload="auto"

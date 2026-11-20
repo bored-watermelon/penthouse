@@ -99,6 +99,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     let catH = catW * CAT_RATIO
     let bubbleW = 0
     let bubbleH = 0
+    let keepOff: { l: number; t: number; r: number; b: number }[] = [] // what the speech bubble mustn't cover: the copyright pill and the credit
     const cat = { x: NaN, y: 0, vx: 0, vy: 0, walk: 0 }
     const keys = { left: false, right: false }
     let engaged = false // once the player has moved, ↑ and space belong to the game instead of scrolling
@@ -140,13 +141,25 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       return tops.length ? Math.max(size * 2, Math.min(...tops) - 8) : H
     }
 
+    /**
+     * On a phone, the top of the icons' room: under the headline, so none of them lies across its words, and at
+     * most 55% of the footer high. Where there isn't room under it for them, just the 55%.
+     */
+    const findRoof = () => {
+      const lowest = Math.max(0, floor - Math.min(floor, H * 0.55))
+      const text = host.parentElement?.querySelector<HTMLElement>('.foot__text')
+      if (!text) return lowest
+      const under = text.getBoundingClientRect().bottom - host.getBoundingClientRect().top + 12
+      return floor - under >= size * 1.5 ? Math.max(lowest, under) : lowest
+    }
+
     const buildWalls = () => {
       walls.forEach((b) => Composite.remove(world, b))
       const t = 200
       // On a phone the icons are boxed into the lower part of the footer, so a hard tilt rolls them around the floor
       // rather than up over the headline; on a laptop the top wall sits well above the screen, so a throw can rise
       // and still come back.
-      const topY = loose ? Math.max(0, floor - Math.min(floor, H * 0.55)) : -600
+      const topY = loose ? findRoof() : -600
       walls = [
         Bodies.rectangle(W / 2, floor + t / 2, W * 3, t, { isStatic: true, label: 'ground' }),
         Bodies.rectangle(-t / 2, H / 2, t, H * 6, { isStatic: true, label: 'wall' }),
@@ -221,6 +234,11 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
       H = host.clientHeight
       size = Math.round(clamp(W * 0.037, 44, 64))
       floor = findFloor()
+      const hr = host.getBoundingClientRect()
+      keepOff = [...(host.parentElement?.querySelectorAll<HTMLElement>('[data-solid]') ?? [])]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 0)
+        .map((r) => ({ l: r.left - hr.left, t: r.top - hr.top, r: r.right - hr.left, b: r.bottom - hr.top }))
       catW = Math.min(clamp(W * 0.223, 150, 400), Math.max(96, H * 0.42)) // and never too tall for a short screen, like a phone on its side
       const img = catEl.current?.querySelector('img')
       catH = catW * (img?.naturalWidth ? img.naturalHeight / img.naturalWidth : CAT_RATIO)
@@ -287,7 +305,7 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
     // No cat game: the icons are just laid out at rest. On a phone they scatter loosely over the floor, each at its
     // own slight angle, like a couple of dice tipped out of a cup; with reduced motion on a laptop they line up.
     const lay = () => {
-      const topY = Math.max(0, floor - Math.min(floor, H * 0.55))
+      const topY = findRoof()
       const cols = Math.max(1, Math.round(Math.sqrt(total * (W / Math.max(1, floor - topY)))))
       const rows = Math.max(1, Math.ceil(total / cols))
       socials.forEach((_, i) => {
@@ -559,8 +577,11 @@ export default function CatGame({ active, revealed }: { active: boolean; reveale
         const maxW = `${Math.max(140, Math.floor(room[side]))}px`
         if (bb.style.maxWidth !== maxW) bb.style.maxWidth = maxW
         const x = side === 'right' ? cat.x + catW * 0.93 + 12 : cat.x + catW * 0.03 - 12 - bubbleW
-        const y = H - cat.y - catH * 0.52 - bubbleH / 2
-        bb.style.transform = `translate(${clamp(x, 12, W - bubbleW - 12)}px, ${y}px)`
+        const bx = clamp(x, 12, W - bubbleW - 12)
+        let y = H - cat.y - catH * 0.52 - bubbleH / 2
+        // where that would cover the copyright pill (a short screen, a phone on its side), it goes up over it instead
+        for (const k of keepOff) if (bx < k.r && bx + bubbleW > k.l && y < k.b && y + bubbleH > k.t) y = Math.min(y, k.t - bubbleH - 8)
+        bb.style.transform = `translate(${bx}px, ${y}px)`
         if (bb.dataset.side !== side) bb.dataset.side = side
       }
     }
