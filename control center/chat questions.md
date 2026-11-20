@@ -17,16 +17,12 @@
 
 ## are you open to work?
 
-yup, always on the lookout for fun opportunities - with work and even otherwise. send me an email and let's see.
+yup, always on the lookout for fun opportunities - with work and even otherwise. send me an email to talk more.
 
 ## what all can you do and work on, work wise?
 
-i am actually learning FE and trying to make fun stuff on my work. like claude code is fun and i use it for work all the time, but for my personal projects, i wanna make this from scratch, like actually understand how things work.
+i bring the curiosity and the ability to bring my ideas to life. i spend my time making fun interactive prototypes and punky graphics after work.
 
-## how do you work?
+## what are my non-negotiables at work?
 
-messy sketches first, figma later. i like talking to the people who'll use the thing before i draw anything.
-
-## are you open to work?
-
-always happy to talk! send me an email and let's see.
+i value a empathetic and collaborative work environment above all else.
