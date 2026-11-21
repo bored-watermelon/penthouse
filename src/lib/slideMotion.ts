@@ -1,7 +1,8 @@
 import gsap from 'gsap'
+import { CustomEase } from 'gsap/CustomEase'
 import { SplitText } from 'gsap/SplitText'
 
-gsap.registerPlugin(SplitText)
+gsap.registerPlugin(SplitText, CustomEase)
 
 // ---------------------------------------------------------------------------------------------------------------
 // Tuning knobs. Seconds unless marked.
@@ -14,6 +15,7 @@ export const DECK = {
   wheelGapMs: 160, // a pause in the wheel longer than this ends a gesture; the next flick is a new one
   wheelTravel: 36, // px of wheel in one gesture before it moves (a mouse notch is about 100, so one notch does it)
   swipePx: 48,
+  glide: 0.9, // one step between the end of work, the timeline and about (Slides.tsx)
 }
 
 /**
@@ -26,6 +28,9 @@ export const EASE = {
   arrive: 'expo.out',
   settle: 'power3.out',
   travel: 'power4.inOut',
+  // the page gliding a screen on (Slides.tsx): it sets off slowly and picks up speed as it goes, only easing off in
+  // the last moment, so it lands rather than stops dead
+  glide: CustomEase.create('glide', 'M0,0 C0.45,0 0.72,0.6 0.86,0.9 C0.9,0.986 0.95,1 1,1'),
 }
 
 /** Work going back to the hero: its toggle rolls down out of its row, the rest of it drifting the same way. */
@@ -691,12 +696,13 @@ export function hide(slide: HTMLElement) {
   set(present(stageOf(slide), dollOf(slide), dollNoteOf(slide)), { opacity: 0 })
 }
 
-/** A section back as it rests, out of sight once it has left (so scrolling to it shows it as it is). */
+/** A section back as it was before it first came in, out of sight once it has left: its heading's words hidden again
+ *  (its top peeks up under the hero, so they'd show there), to come in again the next time it's arrived at. */
 function settle(slide: HTMLElement) {
   dropGhosts(slide)
   const { lines, blocks } = linesOf(headsOf(slide).filter((h) => h.hasAttribute('data-slide-head-block')))
   set([...blocks, ...lines], { clearProps: 'clipPath,transform,opacity' })
-  set(wordsOf(blocks).words, { clearProps: 'opacity,filter' })
+  set(wordsOf(blocks).words, blurred)
   set(tilesOf(slide), { clearProps: 'opacity,transform' })
 }
 

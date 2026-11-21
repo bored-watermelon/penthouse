@@ -1,5 +1,5 @@
 import { Children, useEffect, useRef, type ReactNode } from 'react'
-import { DECK, HURRY, dropGhosts, enter, gsap, heroAway, heroBack, heroHome, heroToWork, hide, kindOf, workToHero } from '../lib/slideMotion'
+import { DECK, EASE, HURRY, dropGhosts, enter, gsap, heroAway, heroBack, heroHome, heroToWork, hide, kindOf, workToHero } from '../lib/slideMotion'
 
 /**
  * The hero, work, timeline and about, on one page that scrolls (see lib/slideMotion.ts for how each one comes in).
@@ -9,7 +9,9 @@ import { DECK, HURRY, dropGhosts, enter, gsap, heroAway, heroBack, heroHome, her
  *
  * Wider than DECK.breakpoint, the hero and work still hand over as one move: a flick of the wheel, a swipe or a key
  * at the top of the page grows the hero's white card over the screen and lands on work, and scrolling back up to the
- * top of work shrinks it back onto the card. Anywhere else the page just scrolls.
+ * top of work shrinks it back onto the card. Further down it goes a screen at a time too: from the end of work's grid
+ * one scroll glides to the timeline, the next to about, and back up the same way. Below the top of about, and inside
+ * work's grid, the page just scrolls.
  *
  * With reduced motion, none of this runs at all.
  */
@@ -75,7 +77,10 @@ function reset(root: HTMLElement) {
 
 // ----- each section enters once, as it comes into view -----
 
-type View = { stop: () => void; claim: (slide: HTMLElement) => void }
+/** the page gliding from one section to the next (gate's `glide`): fast, but not a reader in a hurry */
+let gliding = false
+
+type View = { stop: () => void; claim: (slide: HTMLElement) => void; release: (slide: HTMLElement) => void }
 
 /**
  * What has to be showing for a section to come in, and how much of it. The timeline waits for its line, and about for
@@ -113,7 +118,7 @@ function onView(root: HTMLElement): View {
         io.unobserve(e.target)
         // got here fast, or already partway in (its top gone up off the screen): the same entrance, quicker
         const into = Math.max(0, -slide.getBoundingClientRect().top) / innerHeight
-        const moving = performance.now() - last.t < 150 ? speed : 0 // no scroll for a moment: they've stopped
+        const moving = !gliding && performance.now() - last.t < 150 ? speed : 0 // no scroll for a moment: they've stopped
         enter(slide, 1).timeScale(Math.min(HURRY.most, Math.max(1, moving / HURRY.speed, 1 + into * 3)))
       }
     },
@@ -128,6 +133,8 @@ function onView(root: HTMLElement): View {
     },
     // a section brought in by something else (the hand-over from the hero): it doesn't enter again on its own
     claim: (slide) => io.unobserve(cueOf(slide)[0]),
+    // and handed back, hidden again: it enters on its own if it's scrolled to some other way (the scroll bar)
+    release: (slide) => io.observe(cueOf(slide)[0]),
   }
 }
 
@@ -147,7 +154,7 @@ function scrollerFor(target: EventTarget | null, within: HTMLElement, dir: numbe
 
 function gate(root: HTMLElement, view: View) {
   const html = document.documentElement
-  const [hero, work] = slidesIn(root)
+  const [hero, work, timeline, about] = slidesIn(root)
   root.classList.add('slides--gate')
   if (scrollY > 2) heroAway(hero) // arriving down the page (a reload): the hero waits under the white
   let moving = false // a hand-over is under way: input waits until it has done enough (see `unlockAt`)
@@ -161,6 +168,51 @@ function gate(root: HTMLElement, view: View) {
   /** which sections are showing changed (lib/onScreen.ts listens, to pause what can't be seen) */
   const changed = () => window.dispatchEvent(new Event('scroll'))
 
+  // ----- further down: the end of work, the timeline and about, a screen each -----
+  // Past the end of work's grid the next scroll goes all the way to the timeline, and the next all the way to about,
+  // like turning to the next slide; and back up the same way, to the top of work's grid. Below the top of about the page scrolls as any page does,
+  // on down to the footer under the peeled corner.
+  const topOf = (el: HTMLElement) => el.getBoundingClientRect().top + scrollY
+  /** where the page sits with the last of the grid at the bottom of the screen */
+  const workEnd = () => {
+    const grid = work.querySelector<HTMLElement>('.work__content:not([hidden])')
+    return grid ? Math.max(workTop(), grid.getBoundingClientRect().bottom + scrollY - innerHeight) : workTop()
+  }
+  /** where about is landed on: with its heading just where the timeline's sits on the screen, so going from one to the
+   *  other only the words seem to change */
+  const aboutStop = () => {
+    const [mine, theirs] = [about.querySelector<HTMLElement>('.work__intro'), timeline.querySelector<HTMLElement>('.work__intro')]
+    if (!mine || !theirs) return topOf(about)
+    return topOf(mine) - (topOf(theirs) - topOf(timeline))
+  }
+  /** Where one step from here lands going down (1) or up (-1), or null where the page just scrolls. */
+  const stepFrom = (dir: number) => {
+    if (!timeline || !about) return null
+    const y = scrollY
+    const [end, tl, me] = [workEnd(), topOf(timeline), aboutStop()]
+    if (dir > 0) return y >= end - 2 && y < tl - 2 ? tl : y >= tl - 2 && y < me - 2 ? me : null
+    // back up from the timeline, work is gone back to from its top, not wherever in the grid it was left
+    return y > tl + 2 && y <= me + 2 ? tl : y > end + 2 && y <= tl + 2 ? workTop() : null
+  }
+  /** One step: the page glides there, with input held until it's landed. */
+  const glide = (to: number) => {
+    if (moving || modalOpen() || loading()) return false
+    moving = true
+    gliding = true
+    playing?.progress(1)
+    const at = { y: scrollY }
+    const tl = gsap.timeline({
+      onComplete: () => {
+        moving = gliding = false
+        if (playing === tl) playing = null
+        changed()
+      },
+    })
+    tl.to(at, { y: to, duration: DECK.glide, ease: EASE.glide, onUpdate: () => window.scrollTo({ top: at.y, behavior: 'instant' }) })
+    playing = tl
+    return true
+  }
+
   /** One hand-over: down to work (1), back to the hero from the top of work (-1), or `direct`ly back to the hero from
    *  wherever the page has already got to above work (the white lying over it, see heroAway). */
   const play = (dir: number, direct = false) => {
@@ -170,6 +222,7 @@ function gate(root: HTMLElement, view: View) {
     view.claim(work)
     const land = (top: number) => () => {
       window.scrollTo({ top, behavior: 'instant' })
+      if (dir < 0) view.release(work)
       changed()
     }
     const { tl, unlockAt } = dir > 0 ? heroToWork(hero, work, land(workTop())) : direct ? heroBack(hero, work, land(0)) : workToHero(work, hero, land(0))
@@ -185,7 +238,10 @@ function gate(root: HTMLElement, view: View) {
   // A trackpad keeps sending a flick's momentum for a second or more, so a gesture only ends when the wheel goes quiet,
   // turns round, or picks up again after dying down (a new flick on top of the old one's momentum). A gesture that has
   // moved (or scrolled the page up to the top of work) is spent: the rest of it doesn't carry on past.
-  const wheel = { at: 0, dir: 0, travel: 0, peak: 0, recent: [] as number[], spent: false }
+  // A gesture that set off from where a step goes from (the end of the grid, the timeline, the top of about) steps; one
+  // that has scrolled its way there (down through the grid, up through about) stops at the edge, so what's there can be
+  // seen, and only the next one steps on.
+  const wheel = { at: 0, dir: 0, travel: 0, peak: 0, recent: [] as number[], spent: false, fromStep: false }
   const onWheel = (e: WheelEvent) => {
     if (e.ctrlKey || e.defaultPrevented || modalOpen()) return
     if (loading()) return e.preventDefault()
@@ -196,7 +252,7 @@ function gate(root: HTMLElement, view: View) {
     const size = Math.abs(dy)
     const recent = wheel.recent.length ? wheel.recent.reduce((a, b) => a + b, 0) / wheel.recent.length : 0
     const pickedUp = wheel.spent && wheel.recent.length >= 3 && size >= 15 && size > recent * 2 && wheel.peak > recent * 4
-    if (t - wheel.at > DECK.wheelGapMs || dir !== wheel.dir || pickedUp) Object.assign(wheel, { dir, travel: 0, peak: 0, recent: [], spent: false })
+    if (t - wheel.at > DECK.wheelGapMs || dir !== wheel.dir || pickedUp) Object.assign(wheel, { dir, travel: 0, peak: 0, recent: [], spent: false, fromStep: stepFrom(dir) !== null })
     wheel.at = t
     wheel.recent.push(size)
     if (wheel.recent.length > 3) wheel.recent.shift()
@@ -204,6 +260,26 @@ function gate(root: HTMLElement, view: View) {
     // mid-move, and the rest of a flick that has moved: it doesn't carry on scrolling past where the move landed
     if (moving) wheel.spent = true
     if (wheel.spent) return e.preventDefault()
+
+    const step = stepFrom(dir)
+    if (!wheel.fromStep && timeline && about) {
+      const edge = dir > 0 ? workEnd() : aboutStop()
+      const y = scrollY
+      const crossing = dir > 0 ? y < edge - 2 && y + size > edge : y > edge + 2 && y - size < edge
+      if (crossing || step !== null) {
+        e.preventDefault()
+        wheel.spent = true
+        if (crossing) window.scrollTo({ top: edge, behavior: 'instant' })
+        return
+      }
+    }
+    if (step !== null && !scrollerFor(e.target, document.body, dir)) {
+      e.preventDefault()
+      wheel.travel += size
+      if (wheel.travel < DECK.wheelTravel) return
+      wheel.spent = true
+      return void glide(step)
+    }
 
     const down = dir > 0
     if (down ? !atHero() : scrollY - size > workTop() || scrollY < workTop() - 1) return // the page scrolling as any page does
@@ -239,26 +315,39 @@ function gate(root: HTMLElement, view: View) {
     if (e.key === 'ArrowDown' || e.key === 'PageDown') dir = 1
     else if (e.key === 'ArrowUp' || e.key === 'PageUp') dir = -1
     else if (e.key === ' ' && !el.closest('button, a, [role="button"]')) dir = e.shiftKey ? -1 : 1
+    const step = dir ? stepFrom(dir) : null
+    if (step !== null) {
+      e.preventDefault()
+      if (!e.repeat) glide(step)
+      return
+    }
     if (!dir || !(dir > 0 ? atHero() : atWork())) return
     e.preventDefault()
     if (!e.repeat) play(dir)
   }
 
-  // a swipe at the top of the page (or of work) hands over; anywhere else the page scrolls under the finger
+  // a swipe at the top of the page (or of work), or between the end of work, the timeline and about, hands over or
+  // steps; anywhere else the page scrolls under the finger
   let touch: { y: number; target: EventTarget | null } | null = null
   const onTouchStart = (e: TouchEvent) => {
-    touch = e.touches.length === 1 && (atHero() || atWork()) ? { y: e.touches[0].clientY, target: e.target } : null
+    const ours = atHero() || atWork() || stepFrom(1) !== null || stepFrom(-1) !== null
+    touch = e.touches.length === 1 && ours ? { y: e.touches[0].clientY, target: e.target } : null
   }
   const onTouchMove = (e: TouchEvent) => {
     if (!touch || modalOpen() || e.touches.length !== 1) return
     const dir = Math.sign(touch.y - e.touches[0].clientY)
-    const ours = dir > 0 ? atHero() && !scrollerFor(touch.target, hero, 1) : dir < 0 && atWork()
+    const ours = (dir !== 0 && stepFrom(dir) !== null) || (dir > 0 ? atHero() && !scrollerFor(touch.target, hero, 1) : dir < 0 && atWork())
     if ((moving || ours) && e.cancelable) e.preventDefault()
   }
   const onTouchEnd = (e: TouchEvent) => {
     if (!touch || modalOpen() || loading()) return (touch = null)
     const dy = touch.y - e.changedTouches[0].clientY
     const dir = Math.sign(dy)
+    const step = dir ? stepFrom(dir) : null
+    if (step !== null) {
+      if (Math.abs(dy) > DECK.swipePx) glide(step)
+      return (touch = null)
+    }
     if (Math.abs(dy) > DECK.swipePx && (dir > 0 ? atHero() && !scrollerFor(touch.target, hero, 1) : atWork())) play(dir)
     touch = null
   }
