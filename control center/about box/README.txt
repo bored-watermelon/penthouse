@@ -31,7 +31,9 @@ sketchbook/
   stickers/
     The stickers on the cover. Cut-outs: PNG with a see-through background, or SVG.
     Give one a size in its file name: "heart (3cm).png" is 3cm on its longer side, against a cover 9.5cm wide.
-    Without one, it's 2.8cm. They're stuck on in file-name order, spread over the cover, and can be peeled off
+    Without one, it's 2.8cm. To make one bigger or smaller, give it a scale in percent, as for the things in the box:
+    "heart (scale 120).png" is a fifth bigger, "(scale 80)" smaller (no % sign). The two can go together.
+    They're stuck on in file-name order, spread over the cover, and can be peeled off
     and moved. The ones in here now are placeholders: replace them with your own.
 
   cover.jpg (optional, next to photos/ and stickers/)

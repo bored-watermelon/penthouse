@@ -517,7 +517,9 @@ export default function Sketchbook({ onClose }: { onClose: () => void }) {
       cancelAnimationFrame(e.raf)
       const t0 = performance.now()
       const step = (t: number) => {
-        const k = still() || ms <= 0 ? 1 : Math.min(1, (t - t0) / ms)
+        // a frame's time can be from just before the move was started: never let that run it backwards, past where
+        // it starts (a corner pushed out past the page's own corner turns the whole page over for a frame)
+        const k = still() || ms <= 0 ? 1 : clamp((t - t0) / ms, 0, 1)
         frame(ease(k))
         if (k < 1) e.raf = requestAnimationFrame(step)
         else {

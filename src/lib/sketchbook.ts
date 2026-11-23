@@ -4,7 +4,8 @@
 //                spread. Anything after " - " in the name is written under it: "07 - a cafe in kochi.jpg".
 //                Until there's anything in here, the book borrows the Art pictures from /play.
 //   stickers/*   the stickers on the cover: cut-outs, as PNGs with a see-through background or SVGs. Sized like the
-//                things in the box, "heart (3cm).png", against a cover 9.5cm across; otherwise 2.8cm.
+//                things in the box, "heart (3cm).png", against a cover 9.5cm across; otherwise 2.8cm. And scaled
+//                like them too, "heart (scale 120).png", in percent, on top of that.
 //   cover.*      optional: a picture to use as the cover, instead of the plain black one
 
 import { playItems } from '../content'
@@ -119,6 +120,8 @@ function svgSize(text: string) {
 export type Sticker = { id: string; src: string; width: number; height: number; cm: number }
 
 const STICKER_CM = 2.8
+/** "(scale 120)": a fifth bigger, in percent, as for the things in the box (lib/about.ts) */
+const SCALE_RE = /\(\s*scale\s*[-:]?\s*([\d.]+)\s*\)/i
 
 export const stickers: Sticker[] = [
   ...Object.entries(stickerPng).map(([path, m]) => ({ path, src: m.src, width: m.width, height: m.height })),
@@ -128,7 +131,9 @@ export const stickers: Sticker[] = [
   .map(({ path, ...s }) => {
     const name = stem(path)
     const given = name.match(/\(\s*([\d.]+)\s*cm\s*\)/i)
-    return { ...s, id: name.replace(/\s*\([^)]*cm\s*\)/i, '').trim(), cm: given ? +given[1] : STICKER_CM }
+    const scaled = name.match(SCALE_RE)
+    const id = name.replace(/\s*\([^)]*cm\s*\)/i, '').replace(SCALE_RE, '').replace(/\s+/g, ' ').trim()
+    return { ...s, id, cm: (given ? +given[1] : STICKER_CM) * (scaled ? +scaled[1] / 100 : 1) }
   })
 
 /** A sticker's size on the cover, in cm: its longer side is the size it was given. */
